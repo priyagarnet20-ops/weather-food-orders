@@ -1,0 +1,7 @@
+model,n,MAE,RMSE,MAPE_%,bias,cover80_%,"MAE vs weekday mean, %"
+SARIMAX log (weather),182,32.69,40.967,18.884,4.91,74.725,-8.02
+SARIMAX (weather),182,32.933,40.944,19.116,3.824,77.473,-7.336
+Prophet (weather),182,33.47,41.599,19.676,2.125,75.824,-5.823
+SARIMAX (no weather),182,35.47,45.219,20.053,8.468,77.473,-0.195
+Weekday mean,182,35.54,45.308,19.969,9.218,,0.0
+Seasonal naive,182,46.61,58.2,26.987,1.225,,31.148

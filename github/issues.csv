@@ -1,0 +1,30 @@
+id,owner,title,review,rubric_item,evidence,week,points,description
+T01,P1,Create repo and GitHub Project board,R1,Tracking requirement,Repo + board link,1,2,"Five columns, custom fields, labels, issue template, branch protection on main."
+T02,P1,Open-Meteo weather fetcher for Coimbatore,R1,Dataset description,"src/weather.py, data/raw/weather.csv",1,3,"Archive API at 11.00N, 76.99E. Daily + hourly precipitation, rain, temperature, humidity, weather_code. Cache to CSV, rerunnable."
+T03,P1,"Problem statement, business objective, dataset documentation",R1,Problem statement & dataset (2),"docs/dataset.md, slide",2,2,"Data sources, API parameters, field dictionary, collection method, date range."
+T04,P1,Time-series data preparation,R2,Method 2 prep & implementation (2),notebooks/07_timeseries.ipynb,5,3,"Daily order series, ADF stationarity test, seasonal decomposition, time-ordered train/test split."
+T05,P1,Order-volume forecasting models,R2,Method 2 prep & implementation (2),"src/forecast.py, PR",6,5,"Seasonal naive baseline, SARIMAX with weather regressors, Prophet. Rolling-origin backtest."
+T06,P1,Forecast evaluation and interpretation,R2,Method 2 evaluation (3),"Notebook section, slide",7,3,"MAE / RMSE / MAPE table, residual checks, error on rainy vs dry days, what the forecast means for operations."
+T07,P2,Menu catalog,R1,Dataset description,data/raw/menu.csv,1,2,"About 40 items with category and price, local to Coimbatore (filter coffee, chai, pakora, bajji, parotta, biryani, juices, ice cream)."
+T08,P2,Weather-driven daily demand model,R1,Dataset description,"src/generator.py, PR",2,5,"Daily orders ~ Negative Binomial with weekday, rain, temperature and festival multipliers. Fixed random seed."
+T09,P2,Basket generator with weather-conditioned combos,R1,Dataset description,"src/generator.py, data/raw/orders.csv",2,5,"Rain raises chai + pakora odds, heat raises juice + ice cream. Order timestamps by meal slot."
+T10,P2,Generator logic documentation,R1,Dataset description (required by rubric),docs/generator.md,3,2,"Every parameter and multiplier, the planted item associations (ground truth), and the random seed."
+T11,P2,Rainy vs dry rule evaluation,R2,Method 1 evaluation (3),"06_arm.ipynb section, slide",6,3,"Compare support, confidence and lift for the same rules in each segment. Flag rules that exist only on rainy days. Check the planted combos are recovered."
+T12,P2,Rule threshold sensitivity,R2,Method 1 evaluation (3),Table in notebook,7,1,Rule counts and top rules across min_support / min_confidence settings.
+T13,P3,Merge and clean,R1,Cleaning & preprocessing (3),"03_preprocess.ipynb, data/processed/",2,3,"Join orders to weather on date. Types, missing values, duplicates, IQR outliers on order value. Log each step."
+T14,P3,Feature engineering,R1,Feature engineering (2),"src/features.py, PR",3,3,"Lags (1, 7), 7-day rolling mean, rain flag and intensity bins, temperature bands, weekend and festival flags, monsoon phase (SW Jun-Sep, NE Oct-Dec)."
+T15,P3,Feature selection check,R1,Feature engineering (2),Notebook section,3,2,Correlation matrix and VIF. PCA only if multicollinearity is a problem.
+T16,P3,ARM data preparation,R2,Method 1 prep & implementation (2),src/arm.py,5,2,"Orders to one-hot transactions (TransactionEncoder), split into rainy and dry day segments."
+T17,P3,FP-Growth / Apriori implementation,R2,Method 1 prep & implementation (2),"06_arm.ipynb, rules CSV",5,3,"Frequent itemsets and rules per segment, exported as a rules table for the dashboard."
+T18,P3,Final report,R2,Final report deliverable,"docs/report, slides/",8,5,Compile all sections into the final report and assemble the Review 2 deck.
+T19,P4,Exploratory data analysis,R1,EDA & visualization (3),04_eda.ipynb,3,3,"Order distributions, weekday and hourly patterns, rain vs dry comparison, weather-orders correlation heatmap."
+T20,P4,Presentation chart set,R1,EDA & visualization (3),"PNG exports, slides",3,2,"Clean, labelled exports of the 8-10 key charts."
+T21,P4,Review 1 deck,R1,Presentation (3),slides/review1,4,2,Assemble the 10-minute deck with one section per person.
+T22,P4,Dashboard: forecast view,R2,Interactive dashboard (5),"dashboard/app.py, PR",6,5,"Streamlit app with date range and weather filters, actual vs forecast chart."
+T23,P4,Dashboard: rules explorer and monsoon timeline,R2,Interactive dashboard (5),"dashboard/app.py, screenshots",7,3,"Rainy vs dry rule tables with a lift slider, plus a lift-over-time chart."
+T24,P4,Dashboard deployment,R2,Interactive dashboard (5),Live URL,8,3,"Deploy to Streamlit Community Cloud, link it in the README."
+T25,P5,Order-volume prediction models,R1,Predictive model (4),"05_model.ipynb, PR",3,5,"Seasonal naive baseline, Ridge, Random Forest, XGBoost on daily order volume with a time-based split."
+T26,P5,Model evaluation and initial findings,R1,Model evaluation & interpretation (3),"Notebook section, slide",4,3,"MAE / RMSE / MAPE comparison, residual plots, feature importance or SHAP, first business findings."
+T27,P5,Combo lift across the monsoon,R2,Links Method 1 and Method 2,08_monsoon_lift.ipynb,6,5,Rolling 14-day windows of rules. Track lift of the weather-linked combos by monsoon phase.
+T28,P5,Combined business recommendations,R2,Combined insights (2),"Report section, slide",7,3,"Rainy-day combo promotions, kitchen staffing and inventory from the forecast plus the rules."
+T29,P5,Final notebook integration,R2,Final notebook deliverable,notebooks/final.ipynb,8,2,Merge everyone's notebooks into final.ipynb and confirm it runs top to bottom.

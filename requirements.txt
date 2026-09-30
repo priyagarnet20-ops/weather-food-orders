@@ -1,0 +1,11 @@
+# versions this repository was built and tested with (P1 modules); loosen if your environment differs
+pandas>=3.0
+numpy>=2.0
+matplotlib>=3.9
+scipy>=1.13
+statsmodels>=0.15
+prophet>=1.1
+nbformat>=5.10
+nbconvert>=7.16
+ipykernel>=6.29
+pytest>=8.0
