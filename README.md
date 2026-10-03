@@ -30,10 +30,9 @@ pytest -q                                # 7 offline tests
 python notebooks/build_07_timeseries.py  # regenerate the notebook source
 jupyter nbconvert --to notebook --execute --inplace notebooks/07_timeseries.ipynb   # ~2 minutes
 ```
-The notebook reads the order counts from `ORDERS_CSV` (first code cell). It points at P2's draft file until the final
-`data/raw/orders.csv` exists; switching is a one-line change.
+The notebook reads the order counts from `ORDERS_CSV` (first code cell), which points at `data/raw/daily_orders.csv`. The full run takes about
+20 minutes (131 rolling folds, six models).
 
-## Important before anyone finalises results
-`data/raw/weather.csv` currently comes from a manual Open-Meteo download (GMT days, no humidity). After running
-`python src/weather.py --force` the daily values change slightly, so P2 must regenerate the orders from the refreshed weather and P1 re-runs the notebook.
-See `docs/dataset.md` section 3.1.
+## Data status
+`data/raw/weather.csv` (1,097 days, 2023-09-24 to 2026-09-24) comes from the Open-Meteo Archive API and `data/raw/daily_orders.csv` was generated
+from it by P2. If the weather is refetched, P2 must regenerate the orders and P1 re-runs the notebook. See `docs/dataset.md`.

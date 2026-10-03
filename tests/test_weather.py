@@ -15,7 +15,8 @@ sys.path.insert(0, str(ROOT / "src"))
 import weather  # noqa: E402
 
 EXPORT = ROOT / "data" / "raw" / "openmeteo_export_11.00N76.99E.csv"
-P2_DRAFT = ROOT / "data" / "raw" / "daily_orders_p2_draft.csv"
+WEATHER = ROOT / "data" / "raw" / "weather.csv"
+ORDERS = ROOT / "data" / "raw" / "daily_orders.csv"
 
 
 def mock_payload(days=5, start="2026-01-01"):
@@ -96,14 +97,18 @@ def test_export_normalises_and_is_clean():
     assert meta["elevation_m"] == 422.0
 
 
-@pytest.mark.skipif(not (EXPORT.exists() and P2_DRAFT.exists()), reason="files not present")
-def test_export_matches_weather_columns_used_by_p2_generator():
-    df, _ = weather.normalise_export(EXPORT)
-    p2 = pd.read_csv(P2_DRAFT, parse_dates=["date"])
-    m = df.merge(p2, on="date", suffixes=("", "_p2"))
-    assert len(m) == 366
+@pytest.mark.skipif(not (WEATHER.exists() and ORDERS.exists()), reason="files not present")
+def test_final_orders_use_the_same_weather_as_weather_csv():
+    w = pd.read_csv(WEATHER, parse_dates=["date"])
+    o = pd.read_csv(ORDERS, parse_dates=["date"])
+    assert len(w) == len(o) == 1097
+    assert w["date"].min() == pd.Timestamp("2023-09-24") and w["date"].max() == pd.Timestamp("2026-09-24")
+    assert weather.validate_daily(w, "2023-09-24", "2026-09-24") == []
+    m = w.merge(o, on="date", suffixes=("", "_p2"))
+    assert len(m) == 1097
     for col in ["precip_mm", "temp_max_c", "temp_min_c", "wind_max_kmh", "temp_mean_c"]:
         assert np.allclose(m[col], m[col + "_p2"]), col
+    assert o["order_count"].notna().all() and (o["order_count"] > 0).all()
 
 
 def test_fetch_writes_cache_and_second_call_is_cache_hit(tmp_path, monkeypatch):

@@ -35,6 +35,7 @@ RAIN_MM = 2.5     # meaningful rain (team regime definition)
 HEAVY_MM = 15.0   # heavy rain
 HOT_C = 33.0      # hot day (temp_max)
 WEATHER_COLS = ["is_rainy", "heavy_rain", "is_hot"]
+CALENDAR_COLS = ["is_festival"]   # known in advance; used by every model that takes regressors
 
 logging.getLogger("cmdstanpy").setLevel(logging.CRITICAL)
 logging.getLogger("prophet").setLevel(logging.CRITICAL)
@@ -61,6 +62,11 @@ def load_daily(weather_csv: str | Path, orders_csv: str | Path) -> pd.DataFrame:
     df = w.merge(y, on="date", how="left").sort_values("date").set_index("date")
     df["order_count"] = df["order_count"].astype(float)
     df = df.asfreq("D")
+    if "is_festival" in o.columns:
+        f = o.assign(date=pd.to_datetime(o["date"]).dt.normalize()).set_index("date")["is_festival"]
+        df["is_festival"] = f.reindex(df.index).fillna(0).astype(int)
+    else:
+        df["is_festival"] = 0
     df["is_rainy"] = (df["precip_mm"] >= RAIN_MM).astype(int)
     df["heavy_rain"] = (df["precip_mm"] >= HEAVY_MM).astype(int)
     df["is_hot"] = (df["temp_max_c"] >= HOT_C).astype(int)
@@ -115,9 +121,10 @@ def time_split(df: pd.DataFrame, test_days: int = 56) -> tuple[pd.DataFrame, pd.
 
 
 def exog_matrix(df: pd.DataFrame, weather: bool = True) -> pd.DataFrame:
-    """Regressors for SARIMAX: day-of-week dummies (+ weather flags)."""
+    """Regressors for SARIMAX: day-of-week dummies + festival flag (+ weather flags)."""
     X = pd.get_dummies(df["dow"].astype(int), prefix="dow", drop_first=True).astype(float)
     X = X.reindex(columns=[f"dow_{i}" for i in range(1, 7)], fill_value=0.0)
+    X = pd.concat([X, df[CALENDAR_COLS].astype(float)], axis=1)
     if weather:
         X = pd.concat([X, df[WEATHER_COLS].astype(float)], axis=1)
     return X
@@ -193,7 +200,8 @@ def select_sarimax_order(train: pd.DataFrame, weather: bool = True, log: bool = 
 
 
 def make_prophet(weather: bool = True, changepoint_prior_scale: float = 0.01) -> Callable:
-    """Prophet with weekly seasonality, no yearly term (only one year of history), optional weather regressors."""
+    """Prophet with weekly seasonality, festival flag, optional weather regressors.
+    Yearly seasonality is off: the generator has no yearly term, so there is nothing for it to find."""
     def fn(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
         from prophet import Prophet
         for name in ("cmdstanpy", "prophet"):
@@ -203,7 +211,7 @@ def make_prophet(weather: bool = True, changepoint_prior_scale: float = 0.01) ->
             lg.propagate = False
         m = Prophet(weekly_seasonality=True, yearly_seasonality=False, daily_seasonality=False,
                     changepoint_prior_scale=changepoint_prior_scale, interval_width=0.80)
-        cols = WEATHER_COLS if weather else []
+        cols = CALENDAR_COLS + (WEATHER_COLS if weather else [])
         for c in cols:
             m.add_regressor(c)
         tr = train.reset_index().rename(columns={"date": "ds", "order_count": "y"})[["ds", "y"] + cols]
