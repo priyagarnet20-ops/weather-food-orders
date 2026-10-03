@@ -57,7 +57,7 @@ def save(fig, name):
 
 # ---- configuration -------------------------------------------------------------------------
 WEATHER_CSV = ROOT / "data/raw/weather.csv"
-ORDERS_CSV  = ROOT / "data/raw/daily_orders_p2_draft.csv"   # switch to P2's final orders file when it lands
+ORDERS_CSV  = ROOT / "data/raw/daily_orders.csv"   # P2's final orders file
 INITIAL, HORIZON, STEP = 180, 7, 7    # backtest: first 180 days to train, then 7-day forecasts every 7 days
 TEST_DAYS = 56                        # static hold-out: last 8 weeks
 """)
@@ -84,7 +84,7 @@ ax.plot(df.index, df["order_count"], color=S.C["gray"], lw=1.1, label="Daily ord
 r = df[df["is_rainy"] == 1]
 ax.scatter(r.index, r["order_count"], s=16, color=S.C["blue"], zorder=3, label="Rainy day (≥ 2.5 mm)")
 ax.plot(df.index, df["order_count"].rolling(7, center=True).mean(), color=S.C["orange"], lw=2, label="7-day mean")
-ax.set_ylabel("Orders per day"); ax.set_title("Daily orders, Sep 2025 – Sep 2026")
+ax.set_ylabel("Orders per day"); ax.set_title("Daily orders, Sep 2023 – Sep 2026")
 ax.legend(ncol=3, loc="upper left")
 save(fig, "fig01_series"); plt.show()
 """)
@@ -114,8 +114,8 @@ display(st.round(4))
 
 md("""
 ### 4. Seasonal decomposition
-Additive decomposition with a weekly period (7). Only one year of data is available, so a yearly seasonal component
-**cannot be estimated** (there is a single repetition of each month) and is deliberately left out of every model.
+Additive decomposition with a weekly period (7). Three years are available, so a yearly component could be estimated, but the generator has no yearly term, so none is
+included; the weekly period and the festival flag carry the calendar structure.
 """)
 code("""
 dec = F.decompose(df["order_count"], period=7)
@@ -157,10 +157,10 @@ md("""
 |---|---|---|
 | Seasonal naive | repeats the last observed week | no |
 | Weekday mean | average of each weekday over the training window (stronger baseline) | no |
-| SARIMAX (no weather) | day-of-week dummies + ARMA errors | no |
+| SARIMAX (no weather) | day-of-week dummies + festival flag + ARMA errors | no |
 | SARIMAX (weather) | the same, plus rain, heavy-rain and hot-day flags | yes |
 | SARIMAX log (weather) | as above on log orders (effects of rain and heat are proportional) | yes |
-| Prophet (weather) | weekly seasonality + the same three weather regressors; no yearly term | yes |
+| Prophet (weather) | weekly seasonality + festival flag + the same three weather regressors; no yearly term | yes |
 
 **Weather is oracle weather.** For each forecast day the model is given that day's *observed* weather. A live system would have
 to use a weather forecast, so the accuracy below is an upper bound for the weather models.
@@ -315,14 +315,15 @@ md("""
 ### 6. How close to the best possible?
 Because the orders are synthetic, the noise floor is known: no model can beat the generator's own expected value. The cell
 below applies the multipliers documented by P2 (`docs/generator.md`) to the backtest days. **These constants are copied from the
-current generator draft; update them if P2 changes the generator.**
+final generator (including the festival uplift on the 41 festival days); update them if P2 changes the generator.**
 """)
 code("""
-BASE, WEEKEND, RAIN_MID, RAIN_HEAVY, HEAT = 140, 1.30, 1.20, 1.35, 1.10
+BASE, WEEKEND, RAIN_MID, RAIN_HEAVY, HEAT, FESTIVAL = 140, 1.30, 1.20, 1.35, 1.10, 1.25
 d = df.loc[fc["date"].unique()].copy()
 mult = np.where(d["dow"].isin([4, 5, 6]), WEEKEND, 1.0) \\
      * np.select([d["precip_mm"] >= 15, d["precip_mm"] >= 2.5], [RAIN_HEAVY, RAIN_MID], 1.0) \\
-     * np.where(d["temp_max_c"] >= 33, HEAT, 1.0)
+     * np.where(d["temp_max_c"] >= 33, HEAT, 1.0) \\
+     * np.where(d["is_festival"] == 1, FESTIVAL, 1.0)
 floor = pd.DataFrame({"date": d.index, "y": d["order_count"].to_numpy(), "yhat": BASE * mult, "model": "Generator expected value",
                       "lo80": np.nan, "hi80": np.nan})
 floor_m = F.metrics(floor)
@@ -388,7 +389,8 @@ display(Markdown("\\n\\n".join(lines)))
 
 md("""
 ## Limits of this analysis
-* **One year of history.** Weekly patterns are well estimated; a yearly (monsoon) cycle is not, and is excluded from all models.
+* **Three years of history, no yearly term.** The generator has no seasonal-by-month effect other than weather and festivals, so the models do not include one. On real data a yearly cycle would need to be tested.
+* **Festival dates are treated as known in advance** (calendar flag), which is realistic for a planning system.
 * **Oracle weather.** Weather-model accuracy assumes the day's weather is known. Using a weather forecast would raise the error.
 * **Synthetic orders.** The order counts follow the generator's documented rules plus negative-binomial noise. Results show how well
   the methods recover those rules, not real customer behaviour.
