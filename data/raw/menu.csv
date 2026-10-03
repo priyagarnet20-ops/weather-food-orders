@@ -1,0 +1,41 @@
+item_id,item_name,category,price,weather_affinity,description
+M01,South Indian Filter Coffee,Beverages (Hot),30,hot_comfort,Traditional chicory-blended filter coffee brewed in a brass dabarah
+M02,Masala Chai,Beverages (Hot),25,hot_comfort,"Spiced milk tea infused with crushed ginger, cardamom, and cloves"
+M03,Sukku Malli Tea,Beverages (Hot),30,hot_comfort,Herbal dry ginger and coriander seed tea popular in western Tamil Nadu
+M04,Cardamom Tea,Beverages (Hot),25,hot_comfort,Aromatic milk tea flavored with freshly ground green cardamom
+M05,Badam Milk,Beverages (Hot),45,hot_comfort,Warm sweetened milk enriched with almond paste and saffron
+M06,Onion Pakora,Snacks & Quick Bites,50,hot_comfort,Crispy golden-fried sliced onion fritters spiced with curry leaves and green chillies
+M07,Milagai Bajji,Snacks & Quick Bites,45,hot_comfort,Spicy banana pepper fritters dipped in seasoned gram flour batter
+M08,Vazhakkai Bajji,Snacks & Quick Bites,45,hot_comfort,Thinly sliced raw plantain fritters served with coconut and tomato chutney
+M09,Medu Vada,Snacks & Quick Bites,35,hot_comfort,Crisp fried black gram doughnut-shaped fritters served with sambar and chutney
+M10,Potato Bonda,Snacks & Quick Bites,40,hot_comfort,Deep-fried spiced mashed potato balls encased in besan batter
+M11,Samosa,Snacks & Quick Bites,30,hot_comfort,Flaky pastry cones stuffed with seasoned potato and green pea filling
+M12,Kuzhi Paniyaram,Snacks & Quick Bites,60,hot_comfort,Pan-fried fermented rice-lentil dumplings tempered with mustard and onions
+M13,Ghee Podi Dosa,South Indian Tiffin,85,neutral,Crisp fermented crepe smeared with aromatic spiced gunpowder and melted ghee
+M14,Masala Dosa,South Indian Tiffin,80,neutral,Crispy rice-lentil crepe wrapped around savory spiced potato masala
+M15,Plain Dosa,South Indian Tiffin,60,neutral,Golden crispy thin South Indian crepe served with chutney trio and sambar
+M16,Idli (2 pcs),South Indian Tiffin,40,neutral,Steamed fluffy rice and urad dal cakes served with sambar and chutneys
+M17,Pongal,South Indian Tiffin,60,neutral,Classic Tamil Nadu ghee-laden rice and moong dal porridge tempered with black pepper and cashews
+M18,Poori Masala,South Indian Tiffin,65,neutral,Puffed deep-fried wheat breads served with South Indian potato masala gravy
+M19,Malabar Parotta (2 pcs),South Indian Tiffin,60,neutral,Flaky layered layered flatbreads served with vegetable salna
+M20,Chicken Kothu Parotta,South Indian Tiffin,160,neutral,"Shredded parotta stir-fried on hot tawa with shredded chicken, eggs, and salna"
+M21,Veechu Parotta,South Indian Tiffin,50,neutral,Thin stretched square parotta tossed on hot iron griddle
+M22,Coimbatore Chicken Biryani,Biryani & Mains,220,neutral,Fragrant Seeraga Samba rice chicken biryani cooked Kongu style with whole spices
+M23,Kongu Mutton Biryani,Biryani & Mains,280,neutral,Signature Coimbatore Seeraga Samba short-grain biryani with tender mutton pieces
+M24,Veg Biryani,Biryani & Mains,140,neutral,Aromatic Seeraga Samba rice cooked with seasonal vegetables and mild spices
+M25,Egg Biryani,Biryani & Mains,170,neutral,Seeraga Samba biryani rice served with two seasoned hard-boiled eggs
+M26,Curd Rice,Biryani & Mains,60,cold_refresh,"Tempered cooling yoghurt rice with mustard, ginger, green chillies, and pomegranate"
+M27,Sambar Rice,Biryani & Mains,70,neutral,Slow-cooked rice blended with aromatic drumstick-shallot sambar and generous ghee
+M28,Chicken Chukka,Biryani & Mains,180,neutral,"Dry spicy Kongunadu chicken roast with shallots, curry leaves, and freshly ground pepper"
+M29,Jigarthanda,Cold Refreshments & Juices,70,cold_refresh,"Famous cooling drink with almond gum (badam pisin), nannari syrup, milk, and basundi"
+M30,Nannari Sarbath,Cold Refreshments & Juices,40,cold_refresh,Traditional sarsaparilla root extract drink with fresh lime and chilled water
+M31,Fresh Lime Juice,Cold Refreshments & Juices,40,cold_refresh,Refreshing chilled lemonade freshly squeezed with mint leaves
+M32,Watermelon Juice,Cold Refreshments & Juices,55,cold_refresh,Freshly extracted pure chilled watermelon juice
+M33,Mango Juice,Cold Refreshments & Juices,65,cold_refresh,Rich pulp juice made from ripe Alphonso/Banganapalli mangoes
+M34,Buttermilk (Moru),Cold Refreshments & Juices,30,cold_refresh,"Whisked spiced curd cooler tempered with curry leaves, ginger, and green chillies"
+M35,Rose Milk,Cold Refreshments & Juices,45,cold_refresh,Classic fragrant chilled milk beverage flavored with sweet rose syrup
+M36,Tender Coconut Ice Cream,Desserts & Ice Cream,80,cold_refresh,Creamy artisanal ice cream infused with fresh malai and tender coconut water
+M37,Vanilla Ice Cream,Desserts & Ice Cream,60,cold_refresh,Classic smooth and rich real Madagascar vanilla bean scoop
+M38,Butterscotch Ice Cream,Desserts & Ice Cream,75,cold_refresh,Crunchy caramelized cashew praline blended with rich butterscotch cream
+M39,Paal Payasam,Desserts & Ice Cream,60,neutral,"Traditional slow-simmered rice pudding with reduced milk, cardamom, and ghee-roasted nuts"
+M40,Gulab Jamun (2 pcs),Desserts & Ice Cream,50,neutral,Soft fried khoya milk dumplings soaked in warm rose and cardamom scented sugar syrup
