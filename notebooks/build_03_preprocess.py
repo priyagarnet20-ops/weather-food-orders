@@ -148,10 +148,20 @@ md("""
 ### 1.3 Merge orders with weather
 
 Inner join on `date` so we only keep days where **both** weather and orders exist.
+The festival flag (`is_festival`) is then added from the generator's calendar.
+
+> `total_revenue`, `avg_order_value` and `avg_basket_size` are same-day outcomes of the orders.
+> They are kept for description only and must **not** be used as predictors of `order_count`.
 """)
 
 code("""
 merged = pd.merge(daily_agg, weather, on="date", how="inner")
+
+# Festival days are a documented demand driver (about +21%) and are known in advance.
+# The flag comes from P2's generator calendar; add_festival_flag fails loudly if any date has none.
+from features import add_festival_flag
+merged = add_festival_flag(merged)
+print(f"Festival days: {int(merged['is_festival'].sum())}")
 print(f"Merged shape: {merged.shape}")
 print(f"Date range:   {merged['date'].min().date()} → {merged['date'].max().date()}")
 print(f"Days covered: {merged.shape[0]}")
@@ -295,7 +305,7 @@ new_cols = [
     "order_count_lag1", "order_count_lag7", "order_count_roll7",
     "is_rainy", "heavy_rain", "rain_intensity",
     "is_hot", "temp_band",
-    "dow", "is_weekend",
+    "dow", "is_weekend", "is_festival",
     "monsoon_phase",
 ]
 for col in new_cols:
@@ -392,7 +402,7 @@ numeric_cols = [
     "order_count", "precip_mm", "rain_mm", "temp_max_c", "temp_min_c",
     "temp_mean_c", "humidity_mean_pct", "wind_max_kmh",
     "order_count_lag1", "order_count_lag7", "order_count_roll7",
-    "is_rainy", "heavy_rain", "is_hot", "is_weekend",
+    "is_rainy", "heavy_rain", "is_hot", "is_weekend", "is_festival",
 ]
 # Keep only columns that exist
 numeric_cols = [c for c in numeric_cols if c in features.columns]
@@ -423,53 +433,50 @@ for feat, r in target_corr.items():
     print(f"  {feat:25s}  {sign}{abs(r):.3f}  {bar}")
 """)
 
-md("### 3.3 Variance Inflation Factor (VIF)")
+md("""
+### 3.3 Variance Inflation Factor (VIF)
+VIF is computed on the **final selected set** (section 3.4), with an intercept so the values are not inflated.
+""")
 
 code("""
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+import statsmodels.api as sm
 
-vif_cols = [
-    "precip_mm", "temp_max_c", "temp_min_c", "humidity_mean_pct",
-    "wind_max_kmh", "is_rainy", "is_hot", "is_weekend",
+selected_features = [
+    "order_count_lag1",     # yesterday's orders (weak here: the generator has no day-to-day memory)
+    "order_count_lag7",     # same weekday last week
+    "order_count_roll7",    # mean of the previous 7 days
+    "rain_mm",              # continuous rain measure
+    "temp_max_c",           # temperature effect
+    "humidity_mean_pct",    # humidity effect
+    "is_weekend",           # Fri-Sun flag, the strongest single signal
+    "is_hot",               # binary hot flag
+    "is_rainy",             # binary rain flag
+    "is_festival",          # festival days lift demand by about 21%
 ]
-vif_cols = [c for c in vif_cols if c in features.columns]
 
-vif_data = features[vif_cols].dropna()
-
+vif_data = sm.add_constant(features[selected_features].dropna())
 vif_df = pd.DataFrame({
-    "Feature": vif_cols,
-    "VIF": [variance_inflation_factor(vif_data.values, i) for i in range(len(vif_cols))],
+    "Feature": selected_features,
+    "VIF": [variance_inflation_factor(vif_data.values, i + 1) for i in range(len(selected_features))],
 }).sort_values("VIF", ascending=False)
 
-print("Variance Inflation Factors:")
+print("Variance Inflation Factors (final selected set):")
 print(vif_df.to_string(index=False))
 print()
 high_vif = vif_df[vif_df["VIF"] > 10]
 if len(high_vif) > 0:
-    print(f"⚠ {len(high_vif)} feature(s) with VIF > 10 — consider PCA or dropping:")
+    print(f"WARNING: {len(high_vif)} feature(s) with VIF > 10; consider PCA or dropping:")
     print(high_vif.to_string(index=False))
 else:
-    print("✓ No features with VIF > 10 — multicollinearity is not a concern.")
-    print("  PCA is not required.")
+    print("No features with VIF > 10: multicollinearity is not a concern, PCA is not required.")
 """)
 
 md("### 3.4 Feature selection decision")
 
 code("""
-# Based on correlation + VIF analysis, select the final feature set for modelling.
-# Drop features that are highly correlated with each other (keep the more interpretable one).
-
-selected_features = [
-    "order_count_lag1",     # strong autocorrelation (most predictive)
-    "order_count_lag7",     # weekly cycle
-    "order_count_roll7",   # trend / momentum
-    "rain_mm",              # continuous rain measure
-    "temp_max_c",           # temperature effect
-    "humidity_mean_pct",    # humidity effect
-    "is_weekend",           # calendar effect
-    "is_hot",               # binary hot flag
-    "is_rainy",             # binary rain flag
-]
+# Final feature set chosen from correlation + VIF (list defined in 3.3).
+# Keep the more interpretable feature of any highly correlated pair.
 
 print("Selected features for modelling:")
 for i, f in enumerate(selected_features, 1):
@@ -477,10 +484,11 @@ for i, f in enumerate(selected_features, 1):
     print(f"  {i:2d}. {f:25s}  r = {r:+.3f}")
 
 print(f"\\nTotal: {len(selected_features)} features selected.")
-print("\\nDropped due to multicollinearity:")
-print("  - temp_min_c  (highly correlated with temp_max_c, r ≈ 0.8+)")
-print("  - precip_mm   (nearly identical to rain_mm)")
-print("  - temp_mean_c (average of max and min — redundant)")
+print("\\nDropped as redundant:")
+print("  - temp_min_c  (correlated with temp_max_c)")
+print("  - precip_mm   (identical to rain_mm in this data)")
+print("  - temp_mean_c (average of max and min)")
+print("\\nNot predictors (same-day outcomes): total_revenue, avg_order_value, avg_basket_size")
 """)
 
 # ========================================================================
@@ -500,12 +508,14 @@ md("""
 
 ### Key findings
 
-1. **Lag-1** (`order_count_lag1`) is expected to be the strongest predictor — yesterday's
-   demand is the best indicator of today's.
-2. **Rain** boosts orders (Coimbatore comfort food culture — hot tea, bajjis, pakoras).
-3. **Weekend** (Fri-Sun) consistently shows higher demand.
-4. **Monsoon phase** captures seasonal demand shifts across SW and NE monsoon.
-5. **No severe multicollinearity** — PCA is not required. We drop `temp_min_c`,
+1. **Weekend** (Fri-Sun) has the strongest link with order count (r about +0.51), followed by
+   **rain** (`is_rainy` r about +0.35).
+2. **Rain** boosts orders (Coimbatore comfort food culture: hot tea, bajjis, pakoras).
+3. **Festival days** lift demand by about 21%, so `is_festival` is kept as a predictor.
+4. **Lagged orders are weak predictors here.** Lag-1 has r of only about +0.17, because the synthetic
+   generator has no day-to-day memory. This should not be generalised to real restaurant data.
+5. **Monsoon phase** captures seasonal demand shifts across SW and NE monsoon.
+6. **No severe multicollinearity** — PCA is not required. We drop `temp_min_c`,
    `precip_mm`, and `temp_mean_c` as they are redundant with retained features.
 """)
 
