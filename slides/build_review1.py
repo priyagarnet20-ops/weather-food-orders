@@ -501,7 +501,7 @@ def slide_09_p4_temporal(prs: Presentation):
 def slide_10_p4_rain_dry(prs: Presentation):
     """Slide 10: P4 — Rain vs Dry Comparison & Weekday Interaction."""
     sld = blank_slide(prs)
-    header_bar(sld, "P4  ·  Rain Effect on Demand: +23.2% Surge, Statistically Significant",
+    header_bar(sld, "P4  ·  Rainy Days Bring 23.2% More Orders",
                "Dry: 164.8 · Moderate Rain: 196.7 · Heavy Rain: 228.1 orders/day · Welch t = 11.24, p = 2.23×10⁻²⁶", "P4  ·  T19 — Fig 05, 06", BLUE)
     footer_bar(sld, "Slide 10 / 14")
 
@@ -608,7 +608,6 @@ def slide_13_p5_model(prs: Presentation):
     # Model metrics table
     metrics_bullets = [
         "MODEL PERFORMANCE (56-day test set):",
-        "",
         "  Model           MAE    RMSE   R2     MAPE",
         "  Seasonal Naive  45.5   60.4  -0.54  27.9%",
         "  Ridge           29.7   37.3  +0.41  17.4%  BEST MAE",
@@ -616,21 +615,18 @@ def slide_13_p5_model(prs: Presentation):
         "  XGBoost         30.5   37.6  +0.41  17.9%",
         "",
         "KEY FINDINGS (T26):",
-        "  Ridge & XGBoost both achieve R2=0.41",
-        "  Permutation importance: rain, Fri–Sun, heavy rain lead",
-        "  Lag-7 importance is ~0; generator has no daily memory",
-        "  Residuals are approximately zero-biased",
-        "  Weather inputs alone cut error by ~3–7%; full model beats naive by 34%",
+        "  Ridge & XGBoost: R2=0.41; residuals near zero",
+        "  Importance: rain, Fri–Sun, heavy rain; lag-7 ~0",
+        "  Weather-only gains: ~3–7%; full model vs naive: 34%",
         "",
-        "SHAP: Fri–Sun, rain, then temperature rank highest;",
-        "festival ranks about fifth.",
+        "  SHAP: Fri–Sun, rain, temperature; festival ~5th",
     ]
-    bullet_block(sld, metrics_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.5),
-                 font_size=12, title="Evaluation & First Business Findings (T26)", title_color=GRAY)
+    bullet_block(sld, metrics_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(3.55),
+                 font_size=11, title="Evaluation & First Business Findings (T26)", title_color=GRAY)
 
     fig_path = ROOT / "results/fig12_importance.png"
     if fig_path.exists():
-        add_image(sld, fig_path, Inches(9.5), Inches(4.5), width=Inches(3.6))
+        add_image(sld, fig_path, Inches(8.6), Inches(4.85), width=Inches(4.1))
 
 
 def slide_14_summary(prs: Presentation):
@@ -653,8 +649,8 @@ def slide_14_summary(prs: Presentation):
         "  Rain doubles Snacks share (10.9% -> 24.5%) and surges Hot Beverages to 22.3%",
         "  Cold Refresh drops from 26.0% (hot weather) to 9.1% (rain); avg ticket stays ~Rs.157–165 across regimes",
         "",
-        "FINDING 4 — PREDICTIVE MODELS RECOVER RULES",
-        "  Best MAE: 29.7 orders/day (Ridge, R2=0.41) vs naive 45.5 — weather flag is top-3 feature",
+        "FINDING 4 — PREDICTIVE MODELS BEAT THE NAIVE BASELINE",
+        "  Best MAE: 29.7 orders/day (Ridge, R2=0.41) vs naive 45.5 — rain is the top feature",
         "  SARIMAX + weather lowers SARIMAX error by 8% vs no-weather version",
     ]
     bullet_block(sld, findings_bullets, Inches(0.35), Inches(1.25), Inches(6.5), Inches(5.6),
