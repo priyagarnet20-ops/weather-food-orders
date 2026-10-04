@@ -1,7 +1,11 @@
 """Feature engineering for daily order prediction (P3 / T14).
 
-Builds lag features, rolling statistics, weather bins, calendar flags,
+Builds lag features, rolling statistics, weather bins, calendar and festival flags,
 and monsoon phase indicators from the merged daily dataset.
+
+Note: the merged file also holds same-day outcomes (total_revenue, avg_order_value,
+avg_basket_size). They are results of the day's orders, not inputs, so never use them
+as predictors of order_count.
 
 Thresholds align with the order generator (docs/generator.md):
     Rain:     precip_mm >= 2.5 → rainy, >= 15 → heavy
@@ -55,10 +59,13 @@ def add_rain_bins(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["is_rainy"] = (df["rain_mm"] >= RAIN_THRESHOLD).astype(int)
     df["heavy_rain"] = (df["rain_mm"] >= HEAVY_RAIN_THRESHOLD).astype(int)
+    # Left-closed bins [a, b) so a day at exactly 2.5 mm is "moderate" and at exactly 15 mm is "heavy",
+    # matching is_rainy (>= 2.5) and heavy_rain (>= 15).
     df["rain_intensity"] = pd.cut(
         df["rain_mm"],
-        bins=[-0.1, 0.0, RAIN_THRESHOLD, HEAVY_RAIN_THRESHOLD, float("inf")],
+        bins=[-float("inf"), 1e-9, RAIN_THRESHOLD, HEAVY_RAIN_THRESHOLD, float("inf")],
         labels=["none", "trace", "moderate", "heavy"],
+        right=False,
     )
     return df
 
@@ -67,10 +74,12 @@ def add_temp_bands(df: pd.DataFrame) -> pd.DataFrame:
     """Binary hot flag + four-level temperature bands."""
     df = df.copy()
     df["is_hot"] = (df["temp_max_c"] >= HOT_THRESHOLD).astype(int)
+    # Left-closed bins [a, b) so a day at exactly 33.0 C is "hot", matching is_hot (>= 33).
     df["temp_band"] = pd.cut(
         df["temp_max_c"],
-        bins=[0, 28, HOT_THRESHOLD, 38, 50],
+        bins=[-float("inf"), 28, HOT_THRESHOLD, 38, float("inf")],
         labels=["cool", "warm", "hot", "extreme"],
+        right=False,
     )
     return df
 
@@ -83,6 +92,25 @@ def add_calendar_flags(df: pd.DataFrame) -> pd.DataFrame:
     df["dow"] = df["date"].dt.dayofweek
     df["is_weekend"] = df["dow"].isin(WEEKEND_DAYS).astype(int)
     return df
+
+
+def add_festival_flag(df: pd.DataFrame, daily_orders_csv: str | Path | None = None) -> pd.DataFrame:
+    """Add `is_festival` (0/1) from the generator's festival calendar in data/raw/daily_orders.csv.
+
+    Festival days lift demand by about 21%, so the flag is a real driver of order volume. The date is
+    known in advance, so it is safe to use as a predictor. Fails loudly if any date has no flag.
+    """
+    path = Path(daily_orders_csv) if daily_orders_csv else ROOT / "data" / "raw" / "daily_orders.csv"
+    flags = pd.read_csv(path, parse_dates=["date"])[["date", "is_festival"]]
+    flags["is_festival"] = flags["is_festival"].astype(int)
+    out = df.copy()
+    out["date"] = pd.to_datetime(out["date"])
+    out = out.drop(columns=["is_festival"], errors="ignore").merge(flags, on="date", how="left")
+    if out["is_festival"].isna().any():
+        missing = int(out["is_festival"].isna().sum())
+        raise ValueError(f"festival flag missing for {missing} dates; check {path}")
+    out["is_festival"] = out["is_festival"].astype(int)
+    return out
 
 
 def add_monsoon_phase(df: pd.DataFrame) -> pd.DataFrame:
@@ -122,6 +150,8 @@ def build_features(
     df = pd.read_csv(input_csv, parse_dates=["date"])
     print(f"[features] loaded {input_csv}  →  {df.shape[0]} rows, {df.shape[1]} cols")
 
+    if "is_festival" not in df.columns:
+        df = add_festival_flag(df)
     df = add_lag_features(df)
     df = add_rain_bins(df)
     df = add_temp_bands(df)
