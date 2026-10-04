@@ -124,7 +124,7 @@ for k, v in dist_stats.items():
     if k != "regime_stats":
         print(f"• {k:16s}: {v:,.2f}" if isinstance(v, float) else f"• {k:16s}: {v}")
 
-print("\n=== SUMMARY STATISTICS BY AMBIENT REGIME ===")
+print("\\n=== SUMMARY STATISTICS BY AMBIENT REGIME ===")
 display(dist_stats["regime_stats"].round(2))
 """)
 
@@ -159,7 +159,7 @@ print(f"Average Basket Size: {basket_stats['mean_basket_size']:.2f} items")
 print(f"Average Order Value: ₹{basket_stats['mean_order_value']:.2f} (Median: ₹{basket_stats['median_order_value']:.2f}, Std: ₹{basket_stats['std_order_value']:.2f})")
 print(f"IQR Order Value: ₹{basket_stats['p25_value']:.0f} to ₹{basket_stats['p75_value']:.0f} (95th percentile: ₹{basket_stats['p95_value']:.0f})")
 
-print("\n=== METRICS BY MEAL SLOT ===")
+print("\\n=== METRICS BY MEAL SLOT ===")
 display(basket_stats["meal_slot_stats"].round(2))
 """)
 
@@ -254,7 +254,7 @@ print(f"• Relative Surge:      +{rain_stats['lift_pct']:.2f}%")
 print(f"• Welch's t-test:      t = {rain_stats['t_statistic']:.4f}, p = {rain_stats['t_pvalue']:.4e}")
 print(f"• Mann-Whitney U test: U = {rain_stats['mwu_statistic']:,.1f}, p = {rain_stats['mwu_pvalue']:.4e}")
 
-print("\n=== BREAKDOWN BY PRECIPITATION CATEGORY ===")
+print("\\n=== BREAKDOWN BY PRECIPITATION CATEGORY ===")
 display(rain_stats["rain_category_summary"].round(2))
 """)
 
@@ -272,12 +272,12 @@ plt.show()
 
 md(r"""
 ### Observations on Rainfall Effects & Day-of-Week Interaction
-* **Substantial Volume Expansion:** On rainy days ($\ge 2.5$ mm), mean orders jump to **203.1 orders/day** compared to **164.8 orders/day** on dry days — a statistically significant surge of **+23.2%** ($t = 12.25$, $p = 1.90 \times 10^{-32}$; Mann-Whitney $p = 9.98 \times 10^{-28}$).
+* **Substantial Volume Expansion:** On rainy days ($\ge 2.5$ mm), mean orders jump to **203.1 orders/day** compared to **164.8 orders/day** on dry days — a statistically significant surge of **+23.2%** (Welch's $t = 11.24$, $p = 2.23 \times 10^{-26}$; Mann-Whitney $p = 9.98 \times 10^{-28}$).
 * **Precipitation Intensity Gradient:**
   * Days with **moderate rain (2.5–15 mm)** average **196.7 orders/day** (+19.3% over dry baseline).
   * Days with **heavy monsoonal rain ($\ge 15$ mm)** reach **228.1 orders/day**, representing a massive **+38.4% demand expansion** over dry conditions.
-* **Universal Weekday Amplification:** The weekday-rain interaction plot reveals that rainfall inflates demand across **every single day of the week** (+20% to +26% lift across Mon–Sun).
-* **Extreme Demand Peak:** A rainy Sunday represents the maximum operational throughput in the business, averaging **235.9 orders/day** with peaks exceeding 380 orders. Remarkably, even a rainy Tuesday (**178.6 orders**) exceeds an average dry weekend day (**191–201 orders**).
+* **Weekday Variation:** Rainy-day lift varies by weekday, from **+14.7% on Tuesday** to **+33.4% on Monday**; the effect is not uniform.
+* **Weekend Remains Strong:** Rainy Tuesdays average **174.5 orders/day**, below the **194.4** average on dry Saturdays and Sundays. Rain increases demand overall, but does not outweigh the weekend pattern.
 """)
 
 md("""
@@ -294,12 +294,12 @@ display(item_shift.sort_values("relative_lift_pct", ascending=False)[
     ["item_name", "category", "weather_affinity", "price", "dry_freq", "rain_freq", "relative_lift_pct"]
 ].head(5).round(3))
 
-print("\n=== TOP 5 ITEMS PLUNGING ON RAINY DAYS (HEAT DRIVERS) ===")
+print("\\n=== TOP 5 ITEMS PLUNGING ON RAINY DAYS (HEAT DRIVERS) ===")
 display(item_shift.sort_values("relative_lift_pct", ascending=True)[
     ["item_name", "category", "weather_affinity", "price", "dry_freq", "rain_freq", "relative_lift_pct"]
 ].head(5).round(3))
 
-print("\n=== MENU CATEGORY SHARE ACROSS REGIMES (%) ===")
+print("\\n=== MENU CATEGORY SHARE ACROSS REGIMES (%) ===")
 display(cat_regime_pct.round(2))
 """)
 
@@ -389,15 +389,15 @@ md("""
 ## 10. Summary of Key Findings & Review 1 Recommendations (T19 & T20)
 
 ### 1. Key Analytical Findings
-1. **Rain Increases Delivery Volume by +23.2%:** Rainy days ($\ge 2.5$ mm) lift average daily orders from 164.8 to 203.1 orders/day ($p < 10^{-31}$). Heavy rain ($\ge 15$ mm) surges volume by **+38.4%** to 228.1 orders/day.
+1. **Rain Increases Delivery Volume by +23.2%:** Rainy days ($\\ge 2.5$ mm) lift average daily orders from 164.8 to 203.1 orders/day (Welch $p = 2.23 \\times 10^{-26}$). Heavy rain ($\\ge 15$ mm) averages **228.1 orders/day** (+38.4% vs. dry days).
 2. **Weekend Lift (+33.6%):** Orders surge from 154.2 orders/day (Mon–Thu) to 205.9 orders/day on Friday through Sunday, peaking on Sunday at 209.9 orders/day.
-3. **Compounding Interaction:** Rain acts as an additive amplifier across all weekdays. Rainy Sundays represent the operational stress peak of the system (mean 236 orders).
+3. **Compounding Interaction:** Rain increases demand on every weekday, with varying lift (+14.7% Tuesday to +33.4% Monday). Rainy Sundays represent the operational stress peak (mean 237 orders).
 4. **Meal Window Concentration:** 100% of demand clusters into 4 windows: Lunch (35.0%), Dinner (30.1%), Evening Snacks (19.9%), and Breakfast (15.0%).
 5. **Dramatic Menu Substitution:** Rain causes a 2x surge in hot beverages and fried snacks (Pakora +106%, Vada +118%, Chai +53%), while cold juices and ice creams drop by over 55–64%.
 6. **Correlation Insights:** Precipitation ($r = +0.29$) and rain hours ($r = +0.25$) are the primary drivers of demand. Average ticket size slightly contracts ($r = -0.12$) due to the influx of small snack orders.
 
 ### 2. Operational Recommendations for Review 1
-* **Dynamic Kitchen Prep:** Pre-batch onion pakora batter, vada mix, and masala chai decoction when rainfall probability $\ge 50\%$. Restock cold refreshments and ice cream tubs when maximum temperature forecast exceeds $33^\circ$C.
+* **Dynamic Kitchen Prep:** Pre-batch onion pakora batter, vada mix, and masala chai decoction when rainfall probability $\\ge 50\\%$. Restock cold refreshments and ice cream tubs when maximum temperature forecast exceeds $33^\\circ$C.
 * **Targeted Delivery Fleet Rostering:** Increase delivery rider incentives and shift capacity by +30% on rainy weekdays and +50% on rainy weekends (especially Sundays between 12:00–14:30 and 19:00–21:30).
 * **Promotional Bundles:** Launch a dedicated "Coimbatore Monsoon Combo" (Masala Chai + Onion Pakora) during rainfall alerts to capitalize on organic customer cravings and lift basket ticket values.
 

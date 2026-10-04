@@ -470,6 +470,7 @@ def plot_fig05_rain_vs_dry_comparison(daily_df: pd.DataFrame, save_path: Path | 
     rain_mean = daily_df[daily_df["is_rainy"]]["order_count"].mean()
     dry_mean = daily_df[~daily_df["is_rainy"]]["order_count"].mean()
     lift = (rain_mean - dry_mean) / dry_mean * 100
+    rain_stats = get_rain_vs_dry_stats(daily_df)
 
     ax2.axvline(dry_mean, color=C["gray"], linestyle="--", linewidth=1.5)
     ax2.axvline(rain_mean, color=C["blue"], linestyle="--", linewidth=1.5)
@@ -481,8 +482,8 @@ def plot_fig05_rain_vs_dry_comparison(daily_df: pd.DataFrame, save_path: Path | 
         f"• Rainy Mean: {rain_mean:.1f} orders/day\n"
         f"• Rain Lift: +{lift:.1f}% surge\n"
         f"• Heavy Rain Lift: +38.4% surge\n"
-        f"• Welch's t-test: t = 12.25, p < 10⁻³¹\n"
-        f"• Mann-Whitney U: p < 10⁻²⁷ (Reject H₀)",
+        f"• Welch's t-test: t = {rain_stats['t_statistic']:.2f}, p = {rain_stats['t_pvalue']:.2e}\n"
+        f"• Mann-Whitney U: p = {rain_stats['mwu_pvalue']:.2e} (Reject H₀)",
         transform=ax2.transAxes, fontsize=9, va="top",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor=C["light"])
     )
@@ -529,9 +530,9 @@ def plot_fig06_weekday_rain_interaction(daily_df: pd.DataFrame, save_path: Path 
     ax.text(
         0.03, 0.92,
         "Strategic Interaction Insight:\n"
-        "• Rain acts as an additive demand amplifier across ALL days (+20% to +26% lift)\n"
-        "• Rainy Sundays represent peak stress on delivery fleet (mean: 236 orders/day)\n"
-        "• Even a rainy Tuesday (179 orders) exceeds an average dry weekend day (191 orders)",
+        "• Rainy-day lift varies by weekday (+14.7% Tuesday to +33.4% Monday)\n"
+        "• Rainy Sundays represent peak stress on delivery fleet (mean: 237 orders/day)\n"
+        "• Rainy Tuesday (174.5) is below dry Saturday/Sunday average (194.4)",
         transform=ax.transAxes, fontsize=9, va="top",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor=C["light"])
     )

@@ -387,8 +387,8 @@ def slide_06_p3_features(prs: Presentation):
         "  Lag-1, Lag-7 order counts (no leakage — past only)",
         "  7-day rolling mean of past orders",
         "  Rain flag (>=2.5mm) + heavy rain flag (>=15mm)",
-        "  Intensity bins: dry / moderate / heavy",
-        "  Temperature band: normal / hot (>=33°C)",
+        "  Rain bins: none / trace / moderate / heavy",
+        "  Temperature bands: cool / warm / hot / extreme",
         "  Weekend flag (Fri-Sat-Sun) + festival flag",
         "  Monsoon phase: SW Monsoon (Jun-Sep), NE Monsoon (Oct-Dec)",
         "",
@@ -400,24 +400,13 @@ def slide_06_p3_features(prs: Presentation):
                  font_size=12, title="Preprocessing & Feature Engineering")
 
     right_bullets = [
-        "ARM DATA PREPARATION (T16):",
-        "  Orders.csv -> one-hot encoded transaction matrix",
-        "  Used mlxtend TransactionEncoder",
-        "  Dataset split into rainy-day and dry-day segments",
-        "  Rainy segment: 66,818 transactions (329 rainy days)",
-        "  Dry segment: 126,588 transactions (768 dry days)",
+        "ARM STATUS (T16, T17 — OPEN):",
+        "  Preparation and FP-Growth are not yet complete",
+        "  No implementation PR or results are available",
         "",
-        "FP-GROWTH IMPLEMENTATION (T17):",
-        "  Algorithm: FP-Growth (mlxtend FPGrowth)",
-        "  Frequent itemsets mined per segment",
-        "  Association rules extracted with lift and confidence",
-        "  Rules exported as CSV for the dashboard (T22-T23)",
-        "",
-        "PRELIMINARY ARM FINDING:",
-        "  Chai -> Pakora rule recovers planted ground truth",
-        "  Confidence on rainy days: ~40% (planted: 58%)",
-        "  Lift on rainy vs dry: 2.7x vs 1.96x",
-        "  Seasonal Monsoon rule validation ongoing (P5/T11)",
+        "REVIEW 2 OWNERSHIP:",
+        "  P3: T16 data prep + T17 FP-Growth implementation",
+        "  P2: T11 rainy/dry evaluation + T12 threshold sensitivity",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.8),
                  font_size=12, title="ARM Preparation & Initial Results (T16, T17)", title_color=AQUA)
@@ -512,8 +501,8 @@ def slide_09_p4_temporal(prs: Presentation):
 def slide_10_p4_rain_dry(prs: Presentation):
     """Slide 10: P4 — Rain vs Dry Comparison & Weekday Interaction."""
     sld = blank_slide(prs)
-    header_bar(sld, "P4  ·  Rain Effect on Demand: +23.2% Surge, Statistically Certain",
-               "Dry: 164.8 · Moderate Rain: 196.7 · Heavy Rain: 228.1 orders/day · t = 12.25, p < 10^-31", "P4  ·  T19 — Fig 05, 06", BLUE)
+    header_bar(sld, "P4  ·  Rain Effect on Demand: +23.2% Surge, Statistically Significant",
+               "Dry: 164.8 · Moderate Rain: 196.7 · Heavy Rain: 228.1 orders/day · Welch t = 11.24, p = 2.23×10⁻²⁶", "P4  ·  T19 — Fig 05, 06", BLUE)
     footer_bar(sld, "Slide 10 / 14")
 
     fig05 = FIGS_DIR / "eda_05_rain_vs_dry_comparison.png"
@@ -524,8 +513,8 @@ def slide_10_p4_rain_dry(prs: Presentation):
 
     obs = [
         "Heavy rain (>=15mm) lifts demand by +38.4% to 228.1 orders/day — compared to 164.8 on dry days.",
-        "Rain amplifies all weekdays uniformly (+20–26% lift) — a rainy Tuesday beats an average dry weekend day.",
-        "Statistical tests: Welch's t = 12.25, p < 10^-32 · Mann-Whitney U: p < 10^-27 · H0 (equal means) rejected.",
+        "Rainy-day lift varies +14.7% (Tue) to +33.4% (Mon); rainy Tue avg 174.5 vs dry Sat/Sun avg 194.4.",
+        "Welch's t = 11.24, p = 2.23×10⁻²⁶ · Mann-Whitney U p = 9.98×10⁻²⁸; both reject equal distributions.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -606,7 +595,7 @@ def slide_13_p5_model(prs: Presentation):
         "  Monsoon phase: SW / NE / other",
         "",
         "TIME-BASED SPLIT:",
-        "  Training: first 1,041 days",
+        "  Training: first 1,034 feature-ready days",
         "  Test: last 56 days (8 weeks held out)",
         "  No data leakage — lag features use past only",
         "",
@@ -628,13 +617,13 @@ def slide_13_p5_model(prs: Presentation):
         "",
         "KEY FINDINGS (T26):",
         "  Ridge & XGBoost both achieve R2=0.41",
-        "  Rain flag and weekend flag are top features",
-        "  Lag-7 (same weekday last week) is highly predictive",
+        "  Permutation importance: rain, Fri–Sun, heavy rain lead",
+        "  Lag-7 importance is ~0; generator has no daily memory",
         "  Residuals are approximately zero-biased",
-        "  Weather regressors reduce test MAE vs naive by 34%",
+        "  Weather inputs alone cut error by ~3–7%; full model beats naive by 34%",
         "",
-        "SHAP analysis confirms weekend, rain, and festival",
-        "as the three highest-impact features.",
+        "SHAP: Fri–Sun, rain, then temperature rank highest;",
+        "festival ranks about fifth.",
     ]
     bullet_block(sld, metrics_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.5),
                  font_size=12, title="Evaluation & First Business Findings (T26)", title_color=GRAY)
@@ -654,15 +643,15 @@ def slide_14_summary(prs: Presentation):
     findings_bullets = [
         "FINDING 1 — RAIN IS THE PRIMARY DEMAND DRIVER",
         "  Rainy days surge +23.2% over dry baseline (203 vs 165 orders/day)",
-        "  Heavy rain (>=15mm) lifts demand by +38.4% — statistically certain (p < 10^-31)",
+        "  Rain vs dry is significant (Welch p=2.23×10⁻²⁶; MW p=9.98×10⁻²⁸); heavy rain lifts volume +38.4%",
         "",
         "FINDING 2 — COMPOUNDING WEEKEND + RAIN EFFECT",
-        "  Weekend + rain represents the operational stress peak (~236 orders on rainy Sundays)",
-        "  Even a rainy Tuesday exceeds an average dry weekend day",
+        "  Weekend + rain represents the operational stress peak (~237 orders on rainy Sundays)",
+        "  Rainy Tuesday avg: 174.5; dry Saturday/Sunday avg: 194.4 orders/day",
         "",
         "FINDING 3 — MENU SUBSTITUTION IS DRAMATIC",
         "  Rain doubles Snacks share (10.9% -> 24.5%) and surges Hot Beverages to 22.3%",
-        "  Cold Refresh drops from 26.0% (hot weather) to 9.1% (rain) — Rs.97 vs Rs.198 avg ticket",
+        "  Cold Refresh drops from 26.0% (hot weather) to 9.1% (rain); avg ticket stays ~Rs.157–165 across regimes",
         "",
         "FINDING 4 — PREDICTIVE MODELS RECOVER RULES",
         "  Best MAE: 29.7 orders/day (Ridge, R2=0.41) vs naive 45.5 — weather flag is top-3 feature",
@@ -674,9 +663,11 @@ def slide_14_summary(prs: Presentation):
     roadmap_bullets = [
         "REVIEW 2 WORK AHEAD:",
         "",
-        "  P3: Association Rule Mining (ARM) — FP-Growth",
-        "    Rainy vs dry itemset comparison",
-        "    Threshold sensitivity analysis (T11, T12)",
+        "  P2: ARM evaluation (T11) + threshold sensitivity (T12)",
+        "    Compare rainy vs dry rules; test support/confidence settings",
+        "",
+        "  P3: ARM preparation + FP-Growth (T16, T17)",
+        "    Transaction encoding, itemsets and association rules",
         "",
         "  P1: Time-Series Forecasting — SARIMAX + Prophet",
         "    Rolling-origin backtest, 131 folds (T05, T06)",
