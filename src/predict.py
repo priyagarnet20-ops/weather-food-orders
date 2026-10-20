@@ -31,8 +31,7 @@ SEED = 42
 TEST_DAYS = 56
 CV_SPLITS = 5
 MODEL_NAMES = ("Seasonal naive", "Ridge", "Random Forest", "XGBoost")
-SW_MONSOON = range(6, 10)   # Jun-Sep
-NE_MONSOON = range(10, 13)  # Oct-Dec
+NW_MONSOON = [11, 12, 1, 2, 3, 4]  # Nov-Apr (wet season in Surabaya, Indonesia)
 
 WEATHER_FEATURES = ["precip_mm", "temp_max_c", "humidity_mean_pct", "is_rainy", "heavy_rain", "is_hot"]
 
@@ -46,9 +45,7 @@ def load_model_frame(weather_csv: str | Path, orders_csv: str | Path) -> pd.Data
 
 
 def monsoon_phase(month: int) -> str:
-    if month in SW_MONSOON:
-        return "sw_monsoon"
-    return "ne_monsoon" if month in NE_MONSOON else "dry_season"
+    return "nw_monsoon" if month in NW_MONSOON else "dry_season"
 
 
 def make_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -66,8 +63,7 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
     dow.index = df.index
     X = pd.concat([X, dow.reindex(columns=[f"dow_{i}" for i in range(7)], fill_value=0.0)], axis=1)
     phase = pd.Series([monsoon_phase(m) for m in df.index.month], index=df.index)
-    for p in ("sw_monsoon", "ne_monsoon"):
-        X[f"phase_{p}"] = (phase == p).astype(float)
+    X["phase_nw_monsoon"] = (phase == "nw_monsoon").astype(float)
     return X.dropna()
 
 

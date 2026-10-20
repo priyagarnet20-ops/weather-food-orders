@@ -1,4 +1,4 @@
 model,MAE with weather,MAE without weather,improvement_%
-Ridge,29.67,31.83,6.8
-Random Forest,31.37,33.13,5.34
-XGBoost,30.52,31.54,3.25
+Ridge,13.62,12.85,-6.04
+Random Forest,15.0,13.85,-8.33
+XGBoost,14.39,12.94,-11.24
