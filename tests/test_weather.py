@@ -24,8 +24,8 @@ def mock_payload(days=5, start="2026-01-01"):
     dates = pd.date_range(start, periods=days, freq="D")
     hours = pd.date_range(start, periods=24 * days, freq="h")
     return {
-        "latitude": 11.0, "longitude": 77.0, "elevation": 422.0,
-        "utc_offset_seconds": 19800, "timezone": "Asia/Kolkata",
+        "latitude": -7.26, "longitude": 112.75, "elevation": 8.0,
+        "utc_offset_seconds": 25200, "timezone": "Asia/Jakarta",
         "daily_units": {"time": "iso8601", "precipitation_sum": "mm"},
         "hourly_units": {"time": "iso8601", "relative_humidity_2m": "%"},
         "daily": {
@@ -56,7 +56,7 @@ def test_parse_api_response_schema_and_humidity():
     assert len(daily) == 5 and len(hourly) == 120
     # mean of 60..83 is 71.5 for every day
     assert np.allclose(daily["humidity_mean_pct"], 71.5)
-    assert meta["timezone"] == "Asia/Kolkata"
+    assert meta["timezone"] == "Asia/Jakarta"
     assert meta["days_with_incomplete_hourly_data"] == []
 
 
@@ -72,7 +72,7 @@ def test_parse_flags_incomplete_hourly_day():
 
 def test_build_url_has_timezone_and_variables():
     url = weather.build_url("2025-09-24", "2026-09-24")
-    assert "timezone=Asia%2FKolkata" in url
+    assert "timezone=Asia%2FJakarta" in url
     assert "relative_humidity_2m" in url and "precipitation_sum" in url
     assert "start_date=2025-09-24" in url
 
@@ -101,11 +101,12 @@ def test_export_normalises_and_is_clean():
 def test_final_orders_use_the_same_weather_as_weather_csv():
     w = pd.read_csv(WEATHER, parse_dates=["date"])
     o = pd.read_csv(ORDERS, parse_dates=["date"])
-    assert len(w) == len(o) == 1097
+    assert len(w) == 1097
+    assert len(o) == 272
     assert w["date"].min() == pd.Timestamp("2023-09-24") and w["date"].max() == pd.Timestamp("2026-09-24")
     assert weather.validate_daily(w, "2023-09-24", "2026-09-24") == []
     m = w.merge(o, on="date", suffixes=("", "_p2"))
-    assert len(m) == 1097
+    assert len(m) == len(o)
     for col in ["precip_mm", "temp_max_c", "temp_min_c", "wind_max_kmh", "temp_mean_c"]:
         assert np.allclose(m[col], m[col + "_p2"]), col
     assert o["order_count"].notna().all() and (o["order_count"] > 0).all()

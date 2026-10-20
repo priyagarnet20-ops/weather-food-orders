@@ -1,4 +1,4 @@
-"""Unit tests for Coimbatore menu catalog (T07).
+"""Unit tests for Surabaya menu catalog (T07).
 
 Run: pytest -q tests/test_menu.py
 """
@@ -19,12 +19,12 @@ REQUIRED_COLUMNS = [
 ]
 
 EXPECTED_CATEGORIES = {
-    "Beverages (Hot)",
-    "Snacks & Quick Bites",
-    "South Indian Tiffin",
-    "Biryani & Mains",
-    "Cold Refreshments & Juices",
-    "Desserts & Ice Cream",
+    "Coffee",
+    "Tea",
+    "Menu Gedhe",
+    "Snacks",
+    "Other",
+    "Add on",
 }
 
 EXPECTED_AFFINITIES = {"hot_comfort", "cold_refresh", "neutral"}
@@ -44,8 +44,8 @@ def test_menu_schema(menu_df):
 
 
 def test_menu_item_count(menu_df):
-    """Must contain around 40 items (exactly 40 items)."""
-    assert len(menu_df) == 40
+    """Must contain the 96 catalog products."""
+    assert len(menu_df) == 96
     assert menu_df["item_id"].is_unique
     assert menu_df["item_name"].is_unique
 
@@ -57,19 +57,18 @@ def test_menu_categories_and_affinities(menu_df):
 
 
 def test_menu_prices(menu_df):
-    """Prices must be positive realistic INR values."""
-    assert (menu_df["price"] > 0).all()
-    assert (menu_df["price"] <= 500).all()
+    """Prices must be realistic IDR values."""
+    assert (menu_df["price"] >= 0).all()
+    assert (menu_df["price"] <= 50000).all()
 
 
-def test_required_coimbatore_items_present(menu_df):
-    """Verify headline items local to Coimbatore specified in rubric."""
+def test_required_surabaya_items_present(menu_df):
+    """Verify headline items local to Surabaya F&B store."""
     items = " ".join(menu_df["item_name"].str.lower())
-    assert "filter coffee" in items
-    assert "chai" in items
-    assert "pakora" in items
-    assert "bajji" in items
-    assert "parotta" in items
-    assert "biryani" in items
-    assert "juice" in items
-    assert "ice cream" in items
+    assert "americano" in items
+    assert "latte" in items
+    assert "tea" in items
+    assert "banana bread" in items
+    assert "waffle" in items
+    assert "jus" in items
+
