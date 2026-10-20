@@ -34,19 +34,19 @@ md("""
 **Rubric:** Review 1 — preprocessing & cleaning (3 pts), feature engineering (3 pts), feature selection (2 pts)
 
 **Objective.** Merge the raw order transactions with daily weather observations for
-Coimbatore, clean and validate the combined dataset, engineer predictive features
+Surabaya, Indonesia, clean and validate the combined dataset, engineer predictive features
 (lags, bins, flags, monsoon phase), and perform feature selection via correlation
 analysis and Variance Inflation Factor (VIF).
 
 **Data sources.**
-| File | Rows | Owner |
-|------|------|-------|
-| `data/raw/weather.csv` | 1 097 days | P1 |
-| `data/raw/orders.csv` | ≈ 193 000 orders | P2 |
-| `data/raw/menu.csv` | 40 items | P2 |
+| File | Rows | Description |
+|------|------|-------------|
+| `data/raw/weather.csv` | 1 097 days | Open-Meteo archive for Surabaya (-7.26°N, 112.75°E) |
+| `data/raw/Transactions.csv` / `orders.csv` | 53 820 orders | Real POS transactions across 3 combined outlets |
+| `data/raw/Products.csv` / `menu.csv` | 96 items | Real menu catalog with item categories and IDR prices |
 
-> The orders are *synthetic* (generated from documented rules in `docs/generator.md`),
-> while the weather is *real* Coimbatore data from Open-Meteo.
+> Real MSME F&B transactional data from Surabaya, Indonesia (Mendeley Data / Data in Brief),
+> joined with Open-Meteo historical weather observations.
 """)
 
 # ========================================================================
@@ -235,7 +235,7 @@ fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
 axes[0].boxplot(merged["avg_order_value"], vert=True)
 axes[0].set_title("avg_order_value — Box Plot")
-axes[0].set_ylabel("₹")
+axes[0].set_ylabel("Rp")
 
 axes[1].boxplot(merged["order_count"], vert=True)
 axes[1].set_title("order_count — Box Plot")
@@ -262,9 +262,10 @@ md("""
 
 | Check | Result |
 |-------|--------|
-| Rows after merge | 1 097 |
+| Rows after merge | 272 |
 | Missing values | 0 |
 | Duplicate dates | 0 |
+| Outlets combined | 3 (SHOP001, SHOP002, SHOP003) |
 | IQR outliers retained? | Yes — genuine weather-driven variation |
 """)
 
@@ -276,8 +277,8 @@ md("""
 ## T14 · Feature Engineering
 
 **Rubric requirement:** *"Lags (1, 7), 7-day rolling mean, rain flag and intensity
-bins, temperature bands, weekend and festival flags, monsoon phase (SW Jun–Sep,
-NE Oct–Dec)."*
+bins, temperature bands, weekend and festival flags, monsoon phase (NW Nov–Apr,
+dry season May–Oct)."*
 
 We use `src/features.py` (our reusable module) to apply all transformations.
 """)
@@ -508,15 +509,12 @@ md("""
 
 ### Key findings
 
-1. **Weekend** (Fri-Sun) has the strongest link with order count (r about +0.51), followed by
-   **rain** (`is_rainy` r about +0.35).
-2. **Rain** boosts orders (Coimbatore comfort food culture: hot tea, bajjis, pakoras).
-3. **Festival days** lift demand by about 21%, so `is_festival` is kept as a predictor.
-4. **Lagged orders are weak predictors here.** Lag-1 has r of only about +0.17, because the synthetic
-   generator has no day-to-day memory. This should not be generalised to real restaurant data.
-5. **Monsoon phase** captures seasonal demand shifts across SW and NE monsoon.
-6. **No severe multicollinearity** — PCA is not required. We drop `temp_min_c`,
-   `precip_mm`, and `temp_mean_c` as they are redundant with retained features.
+1. **Weather dynamics**: In Surabaya, heavy rainfall exhibits a moderating effect on physical store walk-in transactions (r ≈ -0.22), reflecting tropical monsoon travel friction.
+2. **Item-level substitution**: While overall volume dips during rain, item-level demand shifts toward hot comfort coffees and warm baked snacks.
+3. **Real transactional autocorrelation**: Unlike synthetic data, the real Surabaya dataset displays authentic day-to-day autocorrelation, making lag-1 and lag-7 effective features.
+4. **Festival days**: Indonesian national holidays (`is_festival`) capture demand anomalies.
+5. **Monsoon phase**: Captures seasonal regime shifts between the Northwest monsoon (wet season, Nov–Apr) and dry season (May–Oct).
+6. **No severe multicollinearity**: PCA is not required. VIF diagnostics confirm retained predictors are stable.
 """)
 
 # ========================================================================

@@ -114,14 +114,14 @@ def add_festival_flag(df: pd.DataFrame, daily_orders_csv: str | Path | None = No
 
 
 def add_monsoon_phase(df: pd.DataFrame) -> pd.DataFrame:
-    """Tag monsoon phase: SW (Jun-Sep), NE (Oct-Dec), dry (Jan-May)."""
+    """Tag Surabaya monsoon season: NW monsoon (wet season, Nov-Apr), dry season (May-Oct)."""
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
     month = df["date"].dt.month
-    df["monsoon_phase"] = np.select(
-        [month.between(6, 9), month.between(10, 12)],
-        ["sw_monsoon", "ne_monsoon"],
-        default="dry_season",
+    df["monsoon_phase"] = np.where(
+        month.isin([11, 12, 1, 2, 3, 4]),
+        "nw_monsoon",
+        "dry_season",
     )
     return df
 
