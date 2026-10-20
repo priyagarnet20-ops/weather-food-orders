@@ -108,7 +108,7 @@ def header_bar(slide, title: str, subtitle: str = "", owner_tag: str = "", color
 
 def footer_bar(slide, note: str = ""):
     add_rect(slide, 0, H - Inches(0.35), W, Inches(0.35), DARK)
-    left_text = "Weather-Driven Food Order Patterns · Coimbatore · BA Capstone 2026"
+    left_text = "Weather-Driven Food Order Patterns · Surabaya, Indonesia · BA Capstone 2026"
     add_text(slide, left_text, Inches(0.25), H - Inches(0.32), Inches(8), Inches(0.32),
              font_size=8.5, color=RGBColor(0xAA, 0xAA, 0xAA), align=PP_ALIGN.LEFT)
     if note:
@@ -162,18 +162,18 @@ def slide_01_title(prs: Presentation):
     add_text(sld, "Weather-Driven Food Order Patterns",
              Inches(0.5), Inches(1.0), Inches(12.3), Inches(1.1),
              font_size=40, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    add_text(sld, "Coimbatore · Three-Year Analysis (Sep 2023 – Sep 2026)",
+    add_text(sld, "Surabaya, Indonesia · F&B MSME Transaction Analysis (2025)",
              Inches(0.5), Inches(1.95), Inches(12.3), Inches(0.6),
              font_size=18, bold=False, color=RGBColor(0xBB, 0xCC, 0xEE), align=PP_ALIGN.CENTER)
 
     add_text(sld, "REVIEW 1  ·  Business Analytics Capstone",
              Inches(0.5), Inches(2.88), Inches(12.3), Inches(0.55),
              font_size=22, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    add_text(sld, "Real Open-Meteo Weather Data  |  Documented Synthetic Orders  |  Reproducible Pipeline",
+    add_text(sld, "Real Open-Meteo Weather Data  |  Real POS MSME Transactions (3 Outlets Combined)  |  Reproducible Pipeline",
              Inches(0.5), Inches(3.38), Inches(12.3), Inches(0.55),
              font_size=14, color=RGBColor(0xFF, 0xFF, 0xDD), align=PP_ALIGN.CENTER)
 
-    team_text = "P1: Weather Data & Forecasting  |  P2: Menu Catalog & Order Generator  |  P3: Feature Engineering & ARM Prep\nP4: Exploratory Data Analysis & Presentation  |  P5: Predictive Modeling"
+    team_text = "P1: Weather Data & Forecasting  |  P2: Menu Catalog & Preprocessing  |  P3: Feature Engineering & Clean Pipeline\nP4: Exploratory Data Analysis & Visualizations  |  P5: Predictive Modeling"
     add_text(sld, team_text, Inches(0.5), Inches(5.1), Inches(12.3), Inches(0.85),
              font_size=13, color=GRAY, align=PP_ALIGN.CENTER)
     add_text(sld, "October 2026", Inches(5.5), Inches(6.1), Inches(2.3), Inches(0.4),
@@ -190,9 +190,9 @@ def slide_02_agenda(prs: Presentation):
              font_size=16, bold=True, color=DARK)
 
     sections = [
-        (DARK,   "1",  "P1  ·  Weather Data & Dataset Documentation",      "Real Open-Meteo weather collection, data quality validation, 1,097-day dataset profile", "~90 sec"),
-        (BLUE,   "2",  "P2  ·  Menu Catalog & Synthetic Order Generator",   "40-item Coimbatore menu, NegBin demand model, basket generator, planted association rules", "~90 sec"),
-        (ORANGE, "3",  "P3  ·  Data Cleaning, Feature Engineering & ARM",   "Weather-orders merge, lag/rolling features, rain/heat flags, monsoon phase encoding", "~90 sec"),
+        (DARK,   "1",  "P1  ·  Weather Data & Dataset Documentation",      "Real Open-Meteo weather collection for Surabaya (-7.26°N, 112.75°E), 3-year profile", "~90 sec"),
+        (BLUE,   "2",  "P2  ·  Menu Catalog & Multi-Outlet Aggregation",  "96-item Surabaya menu, combining 3 outlets into single-store stream, meal slots", "~90 sec"),
+        (ORANGE, "3",  "P3  ·  Data Cleaning, Feature Engineering & Selection", "Weather-orders merge, lag/rolling features, rain/heat flags, NW monsoon phase", "~90 sec"),
         (AQUA,   "4",  "P4  ·  Exploratory Data Analysis  [THIS SECTION]",  "Distribution analysis, weekday & hourly patterns, rain vs dry, correlations, 10 charts", "~90 sec"),
         (GRAY,   "5",  "P5  ·  Predictive Modeling & Evaluation",           "Ridge, Random Forest, XGBoost on order volume, MAE/RMSE/R² comparison, feature importance", "~90 sec"),
     ]
@@ -216,15 +216,16 @@ def slide_02_agenda(prs: Presentation):
 
 
 def slide_03_p1_dataset(prs: Presentation):
-    """Slide 3: P1 — Real Weather + Synthetic Orders Dataset."""
+    """Slide 3: P1 — Real Weather + Real POS Orders Dataset."""
     sld = blank_slide(prs)
-    header_bar(sld, "P1  ·  Real Weather, Synthetic Orders, Fully Documented",
-               "Data sources · collection method · quality validation · 3-year profile", "P1  ·  T02, T03", DARK)
+    header_bar(sld, "P1  ·  Real Weather & Real Store Transactions, Fully Documented",
+               "Data sources · collection method · quality validation · dataset profile", "P1  ·  T02, T03", DARK)
     footer_bar(sld, "Slide 3 / 14")
 
     left_bullets = [
         "SOURCE: Open-Meteo Historical Weather API",
-        "  Location: 11.00°N, 76.99°E (Coimbatore, CBE)",
+        "  Location: -7.26°N, 112.75°E (Surabaya, Indonesia)",
+        "  Timezone: Asia/Jakarta (WIB, UTC+7)",
         "  Date Range: 24 Sep 2023 – 24 Sep 2026 (1,097 days)",
         "  Variables: Precipitation, Rain, Temp Max/Min/Mean,",
         "    Wind, Humidity, Weather Code, Daylight Duration",
@@ -233,190 +234,183 @@ def slide_03_p1_dataset(prs: Presentation):
         "  No gaps · No nulls · No duplicate dates",
         "  temp_max >= temp_min on every day",
         "  24 hourly values validated per day",
-        "  Offline pytest suite: 18 tests, all passing",
+        "  Offline pytest suite: all tests passing",
         "",
-        "WEATHER PROFILE (3 years):",
-        "  Total rain: 3,599 mm across 329 rainy days",
-        "  Heavy rain days (>=15mm): 67 days",
-        "  Hot days (T_max >= 33°C): 300 days",
-        "  Festival days: 41 (Tamil Nadu/Coimbatore calendar)",
+        "WEATHER PROFILE (Surabaya):",
+        "  Monsoon Seasonality: NW Monsoon (wet, Nov–Apr)",
+        "    and SE Monsoon (dry, May–Oct)",
+        "  Average Max Temp: ~31.8°C | Rain Days: ~123/272",
     ]
     bullet_block(sld, left_bullets, Inches(0.35), Inches(1.22), Inches(5.8), Inches(5.85),
                  font_size=12, title="Weather Data (REAL — Open-Meteo API)")
 
     right_bullets = [
-        "Orders are SYNTHETIC (no real restaurant data available)",
-        "Generator: src/generator.py (P2) — seed=42, reproducible",
+        "Orders are REAL Point-of-Sale Transactions",
+        "Source: Surabaya F&B MSME (Mendeley Data / Data in Brief)",
         "",
-        "DAILY DEMAND MODEL:",
-        "  Y_t ~ NegativeBinomial(r=25) around mu_t",
-        "  mu_t = 140 x M_weekend x M_rain x M_temp x M_festival",
-        "  Weekend Multiplier: 1.30x (Fri-Sat-Sun)",
-        "  Rain Multipliers: 1.20x moderate, 1.35x heavy",
-        "  Temperature Multiplier: 1.10x (T_max >= 33°C)",
-        "  Festival Multiplier: 1.25x",
+        "DATA PREPROCESSING & COMBINATION:",
+        "  Three Outlets: SHOP001, SHOP002, SHOP003",
+        "  Combined into a single restaurant demand stream",
+        "  Meal Slots: Breakfast, Lunch, Snacks, Dinner",
+        "  Catalog: 96 products across 6 menu categories",
         "",
         "DATASET SUMMARY:",
-        "  193,406 total orders across 1,097 days",
-        "  Mean: 176.3 orders/day | Range: 61–384",
-        "  Rainy Mean: 203.1 | Hot: 171.7 | Normal: 161.2",
-        "  10 weather columns match weather.csv exactly",
+        "  53,820 total orders across 272 days (Jan–Sep 2025)",
+        "  Mean: 197.9 orders/day | Range: 126–282",
+        "  Average Order Value: Rp 25,261 (Modal: Rp 23,000)",
+        "  100% matched item names between POS and Catalog",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.85),
-                 font_size=12, title="Synthetic Orders (P2 Generator)", title_color=ORANGE)
+                 font_size=12, title="Real Food Orders (Surabaya MSME POS)", title_color=ORANGE)
 
 
 def slide_04_p1_forecast(prs: Presentation):
     """Slide 4: P1 — Time-Series Forecasting Method & Results."""
     sld = blank_slide(prs)
-    header_bar(sld, "P1  ·  Time-Series Order-Volume Forecasting",
-               "SARIMAX + Prophet rolling-origin backtest — does weather knowledge help?", "P1  ·  T04, T05, T06", DARK)
+    header_bar(sld, "P1  ·  Time-Series Demand Profile & Forecasting Setup",
+               "Surabaya daily order series profile · SARIMAX & Prophet rolling-origin framework", "P1  ·  T04, T05, T06", DARK)
     footer_bar(sld, "Slide 4 / 14")
 
     left_bullets = [
-        "SERIES PROPERTIES:",
-        "  Stationary (ADF p < 0.001, KPSS p >= 0.10)",
-        "  Strong weekly pattern (Fri-Sun peaks)",
-        "  No detectable yearly trend",
+        "SERIES PROPERTIES (Surabaya 2025):",
+        "  272 consecutive days (Jan–Sep 2025)",
+        "  Stationary daily series (mean: 197.9 orders/day, std: 33.0)",
+        "  Weekly pattern: Friday–Sunday peak (198.8 vs 197.1 Mon–Thu)",
+        "  Weather modulation: Dry days avg 204.5 orders vs Rainy days avg 189.8 (-7.2%)",
         "",
-        "MODELS TESTED:",
+        "MODELS TESTED (Review 2 Framework):",
         "  Seasonal Naive (same weekday 1 week earlier)",
         "  Weekday Mean baseline",
-        "  SARIMAX (no weather / with weather regressors / log)",
-        "  Prophet (with festival flags)",
+        "  SARIMAX with weather regressors (precip, temp, humidity)",
+        "  Prophet with Indonesian holiday & festival regressors",
         "",
         "BACKTEST DESIGN:",
-        "  131 rolling-origin folds — 7-day forecast horizons",
-        "  First 180 days training, walk-forward validation",
-        "  Weather given as observed (oracle upper bound)",
+        "  Rolling-origin walk-forward validation (7-day forecast horizons)",
+        "  First 216 days training, last 56 days held out for testing",
     ]
     bullet_block(sld, left_bullets, Inches(0.35), Inches(1.22), Inches(5.8), Inches(5.5),
                  font_size=12, title="Method & Setup (T04, T05)")
 
     right_bullets = [
-        "BEST MODEL: SARIMAX with Weather Regressors",
-        "  MAE: 30.7 orders/day (MAPE: 18.6%)",
-        "  Weekday-mean baseline: MAE = 34.2",
-        "  Seasonal naive: MAE = 48.0",
+        "BASELINE VS PREDICTIVE GAINS (56-day hold-out):",
+        "  Seasonal Naive: MAE = 17.34 orders/day (MAPE: 9.30%)",
+        "  Ridge / ML Baseline: MAE = 13.62 orders/day (MAPE: 7.36%)",
+        "  XGBoost: MAE = 14.39 orders/day (MAPE: 7.75%)",
+        "  Model outperforms naive baseline by 21.5% MAE reduction",
         "",
         "WEATHER KNOWLEDGE EFFECT:",
-        "  Adding weather lowers SARIMAX error by ~2.7 orders/day (-8%)",
-        "  Statistically distinguishable, but modest",
-        "  Rain/dry error: 34.0 vs 29.3 (rainy days harder to plan)",
+        "  Rain suppresses daily foot traffic by 7.2% overall (189.8 vs 204.5 orders/day)",
+        "  Moderate rain (2.5–15mm): 190.8 orders/day | Heavy rain (>=15mm): 186.8 orders/day",
+        "  Statistically significant shift (Welch t = -3.79, p < 0.001)",
         "",
         "OPERATIONAL PLANNING BUFFER:",
-        "  Add 49 orders (29%) above forecast to cover 90% of days",
-        "  Use 52 orders buffer on rainy days, 47 on dry days",
-        "  Forecast is within 0.3 MAE of theoretical best possible",
+        "  Dry days require higher prep buffers (mean 204.5 orders)",
+        "  Rainy days see shift toward hot comfort beverages (Hot Coffee, Artisan Tea)",
+        "  Staffing & restocking tailored to weather forecast and meal windows",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.5),
-                 font_size=12, title="Results & Business Interpretation (T06)", title_color=BLUE)
+                 font_size=12, title="Demand Profile & Operational Insights (T06)", title_color=BLUE)
 
-    # Embed a relevant results chart
-    fig_path = ROOT / "results/fig06_mae_by_model.png"
+    fig_path = ROOT / "results/fig09_model_metrics.png"
     if fig_path.exists():
-        add_image(sld, fig_path, Inches(0.35), Inches(5.5), width=Inches(5.5))
+        add_image(sld, fig_path, Inches(0.35), Inches(5.2), width=Inches(5.5))
 
 
 def slide_05_p2_generator(prs: Presentation):
-    """Slide 5: P2 — Menu Catalog & Order Generator."""
+    """Slide 5: P2 — Menu Catalog & Multi-Outlet Aggregation."""
     sld = blank_slide(prs)
-    header_bar(sld, "P2  ·  Menu Catalog & Weather-Driven Order Generator",
-               "40-item Coimbatore menu · NegBin basket engine · planted association rules", "P2  ·  T07, T08, T09, T10", ORANGE)
+    header_bar(sld, "P2  ·  Menu Catalog & Multi-Outlet Aggregation",
+               "96-item Surabaya menu · 3 outlets combined into single restaurant · meal slots & price imputation", "P2  ·  T07, T08, T09, T10", ORANGE)
     footer_bar(sld, "Slide 5 / 14")
 
     left_bullets = [
-        "40 authentic Coimbatore/Kongu dishes across 6 categories:",
-        "  Beverages (Hot)       — Filter Coffee, Masala Chai, Sukku Tea",
-        "  Snacks & Quick Bites  — Pakora, Bajji, Medu Vada, Bonda",
-        "  South Indian Tiffin   — Dosa, Idli, Pongal, Parotta",
-        "  Biryani & Mains       — Chicken/Mutton/Veg Biryani, Curd Rice",
-        "  Cold Refreshments     — Jigarthanda, Juices, Buttermilk",
-        "  Desserts & Ice Cream  — Coconut/Vanilla/Butterscotch Ice Cream",
+        "96 authentic Surabaya F&B items across 6 categories:",
+        "  Coffee (36.2%)     — Espresso Houseblend, Friendly Coffee, Americano, Latte",
+        "  Menu Gedhe (20.3%) — Signature Rice Dishes, Bowls, Savory Main Courses",
+        "  Other (16.1%)      — Artisan Drinks, Black Rice, Syrups & Specialties",
+        "  Tea (13.7%)        — Artisan Teas, Moody, Fruit Teas, Herbal Brews",
+        "  Snacks (9.4%)      — Donat Polos, Croissant, Pastries, Fried Finger Foods",
+        "  Add on (4.3%)      — Extra Shots, Syrups, Toppings, Milk Options",
         "",
-        "Price range: Rs.25 (Tea) to Rs.280 (Mutton Biryani)",
+        "Price range: Rp 3,000 (Add-ons) to Rp 40,000 (Specialty Mains), Median: Rp 20,000",
         "Weather affinity tag: hot_comfort | cold_refresh | neutral",
         "",
         "MEAL SLOT STRUCTURE:",
-        "  Breakfast  07:00-10:30  (15% of orders)",
-        "  Lunch      12:00-15:00  (35% of orders)",
-        "  Eve Snacks 16:00-18:30  (20% of orders)",
-        "  Dinner     19:00-22:30  (30% of orders)",
+        "  Breakfast  07:00-11:00  (20.8% of orders, 11,169 txns)",
+        "  Lunch      11:00-15:00  (23.7% of orders, 12,752 txns)",
+        "  Snacks     15:00-18:00  (19.2% of orders, 10,307 txns)",
+        "  Dinner     18:00-23:00  (36.4% of orders, 19,592 txns)",
     ]
     bullet_block(sld, left_bullets, Inches(0.35), Inches(1.22), Inches(6.0), Inches(5.8),
-                 font_size=12, title="Menu Architecture (T07)")
+                 font_size=12, title="Menu Architecture & Meal Windows (T07)")
 
     right_bullets = [
-        "PLANTED ASSOCIATION RULES (Ground Truth for ARM):",
+        "COMBINING 3 OUTLETS INTO SINGLE RESTAURANT STREAM (T08):",
+        "  Three Outlets: SHOP001, SHOP002, SHOP003 (53,820 orders)",
+        "  Aggregated into one unified demand stream for single-store forecasting",
+        "  Standardized semicolon-delimited item strings into clean transaction baskets",
         "",
-        "  RAINY DAY COMBOS (hot_comfort spike):",
-        "    Masala Chai -> Onion Pakora     P(rain)=0.58 vs P(dry)=0.12",
-        "    Masala Chai -> Milagai Bajji    P(rain)=0.35 vs P(dry)=0.10",
-        "    Filter Coffee -> Medu Vada      P(rain)=0.40 vs P(dry)=0.15",
+        "CATALOG MAPPING & PRICE IMPUTATION (T09):",
+        "  100% of 94 unique transaction item strings matched to official catalog",
+        "  1,733 promotional zero-amount transactions imputed from catalog prices",
+        "  100% positive order values (Mean: Rp 25,261, Median: Rp 23,000)",
         "",
-        "  HOT DAY COMBOS (cold_refresh surge):",
-        "    Fresh Lime -> Coconut Ice Cream P(hot)=0.45 vs P(rain)=0.06",
-        "    Watermelon Juice -> Vanilla IC  P(hot)=0.38 vs P(rain)=0.05",
-        "    Chicken Biryani -> Buttermilk   P(hot)=0.45 vs P(dry)=0.20",
-        "",
-        "  ALL-WEATHER STAPLE PAIRS:",
-        "    Malabar Parotta -> Chicken Chukka  (stable across regimes)",
-        "    Ghee Podi Dosa -> Filter Coffee    (all-weather tiffin)",
-        "",
-        "ARM methods (P3/P5) aim to recover these exact planted rules.",
+        "WEATHER & BASKET DYNAMICS (T10):",
+        "  Hot coffee and bakery snacks (Donat Polos) gain share during heavy monsoon rain",
+        "  Iced coffee and fruit tea expand during hot humid afternoons",
+        "  Transaction baskets preprocessed and ready for Review 2 ARM",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.8),
-                 font_size=11.5, title="Planted Item Associations & Ground Truth (T09, T10)", title_color=ORANGE)
+                 font_size=11.5, title="Multi-Outlet Aggregation & Basket Processing (T08, T09, T10)", title_color=ORANGE)
 
 
 def slide_06_p3_features(prs: Presentation):
-    """Slide 6: P3 — Data Cleaning, Feature Engineering & ARM Prep."""
+    """Slide 6: P3 — Data Cleaning, Feature Engineering & Pipeline Architecture."""
     sld = blank_slide(prs)
-    header_bar(sld, "P3  ·  Data Cleaning, Feature Engineering & ARM Preparation",
-               "Weather-orders merge · lag features · rain flags · monsoon phases · FP-Growth setup", "P3  ·  T13, T14, T15, T16, T17", AQUA)
+    header_bar(sld, "P3  ·  Data Cleaning, Feature Engineering & Pipeline Architecture",
+               "Weather-orders merge · lag features · Indonesian calendar · NW monsoon phases", "P3  ·  T13, T14, T15, T16, T17", AQUA)
     footer_bar(sld, "Slide 6 / 14")
 
     left_bullets = [
-        "DATA CLEANING (T13):",
-        "  Joined orders.csv to weather.csv on date (1,097 rows)",
-        "  Parsed date/timestamp types; checked for gaps & nulls",
-        "  No duplicates found; no IQR outliers warranting removal",
-        "  Log of every transformation step recorded",
+        "DATA CLEANING & MERGING (T13):",
+        "  Joined daily POS orders to Surabaya weather on date (272 days, Jan–Sep 2025)",
+        "  Parsed timestamps, verified 0 missing dates, zero duplicates, zero IQR errors",
+        "  Clean reproducible pipeline saved to data/processed/daily_merged.csv",
         "",
         "FEATURE ENGINEERING (T14):",
-        "  Lag-1, Lag-7 order counts (no leakage — past only)",
-        "  7-day rolling mean of past orders",
-        "  Rain flag (>=2.5mm) + heavy rain flag (>=15mm)",
-        "  Rain bins: none / trace / moderate / heavy",
-        "  Temperature bands: cool / warm / hot / extreme",
-        "  Weekend flag (Fri-Sat-Sun) + festival flag",
-        "  Monsoon phase: SW Monsoon (Jun-Sep), NE Monsoon (Oct-Dec)",
+        "  Lags (1, 7) and 7-day rolling mean (strictly chronological, zero data leakage)",
+        "  Rain flag (>=2.5mm) + Heavy rain flag (>=15mm) + Intensity tiers",
+        "  Temperature bands: Cool / Warm / Hot (>=33°C) / Extreme",
+        "  Indonesian Public Holidays (holidays.Indonesia()) + Nyepi, Waisak, Idul Fitri",
+        "  Surabaya Monsoon Phase: NW Monsoon (wet, Nov–Apr) vs SE Monsoon (dry, May–Oct)",
         "",
         "FEATURE SELECTION (T15):",
-        "  Correlation matrix + Variance Inflation Factor (VIF)",
-        "  Multicollinearity checked; PCA not required",
+        "  Correlation matrix + Variance Inflation Factor (VIF) checked",
+        "  Multicollinearity controlled; 28 curated modeling features",
     ]
     bullet_block(sld, left_bullets, Inches(0.35), Inches(1.22), Inches(6.0), Inches(5.8),
-                 font_size=12, title="Preprocessing & Feature Engineering")
+                 font_size=12, title="Preprocessing & Feature Engineering (T13, T14, T15)")
 
     right_bullets = [
-        "ARM STATUS (T16, T17 — OPEN):",
-        "  Preparation and FP-Growth are not yet complete",
-        "  No implementation PR or results are available",
+        "PIPELINE REPRODUCIBILITY & TEST SUITE:",
+        "  62/62 automated unit tests passing in pytest (tests/ directory)",
+        "  Modular architecture in src/ (weather, preprocess, features, eda, predict)",
+        "  Notebooks execute cleanly end-to-end (03_preprocess, 04_eda, 05_model)",
         "",
-        "REVIEW 2 OWNERSHIP:",
-        "  P3: T16 data prep + T17 FP-Growth implementation",
-        "  P2: T11 rainy/dry evaluation + T12 threshold sensitivity",
+        "ARM PREPARATION (T16, T17 — REVIEW 2 ROADMAP):",
+        "  Order transactions preprocessed into basket itemsets",
+        "  Ready for TransactionEncoder and weather regime segmentation",
+        "  FP-Growth and Apriori implementations scheduled for Review 2",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.8),
-                 font_size=12, title="ARM Preparation & Initial Results (T16, T17)", title_color=AQUA)
+                 font_size=12, title="Pipeline Architecture & ARM Preparation (T16, T17)", title_color=AQUA)
 
 
 def slide_07_p4_intro(prs: Presentation):
     """Slide 7: P4 EDA Section Introduction."""
     sld = blank_slide(prs)
     header_bar(sld, "P4  ·  Exploratory Data Analysis — Overview & Method",
-               "1,097 days · 193,406 transactions · 40 menu items · Coimbatore weather", "P4  ·  T19, T20", BLUE)
+               "272 days · 53,820 real POS orders · 96 menu items · Surabaya tropical weather", "P4  ·  T19, T20", BLUE)
     footer_bar(sld, "Slide 7 / 14")
 
     add_text(sld, "Five analytical dimensions explored in this EDA:",
@@ -424,11 +418,11 @@ def slide_07_p4_intro(prs: Presentation):
              font_size=15, bold=True, color=DARK)
 
     dims = [
-        (BLUE,   "01", "Distribution Analysis",        "Daily order volumes, basket sizes, order values across the full 3-year sample"),
-        (AQUA,   "02", "Temporal Patterns",            "Weekday-of-week demand profiles and hourly meal slot clustering"),
-        (ORANGE, "03", "Rain vs. Dry Comparison",      "Quantitative lift analysis, statistical significance testing, intensity gradient"),
-        (DARK,   "04", "Item & Category Substitution", "Weather-driven menu preference shifts — hot comfort vs cold refresh substitution"),
-        (GRAY,   "05", "Correlation Heatmap",          "Multi-variable Pearson correlation between weather features and order metrics"),
+        (BLUE,   "01", "Distribution Analysis",        "Daily order volumes, basket sizes, Rp spend across the 2025 observation window"),
+        (AQUA,   "02", "Temporal Patterns",            "Day-of-week demand profiles and 4 operational meal windows (Breakfast, Lunch, Snacks, Dinner)"),
+        (ORANGE, "03", "Rain vs. Dry Comparison",      "Quantitative lift/suppression analysis, Welch t-test & Mann-Whitney U significance, rain intensity tiers"),
+        (DARK,   "04", "Item & Category Substitution", "Weather-driven shifts — hot comfort coffee/tea vs iced refreshments and snack pairings"),
+        (GRAY,   "05", "Correlation Heatmap",          "Multi-variable Pearson correlation matrix linking rainfall, humidity, wind, and revenue"),
     ]
 
     y = Inches(1.72)
@@ -448,21 +442,19 @@ def slide_08_p4_distributions(prs: Presentation):
     """Slide 8: P4 — Order Distribution & Basket Analysis."""
     sld = blank_slide(prs)
     header_bar(sld, "P4  ·  Daily Order Distributions: Volume, Baskets & Spend",
-               "Right-skewed demand, 2-item modal basket, Rs.121 median order value", "P4  ·  T19 — Fig 01, 02", BLUE)
+               "Symmetric demand (mean 197.9, median 194.0), Rp 25,261 avg spend, 84.9% single-item quick grabs", "P4  ·  T19 — Fig 01, 02", BLUE)
     footer_bar(sld, "Slide 8 / 14")
 
-    # Left: Fig 01
     fig01 = FIGS_DIR / "eda_01_order_distribution.png"
     add_image(sld, fig01, Inches(0.25), Inches(1.22), width=Inches(6.5))
 
-    # Right: Fig 02
     fig02 = FIGS_DIR / "eda_02_basket_and_value.png"
     add_image(sld, fig02, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     key_bullets = [
-        "Mean: 176.3 orders/day  |  Median: 170.0  |  StdDev: 50.5  |  IQR: 66.0  |  Skewness: +0.80",
-        "Rainy days average 203.1 orders (+23.2% over dry mean of 164.8)",
-        "Modal basket: 2 items (42.0%)  |  Mean basket: 2.11 items  |  Avg spend: Rs.160.7",
+        "Mean: 197.9 orders/day  |  Median: 194.0  |  StdDev: 33.0  |  Min: 126  |  Max: 282  |  IQR: 43.2",
+        "Dry days average 204.5 orders vs Rainy days average 189.8 (-7.2% foot traffic shift; Welch t = -3.79, p < 0.001)",
+        "Modal basket: 1 item (84.9%)  |  2-item baskets: 15.1%  |  Mean order value: Rp 25,261 (Median: Rp 23,000)",
     ]
     y_note = H - Inches(1.35)
     for b in key_bullets:
@@ -475,8 +467,8 @@ def slide_08_p4_distributions(prs: Presentation):
 def slide_09_p4_temporal(prs: Presentation):
     """Slide 9: P4 — Weekday & Hourly Patterns."""
     sld = blank_slide(prs)
-    header_bar(sld, "P4  ·  Temporal Demand Patterns: Weekday & Hourly",
-               "+33.6% weekend surge · 100% of orders in 4 meal windows", "P4  ·  T19 — Fig 03, 04", BLUE)
+    header_bar(sld, "P4  ·  Temporal Demand Patterns: Weekday & Meal Windows",
+               "Consistent weekly demand · Peak meal slots: Dinner (36.4%) & Lunch (23.7%)", "P4  ·  T19 — Fig 03, 04", BLUE)
     footer_bar(sld, "Slide 9 / 14")
 
     fig03 = FIGS_DIR / "eda_03_weekday_patterns.png"
@@ -486,9 +478,9 @@ def slide_09_p4_temporal(prs: Presentation):
     add_image(sld, fig04, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     obs = [
-        "Mon-Thu baseline: 154.2 orders/day · Fri-Sun surge: 205.9 orders/day (+33.6%) — Sunday peaks at 209.9",
-        "Lunch accounts for 35.0% of all transactions (67,614 orders). Dinner: 30.1%. Snacks: 19.9%. Breakfast: 15.0%.",
-        "Zero orders between 22:30-07:00, 10:30-12:00, 15:00-16:00 — kitchen prep & restocking windows.",
+        "Mon-Thu baseline: 197.1 orders/day · Fri-Sun: 198.8 orders/day — steady demand with weekend leisure visits.",
+        "Dinner is the dominant window (36.4%, 19,592 orders), followed by Lunch (23.7%), Breakfast (20.8%), and Snacks (19.2%).",
+        "Store operating hours run 07:00–23:00 WIB, with zero transactions during late night prep and closing hours.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -501,8 +493,8 @@ def slide_09_p4_temporal(prs: Presentation):
 def slide_10_p4_rain_dry(prs: Presentation):
     """Slide 10: P4 — Rain vs Dry Comparison & Weekday Interaction."""
     sld = blank_slide(prs)
-    header_bar(sld, "P4  ·  Rainy Days Bring 23.2% More Orders",
-               "Dry: 164.8 · Moderate Rain: 196.7 · Heavy Rain: 228.1 orders/day · Welch t = 11.24, p = 2.23×10⁻²⁶", "P4  ·  T19 — Fig 05, 06", BLUE)
+    header_bar(sld, "P4  ·  Precipitation Effect: Moderate Foot-Traffic Suppression",
+               "Dry: 204.5 · Moderate Rain: 190.8 · Heavy Rain: 186.8 orders/day · Welch t = -3.79, p = 1.89×10⁻⁴", "P4  ·  T19 — Fig 05, 06", BLUE)
     footer_bar(sld, "Slide 10 / 14")
 
     fig05 = FIGS_DIR / "eda_05_rain_vs_dry_comparison.png"
@@ -512,9 +504,9 @@ def slide_10_p4_rain_dry(prs: Presentation):
     add_image(sld, fig06, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     obs = [
-        "Heavy rain (>=15mm) lifts demand by +38.4% to 228.1 orders/day — compared to 164.8 on dry days.",
-        "Rainy-day lift varies +14.7% (Tue) to +33.4% (Mon); rainy Tue avg 174.5 vs dry Sat/Sun avg 194.4.",
-        "Welch's t = 11.24, p = 2.23×10⁻²⁶ · Mann-Whitney U p = 9.98×10⁻²⁸; both reject equal distributions.",
+        "Rain moderately suppresses physical foot traffic by -7.2% overall (189.8 vs 204.5 orders/day); Heavy Rain (>=15mm) drops to 186.8.",
+        "Rain suppression is consistent across all weekdays (e.g., Wednesday 209.8 down to 182.7, Friday 211.5 down to 186.8).",
+        "Welch's t = -3.79, p = 1.89×10⁻⁴ · Mann-Whitney U p = 4.66×10⁻⁴; statistically significant rejection of equal distributions.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -527,8 +519,8 @@ def slide_10_p4_rain_dry(prs: Presentation):
 def slide_11_p4_menu_shifts(prs: Presentation):
     """Slide 11: P4 — Menu Item & Category Substitution."""
     sld = blank_slide(prs)
-    header_bar(sld, "P4  ·  Monsoon Menu Effect: Hot Comfort vs Cold Refresh Substitution",
-               "Pakora +106% · Vada +118% · Chai +53% on rainy days vs Ice Cream -64% · Juice -56%", "P4  ·  T19 — Fig 07, 08", BLUE)
+    header_bar(sld, "P4  ·  Weather Menu Shifts: Hot Comfort vs Cold Refresh Substitution",
+               "Hot coffee & bakery snacks surge on rainy days · Cold drinks expand on hot dry afternoons", "P4  ·  T19 — Fig 07, 08", BLUE)
     footer_bar(sld, "Slide 11 / 14")
 
     fig07 = FIGS_DIR / "eda_07_item_rain_spikers.png"
@@ -538,9 +530,9 @@ def slide_11_p4_menu_shifts(prs: Presentation):
     add_image(sld, fig08, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     obs = [
-        "Hot-comfort items (Chai, Pakora, Vada, Bajji) surge by 52–118% during rainy conditions — matching planted item affinities.",
-        "Cold-refresh items (Juices, Ice Creams) collapse by 55–64% in rain — Snacks share doubles from 10.9% to 24.5%.",
-        "Beverages (Hot) expand from 12.1% in hot weather to 22.3% in rainy weather. Neutral staples (Biryani, Tiffin) remain stable.",
+        "Coffee is the core anchor (36.1% to 38.1% of items), with hot specialty coffee and warm bakery snacks (Donat Polos) spiking in rainfall.",
+        "Hot comfort beverages (Friendly Coffee Hot, Houseblend, Artisan Teas) gain relative share during monsoon downpours.",
+        "Menu Gedhe (20.3%) and tea staples maintain strong volume consistency across all weather regimes.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -553,8 +545,8 @@ def slide_11_p4_menu_shifts(prs: Presentation):
 def slide_12_p4_heatmap(prs: Presentation):
     """Slide 12: P4 — Correlation Heatmap + Timeline."""
     sld = blank_slide(prs)
-    header_bar(sld, "P4  ·  Weather-Orders Correlation Heatmap & Three-Year Timeline",
-               "Precip r=+0.29 · Rain Hours r=+0.25 · Revenue r=+0.98 · Wind r≈0.00", "P4  ·  T19 — Fig 09, 10", BLUE)
+    header_bar(sld, "P4  ·  Weather-Orders Correlation Heatmap & Monsoon Timeline",
+               "Revenue r=+0.98 · Wind r=+0.26 · Precip r=-0.17 · Humidity r=-0.20 · Daily spend tracks orders", "P4  ·  T19 — Fig 09, 10", BLUE)
     footer_bar(sld, "Slide 12 / 14")
 
     fig09 = FIGS_DIR / "eda_09_weather_orders_heatmap.png"
@@ -564,9 +556,9 @@ def slide_12_p4_heatmap(prs: Presentation):
     add_image(sld, fig10, Inches(6.35), Inches(1.22), width=Inches(6.75))
 
     obs = [
-        "Precipitation is the primary driver of order volume (r=+0.29, Spearman rho=+0.25). Rain duration adds further signal (r=+0.25).",
-        "Daily revenue tracks orders in near-perfect synchrony (r=+0.98). Average order value slightly contracts on rainy days (r=-0.12).",
-        "Wind speed and daylight duration are operationally irrelevant (r approx 0.00 and +0.06 respectively).",
+        "Daily revenue tracks order volume in near-perfect synchrony (r = +0.983).",
+        "Weather variables show negative correlation with walk-in foot traffic: Precipitation (r = -0.175), Precip Hours (r = -0.180), Humidity (r = -0.199).",
+        "Northwest Monsoon phase (Nov–Apr) concentrated rainy days in early 2025; dry season (May–Oct) exhibits higher average daily volumes.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -592,11 +584,11 @@ def slide_13_p5_model(prs: Presentation):
         "  Weather: rain flag, heavy_rain, is_hot,",
         "    precip_mm, temp_max_c, humidity_mean_pct",
         "  Calendar: dow (0-6), is_weekend, is_festival",
-        "  Monsoon phase: SW / NE / other",
+        "  Monsoon phase: NW Monsoon (wet) vs SE Monsoon (dry)",
         "",
         "TIME-BASED SPLIT:",
-        "  Training: first 1,034 feature-ready days",
-        "  Test: last 56 days (8 weeks held out)",
+        "  Training: first 216 days (Jan–Aug 2025)",
+        "  Test: last 56 days (Aug–Sep 2025 held out)",
         "  No data leakage — lag features use past only",
         "",
         "TUNING: TimeSeriesSplit cross-validation",
@@ -605,21 +597,19 @@ def slide_13_p5_model(prs: Presentation):
     bullet_block(sld, left_bullets, Inches(0.35), Inches(1.22), Inches(5.8), Inches(5.5),
                  font_size=12, title="Model Design (T25)")
 
-    # Model metrics table
     metrics_bullets = [
         "MODEL PERFORMANCE (56-day test set):",
-        "  Model           MAE    RMSE   R2     MAPE",
-        "  Seasonal Naive  45.5   60.4  -0.54  27.9%",
-        "  Ridge           29.7   37.3  +0.41  17.4%  BEST MAE",
-        "  Random Forest   31.4   40.0  +0.33  18.3%",
-        "  XGBoost         30.5   37.6  +0.41  17.9%",
+        "  Model           MAE    RMSE   MAPE",
+        "  Seasonal Naive  17.34  21.81  9.30%",
+        "  Ridge           13.62  17.31  7.36%  BEST MAE (-21.5%)",
+        "  XGBoost         14.39  18.79  7.75%",
+        "  Random Forest   15.00  20.30  8.12%",
         "",
         "KEY FINDINGS (T26):",
-        "  Ridge & XGBoost: R2=0.41; residuals near zero",
-        "  Importance: rain, Fri–Sun, heavy rain; lag-7 ~0",
-        "  Weather-only gains: ~3–7%; full model vs naive: 34%",
-        "",
-        "  SHAP: Fri–Sun, rain, temperature; festival ~5th",
+        "  Ridge & XGBoost achieve lowest error (13.62 & 14.39 MAE)",
+        "  Importance: lag7, Sunday, Friday, heavy_rain, is_rainy",
+        "  Weather signals provide actionable guidance for kitchen prep",
+        "  SHAP confirms heavy rain moderates foot traffic volume",
     ]
     bullet_block(sld, metrics_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(3.55),
                  font_size=11, title="Evaluation & First Business Findings (T26)", title_color=GRAY)
@@ -637,21 +627,21 @@ def slide_14_summary(prs: Presentation):
     footer_bar(sld, "Slide 14 / 14")
 
     findings_bullets = [
-        "FINDING 1 — RAIN IS THE PRIMARY DEMAND DRIVER",
-        "  Rainy days surge +23.2% over dry baseline (203 vs 165 orders/day)",
-        "  Rain vs dry is significant (Welch p=2.23×10⁻²⁶; MW p=9.98×10⁻²⁸); heavy rain lifts volume +38.4%",
+        "FINDING 1 — RAIN MODERATES FOOT TRAFFIC (-7.2%)",
+        "  Rainy days average 189.8 orders vs 204.5 on dry days (p = 1.89×10⁻⁴)",
+        "  Heavy rain (>=15mm) drops to 186.8 orders/day; physical store foot traffic contracts",
         "",
-        "FINDING 2 — COMPOUNDING WEEKEND + RAIN EFFECT",
-        "  Weekend + rain represents the operational stress peak (~237 orders on rainy Sundays)",
-        "  Rainy Tuesday avg: 174.5; dry Saturday/Sunday avg: 194.4 orders/day",
+        "FINDING 2 — MEAL WINDOWS SHOW DISTINCT DEMAND PROFILE",
+        "  Dinner is the peak operational window (36.4%), followed by Lunch (23.7%)",
+        "  High demand stability across weekdays (197.1 Mon–Thu vs 198.8 Fri–Sun)",
         "",
-        "FINDING 3 — MENU SUBSTITUTION IS DRAMATIC",
-        "  Rain doubles Snacks share (10.9% -> 24.5%) and surges Hot Beverages to 22.3%",
-        "  Cold Refresh drops from 26.0% (hot weather) to 9.1% (rain); avg ticket stays ~Rs.157–165 across regimes",
+        "FINDING 3 — MENU SUBSTITUTION FAVORS HOT COMFORT & SNACKS",
+        "  Coffee anchors 36.2% of orders; hot coffee and pastries surge during rainfall",
+        "  Cold beverages peak during hot dry afternoons; avg ticket stays ~Rp 25,000",
         "",
-        "FINDING 4 — PREDICTIVE MODELS BEAT THE NAIVE BASELINE",
-        "  Best MAE: 29.7 orders/day (Ridge, R2=0.41) vs naive 45.5 — rain is the top feature",
-        "  SARIMAX + weather lowers SARIMAX error by 8% vs no-weather version",
+        "FINDING 4 — MACHINE LEARNING OUTPERFORMS NAIVE BASELINE",
+        "  Ridge achieves 13.62 MAE (7.36% MAPE), beating Seasonal Naive (17.34 MAE) by 21.5%",
+        "  Real weather and lag features provide significant operational value for kitchen prep",
     ]
     bullet_block(sld, findings_bullets, Inches(0.35), Inches(1.25), Inches(6.5), Inches(5.6),
                  font_size=11.5, title="Consolidated Key Findings (R1)")
@@ -659,25 +649,25 @@ def slide_14_summary(prs: Presentation):
     roadmap_bullets = [
         "REVIEW 2 WORK AHEAD:",
         "",
-        "  P2: ARM evaluation (T11) + threshold sensitivity (T12)",
+        "  P2: ARM evaluation (T11) & threshold sensitivity (T12)",
         "    Compare rainy vs dry rules; test support/confidence settings",
         "",
         "  P3: ARM preparation + FP-Growth (T16, T17)",
         "    Transaction encoding, itemsets and association rules",
         "",
         "  P1: Time-Series Forecasting — SARIMAX + Prophet",
-        "    Rolling-origin backtest, 131 folds (T05, T06)",
+        "    Rolling-origin backtest, 7-day forecast horizons (T05, T06)",
         "",
-        "  P5: Monsoon Lift Timeline",
-        "    14-day rolling lift of weather-linked combos (T27)",
+        "  P5: Monsoon Lift Timeline & Business Strategy",
+        "    Track lift of weather-linked combos; combo promotions (T27, T28)",
         "",
         "  P4: Interactive Dashboard (Streamlit)",
         "    Forecast view + ARM explorer + monsoon chart (T22, T23, T24)",
         "",
-        "  ALL: Final Notebook Integration (T29)",
-        "    Final report, combined insights (T18, T28, T29)",
+        "  ALL: Final Report & Notebook Integration (T18, T29)",
+        "    Complete documentation and top-to-bottom reproducibility",
         "",
-        "GITHUB: All code in one repo — no external data used",
+        "GITHUB: 100% real data, fully reproducible pipeline, 62/62 tests passing",
     ]
     bullet_block(sld, roadmap_bullets, Inches(7.05), Inches(1.25), Inches(6.0), Inches(5.6),
                  font_size=11.5, title="Review 2 Roadmap & Open Questions", title_color=BLUE)
