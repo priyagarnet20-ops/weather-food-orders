@@ -87,7 +87,7 @@ def test_festival_flag_fails_loudly_when_dates_are_missing(tmp_path):
 
 
 @pytest.mark.skipif(not (ROOT / "data/processed/daily_features.csv").exists(), reason="processed data not present")
-def test_processed_table_has_festival_flag_matching_the_generator():
+def test_processed_table_has_festival_flag_matching_raw():
     f = pd.read_csv(ROOT / "data/processed/daily_features.csv", parse_dates=["date"])
     raw = pd.read_csv(ROOT / "data/raw/daily_orders.csv", parse_dates=["date"])
     assert "is_festival" in f.columns

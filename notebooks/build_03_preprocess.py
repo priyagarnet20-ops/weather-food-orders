@@ -139,7 +139,7 @@ daily_agg = (
     .reset_index()
 )
 print(f"Daily aggregation: {daily_agg.shape[0]} days, {daily_agg.shape[1]} columns")
-print(f"Date range: {daily_agg['date'].min().date()} → {daily_agg['date'].max().date()}")
+print(f"Date range: {daily_agg['date'].min().date()} -> {daily_agg['date'].max().date()}")
 daily_agg.head()
 """)
 
@@ -148,7 +148,7 @@ md("""
 ### 1.3 Merge orders with weather
 
 Inner join on `date` so we only keep days where **both** weather and orders exist.
-The festival flag (`is_festival`) is then added from the generator's calendar.
+The festival flag (`is_festival`) is then added from the Indonesian national holiday calendar.
 
 > `total_revenue`, `avg_order_value` and `avg_basket_size` are same-day outcomes of the orders.
 > They are kept for description only and must **not** be used as predictors of `order_count`.
@@ -157,13 +157,13 @@ The festival flag (`is_festival`) is then added from the generator's calendar.
 code("""
 merged = pd.merge(daily_agg, weather, on="date", how="inner")
 
-# Festival days are a documented demand driver (about +21%) and are known in advance.
-# The flag comes from P2's generator calendar; add_festival_flag fails loudly if any date has none.
+# Festival days capture demand anomalies and are known in advance.
+# The flag comes from the Indonesian national holiday calendar (holidays.Indonesia).
 from features import add_festival_flag
 merged = add_festival_flag(merged)
 print(f"Festival days: {int(merged['is_festival'].sum())}")
 print(f"Merged shape: {merged.shape}")
-print(f"Date range:   {merged['date'].min().date()} → {merged['date'].max().date()}")
+print(f"Date range:   {merged['date'].min().date()} -> {merged['date'].max().date()}")
 print(f"Days covered: {merged.shape[0]}")
 merged.head()
 """)
@@ -444,7 +444,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
 
 selected_features = [
-    "order_count_lag1",     # yesterday's orders (weak here: the generator has no day-to-day memory)
+    "order_count_lag1",     # yesterday's orders (strong autocorrelation in real POS data, r = +0.769)
     "order_count_lag7",     # same weekday last week
     "order_count_roll7",    # mean of the previous 7 days
     "rain_mm",              # continuous rain measure
@@ -453,7 +453,7 @@ selected_features = [
     "is_weekend",           # Fri-Sun flag, the strongest single signal
     "is_hot",               # binary hot flag
     "is_rainy",             # binary rain flag
-    "is_festival",          # festival days lift demand by about 21%
+    "is_festival",          # Indonesian national public holidays flag
 ]
 
 vif_data = sm.add_constant(features[selected_features].dropna())
