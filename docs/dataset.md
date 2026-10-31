@@ -25,13 +25,14 @@ This project analyzes how much of that demand variation local weather explains a
 |---|---|---|---|
 | **Weather Data** (`weather.csv`, `weather_hourly.csv`) | Open-Meteo Historical Weather API (`open-meteo.com`) | **Real** (ERA5 reanalysis) | Surabaya, Indonesia (-7.2575°N, 112.7521°E), 3-year history (2023–2026), hourly & daily |
 | **Menu Catalog** (`menu.csv`) | Extracted from MSME Product Catalog (`Products.csv`) | **Real** | 96 items across 6 categories (IDR prices, categorized, weather affinities) |
-| **Food Orders** (`orders.csv`, `order_items.csv`, `daily_orders.csv`) | Real Point-of-Sale MSME POS Transactions (`Transactions.csv`) | **Real** POS Transactions | 53,820 orders across 272 days (Jan–Sep 2025), 3 outlets combined |
+| **Food Orders** (`orders.csv`, `order_items.csv`, `daily_orders.csv`) | Real POS + Empirically Grounded Synthetic Extension | **Hybrid Grounded Dataset** | 142,618 orders across 731 continuous calendar days (2024-01-01 to 2025-12-31), tagged with `is_synthetic` |
 
 ### 3.1 Dataset Attribution & Provenance
 The food order dataset is an authentic transactional dataset from a local F&B Micro-Small-Medium Enterprise (MSME) in Surabaya, Indonesia, curated by researchers from Universitas Ciputra Surabaya:
 - **Repository:** Mendeley Data (`kcgf45y24m/2`)
 - **Published Paper:** *Anonymous transactional dataset in a local food and beverages (F&B) micro-small-medium enterprise (MSME) for recommender systems*, *Data in Brief*, 2026. DOI: `10.1016/j.dib.2026.112519`
 - **Raw Files:** `data/raw/Products.csv` (item catalog and prices), `data/raw/Transactions.csv` (53,820 order records across 3 retail outlets).
+- **Synthetic Extension:** Mathematically calibrated using Negative Binomial GLM parameter estimates derived from the 272-day real base dataset to generate the remaining 459 days (full year 2024 + Q4 2025), yielding 731 days of continuous daily observations. All records maintain provenance via `is_synthetic` (0 for real POS, 1 for synthetic).
 
 ### 3.2 Weather Collection Method (T02)
 
@@ -62,16 +63,16 @@ The food order dataset is an authentic transactional dataset from a local F&B Mi
 | File | Rows | Description | Owner |
 |---|---|---|---|
 | `data/raw/Products.csv` | 96 | Raw MSME item catalog with Indonesian Rupiah prices | External / P2 |
-| `data/raw/Transactions.csv` | 53,820 | Raw POS transactions across 3 outlets | External / P2 |
+| `data/raw/Transactions.csv` | 53,820 | Raw POS transactions across 3 outlets (Jan-Sep 2025) | External / P2 |
 | `data/raw/menu.csv` | 96 | Cleaned menu catalog with weather affinity tags | P2 |
-| `data/raw/orders.csv` | 53,820 | Preprocessed transaction records with meal slots and baskets | P2 |
-| `data/raw/order_items.csv` | 61,973 | Normalized order-item pairs for category & ARM analysis | P2 |
-| `data/raw/daily_orders.csv` | 272 | Daily order counts, revenue, and mean basket values | P2 |
-| `data/raw/weather.csv` | 1,097 | Surabaya daily weather metrics from Open-Meteo | P1 |
+| `data/raw/orders.csv` | 142,618 | Unified transaction records (53,820 real POS + 88,798 synthetic) | P2 |
+| `data/raw/order_items.csv` | 164,418 | Normalized order-item pairs for category & ARM analysis | P2 |
+| `data/raw/daily_orders.csv` | 731 | Daily order counts, revenue, and mean basket values (2024-2025) | P2 |
+| `data/raw/weather.csv` | 1,097 | Surabaya daily weather metrics from Open-Meteo (2023-2026) | P1 |
 | `data/raw/weather_hourly.csv` | 26,328 | Surabaya hourly weather variables | P1 |
 | `data/raw/weather_meta.json` | – | API query parameters, grid cell, and validation report | P1 |
-| `data/processed/daily_merged.csv` | 272 | Joined POS order counts and weather variables | P3 |
-| `data/processed/daily_features.csv` | 272 | Curated 28-feature dataset for predictive modeling | P3 |
+| `data/processed/daily_merged.csv` | 731 | Joined POS order counts and weather variables | P3 |
+| `data/processed/daily_features.csv` | 731 | Curated 29-feature dataset for predictive modeling | P3 |
 
 ---
 
