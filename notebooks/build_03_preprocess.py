@@ -42,7 +42,7 @@ analysis and Variance Inflation Factor (VIF).
 | File | Rows | Description |
 |------|------|-------------|
 | `data/raw/weather.csv` | 1 097 days | Open-Meteo archive for Surabaya (-7.26°N, 112.75°E) |
-| `data/raw/Transactions.csv` / `orders.csv` | 53 820 orders | Real POS transactions across 3 combined outlets |
+| `data/raw/orders.csv` | 142 618 orders | Combined real POS (53,820 orders) + empirical synthetic extension (88,798 orders) |
 | `data/raw/Products.csv` / `menu.csv` | 96 items | Real menu catalog with item categories and IDR prices |
 
 > Real MSME F&B transactional data from Surabaya, Indonesia (Mendeley Data / Data in Brief),
@@ -262,7 +262,7 @@ md("""
 
 | Check | Result |
 |-------|--------|
-| Rows after merge | 272 |
+| Rows after merge | 731 |
 | Missing values | 0 |
 | Duplicate dates | 0 |
 | Outlets combined | 3 (SHOP001, SHOP002, SHOP003) |

@@ -81,8 +81,8 @@ md("""
 ## 1. Data Ingestion & Quality Audit
 
 We ingest five foundational datasets from `data/raw/`:
-* `daily_orders.csv`: 272 daily records combining meteorological observations, calendar tags, and order totals.
-* `orders.csv`: 53,820 granular transaction records with timestamps, meal slots, baskets, and basket order values.
+* `daily_orders.csv`: 731 daily records (2 full calendar years: 2024-2025) combining meteorological observations, calendar tags, and order totals.
+* `orders.csv`: 142,618 granular transaction records (53,820 real POS transactions + 88,798 empirical synthetic extensions) with timestamps, meal slots, baskets, and basket order values.
 * `weather.csv`: 1,097 daily weather records from Open-Meteo API for Surabaya, Indonesia.
 * `weather_hourly.csv`: 26,328 hourly meteorological readings.
 * `menu.csv`: 96 authentic Surabaya menu items with categorization, base prices in IDR, and weather affinities.

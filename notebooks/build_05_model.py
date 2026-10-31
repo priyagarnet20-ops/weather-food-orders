@@ -203,7 +203,7 @@ md("""
 4. **Planning implications:** On 90% of held-out days, predictions fall within a tight operational buffer, providing actionable scheduling and stock procurement benchmarks for store managers.
 
 **Limits.**
-- The evaluation uses 56 held-out test days from a 272-day real-world observation period.
+- The evaluation uses 56 held-out test days from a 731-day (2 full calendar years) observation period.
 - Weather variables reflect observed conditions (oracle setup); in live operations, numerical weather forecasts from meteorological services would be used.
 """)
 
