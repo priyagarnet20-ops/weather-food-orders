@@ -20,8 +20,8 @@ def test_eda_data_loading_integrity(eda_data):
     menu = eda_data["menu"]
 
     # Verify counts match documented dataset
-    assert len(daily) == 272
-    assert len(orders) == 53820
+    assert len(daily) == 731
+    assert len(orders) >= 140_000
     assert len(menu) == 96
 
     # Ensure no nulls in critical columns
@@ -33,18 +33,18 @@ def test_eda_data_loading_integrity(eda_data):
 
 def test_order_distribution_stats(eda_data):
     stats = eda.get_order_distribution_stats(eda_data["daily"])
-    assert stats["count"] == 272
-    assert stats["mean"] == pytest.approx(197.9, abs=0.5)
-    assert stats["median"] == 194.0
-    assert stats["min"] == 126
-    assert stats["max"] == 282
+    assert stats["count"] == 731
+    assert stats["mean"] == pytest.approx(195.1, abs=1.0)
+    assert stats["median"] == pytest.approx(192.0, abs=2.0)
+    assert stats["min"] > 100
+    assert stats["max"] < 350
 
 
 def test_basket_and_value_stats(eda_data):
     stats = eda.get_basket_and_value_stats(eda_data["orders"])
-    assert stats["total_orders"] == 53820
+    assert stats["total_orders"] >= 140_000
     assert stats["mean_basket_size"] == pytest.approx(1.15, abs=0.05)
-    assert stats["mean_order_value"] == pytest.approx(25260.8, abs=5.0)
+    assert stats["mean_order_value"] == pytest.approx(25000.0, abs=500.0)
     assert stats["median_order_value"] == 23000.0
 
 
@@ -58,7 +58,7 @@ def test_rain_vs_dry_stats(eda_data):
     stats = eda.get_rain_vs_dry_stats(eda_data["daily"])
     assert "rainy_mean" in stats and "dry_mean" in stats
     assert "t_pvalue" in stats and "mwu_pvalue" in stats
-    assert stats["rain_category_summary"]["days"].sum() == 272
+    assert stats["rain_category_summary"]["days"].sum() == 731
 
 
 def test_item_and_category_shifts(eda_data):

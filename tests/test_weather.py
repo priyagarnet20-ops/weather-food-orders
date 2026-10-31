@@ -102,7 +102,7 @@ def test_final_orders_use_the_same_weather_as_weather_csv():
     w = pd.read_csv(WEATHER, parse_dates=["date"])
     o = pd.read_csv(ORDERS, parse_dates=["date"])
     assert len(w) == 1097
-    assert len(o) == 272
+    assert len(o) == 731
     assert w["date"].min() == pd.Timestamp("2023-09-24") and w["date"].max() == pd.Timestamp("2026-09-24")
     assert weather.validate_daily(w, "2023-09-24", "2026-09-24") == []
     m = w.merge(o, on="date", suffixes=("", "_p2"))

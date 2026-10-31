@@ -23,6 +23,7 @@ REQUIRED_COLUMNS = [
     "items",
     "item_count",
     "order_value",
+    "is_synthetic",
 ]
 
 
