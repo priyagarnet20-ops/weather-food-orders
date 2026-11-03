@@ -10,7 +10,7 @@ This repository investigates the empirical relationship between local meteorolog
 
 | Role | Member | Focus Areas | Completed R1 Tasks |
 |---|---|---|---|
-| **P1** | Weather & Forecasting | Open-Meteo Surabaya weather fetcher, data quality, dataset documentation, time-series forecasting setup | T01, T02, T03 |
+| **P1** | Weather & Forecasting | Open-Meteo Surabaya weather fetcher, data quality, dataset documentation; Review 2 time-series forecasting (SARIMAX, Prophet, baselines, weather effect) | T01, T02, T03 (R1); T04, T05, T06 (R2) |
 | **P2** | Menu Catalog & Preprocessing | 96-item Surabaya menu catalog, multi-outlet aggregation, basket parsing, meal slots, price imputation | T07, T08, T09, T10 |
 | **P3** | Cleaning & Feature Engineering | Orders-weather merge, lag/rolling features, Indonesian holidays, Surabaya NW monsoon phases, VIF checks | T13, T14, T15 |
 | **P4** | EDA & Visualizations | Exploratory data analysis, 10-figure presentation chart set, 14-slide Review 1 PowerPoint deck | T19, T20, T21 |
@@ -43,7 +43,8 @@ This repository investigates the empirical relationship between local meteorolog
 ├── notebooks/
 │   ├── 03_preprocess.ipynb          # Data cleaning, feature engineering & VIF checks (T13–T15)
 │   ├── 04_eda.ipynb                 # Exploratory data analysis across 5 dimensions (T19–T20)
-│   └── 05_model.ipynb               # Predictive modeling, evaluation & SHAP analysis (T25–T26)
+│   ├── 05_model.ipynb               # Predictive modeling, evaluation & SHAP analysis (T25–T26)
+│   └── 07_timeseries.ipynb          # Time-series forecasting on the real days, with/without weather (T04–T06)
 ├── results/
 │   ├── eda/                         # 10 exported presentation figures (PNG)
 │   ├── fig09_model_metrics.png      # Model comparison metrics chart
@@ -64,6 +65,7 @@ This repository investigates the empirical relationship between local meteorolog
 │   ├── features.py                  # Feature engineering & calendar enrichment
 │   ├── eda.py                       # Exploratory data analysis & figure generator
 │   ├── predict.py                   # Machine learning models & evaluation pipeline
+│   ├── forecast.py                  # Time-series preparation, SARIMAX/Prophet/baselines, backtest & evaluation
 │   └── plotstyle.py                 # Shared presentation visualization styling
 └── tests/                           # 62 automated unit tests (100% passing)
 ```
