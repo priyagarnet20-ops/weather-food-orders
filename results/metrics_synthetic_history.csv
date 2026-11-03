@@ -1,0 +1,8 @@
+model,MAE real-only training,MAE with synthetic history,change,ci95_low,ci95_high,separable
+7-day mean,17.152,17.152,0.0,,,
+SARIMAX (no weather),18.382,22.982,4.6,1.543,8.404,yes
+SARIMAX (weather),18.913,22.603,3.69,1.312,6.088,yes
+Seasonal naive,22.421,22.421,0.0,,,
+Weekday mean,29.523,28.667,-0.856,-2.146,0.399,no
+Prophet (no weather),30.658,29.134,-1.525,-10.427,8.937,no
+Prophet (weather),31.763,36.273,4.51,-1.68,11.756,no
