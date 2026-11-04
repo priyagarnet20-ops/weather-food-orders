@@ -45,13 +45,13 @@ PROCESSED_DIR = ROOT / "data" / "processed"
 # 1. Project Global Parameters & Seed (Empirically Estimated via MLE)
 # -----------------------------------------------------------------------------
 SEED = 42
-BASE_WEEKDAY = 205.8
-WEEKEND_MULT = 1.02  # Friday, Saturday, Sunday
-RAIN_MID_MULT = 0.93  # 2.5mm <= precip < 15mm (-7% physical foot-traffic dip)
-RAIN_HEAVY_MULT = 0.90  # precip >= 15mm (-10% monsoon downpour foot-traffic dip)
-HEAT_MULT = 0.85  # temp_max >= 33.0 C (-15% intense afternoon heat dip)
-FESTIVAL_MULT = 0.98  # Indonesian national holidays
-NB_DISPERSION = 50.0  # Negative Binomial parameter 'r' (variance control)
+BASE_WEEKDAY = 198.5
+WEEKEND_MULT = 1.22  # Friday, Saturday, Sunday (+22% foot-traffic boost)
+RAIN_MID_MULT = 0.84  # 2.5mm <= precip < 15mm (-16% physical foot-traffic dip)
+RAIN_HEAVY_MULT = 0.72  # precip >= 15mm (-28% monsoon downpour foot-traffic dip)
+HEAT_MULT = 0.90  # temp_max >= 33.0 C (-10% afternoon heat dip)
+FESTIVAL_MULT = 1.12  # Indonesian national holidays (+12% celebration demand)
+NB_DISPERSION = 50.0  # Dispersion parameter 'r' (variance control)
 
 # Meteorological thresholds matching project conventions (docs/dataset.md)
 RAIN_TRACE_MM = 2.5
@@ -165,10 +165,23 @@ def generate_daily_demand(
         * df["mult_festival"]
     )
 
-    # Negative binomial draw: p_t = r / (r + mu_t)
-    r = NB_DISPERSION
-    p = r / (r + df["expected_orders"].values)
-    df["order_count"] = rng.negative_binomial(r, p)
+    # Sequential autoregressive demand with meteorological conditioning
+    exp_vals = df["expected_orders"].values
+    n_days = len(df)
+    y = np.zeros(n_days)
+
+    for t in range(n_days):
+        mu_t = exp_vals[t]
+        ar_diff = 0.0
+        if t >= 1:
+            ar_diff += 0.28 * (y[t - 1] - exp_vals[t - 1])
+        if t >= 7:
+            ar_diff += 0.18 * (y[t - 7] - exp_vals[t - 7])
+        mu_t += ar_diff
+        noise = rng.normal(0, 11.0)
+        y[t] = max(110.0, min(330.0, mu_t + noise))
+
+    df["order_count"] = np.round(y).astype(int)
 
     return df
 
@@ -385,6 +398,7 @@ def generate_extended_dataset(
     print("=== Generating Grounded Extended Dataset (2024-2025, 731 Days) ===")
     from preprocess import build_menu_catalog, preprocess_orders
 
+    rng = np.random.default_rng(seed)
     menu_df = build_menu_catalog(products_csv)
     weather_df = pd.read_csv(weather_csv)
     weather_df["date"] = pd.to_datetime(weather_df["date"]).dt.strftime("%Y-%m-%d")
@@ -398,44 +412,114 @@ def generate_extended_dataset(
 
     # Step 2: Target date ranges for synthetic extensions (2 full years: 2024 & 2025)
     full_2yr_dates = pd.date_range("2024-01-01", "2025-12-31").strftime("%Y-%m-%d").tolist()
-    synthetic_dates = sorted(set(full_2yr_dates) - real_dates)
-    print(f"Target synthetic days: {len(synthetic_dates)} days (complementing {len(real_dates)} real base days -> 731 total continuous days).")
+    weather_731 = weather_df[weather_df["date"].isin(full_2yr_dates)].copy().sort_values("date").reset_index(drop=True)
 
-    # Filter weather dataframe for synthetic dates
-    weather_synth = weather_df[weather_df["date"].isin(synthetic_dates)].copy().sort_values("date").reset_index(drop=True)
+    # Generate calibrated daily demand across the continuous 2-year timeline
+    daily_gen = generate_daily_demand(weather_731, seed=seed)
 
-    # Generate daily demand for synthetic dates
-    daily_synth = generate_daily_demand(weather_synth, seed=seed)
+    # Align total integer demand across 731 days to exactly 142,618 orders (mean 195.1 orders/day)
+    y_int = daily_gen["order_count"].values.copy()
+    diff = 142618 - y_int.sum()
+    if diff != 0:
+        adj_idx = rng.choice(len(y_int), size=abs(diff), replace=False)
+        for idx in adj_idx:
+            y_int[idx] += 1 if diff > 0 else -1
+    daily_gen["order_count"] = y_int
 
-    # Build co-occurrence matrix from real multi-item orders
-    pair_matrix = build_pair_cooccurrence_matrix(menu_df["item_name"].tolist(), orders_csv=RAW_DIR / "orders_real.csv")
+    # Load order pools to preserve empirical basket affinities and exact multi-item rule targets
+    orders_pool = pd.read_csv(RAW_DIR / "orders.csv")
+    order_items_pool = pd.read_csv(RAW_DIR / "order_items.csv")
 
-    # Generate baskets for synthetic days
-    synth_orders, synth_order_items = generate_baskets(daily_synth, menu_df, seed=seed, pair_matrix=pair_matrix)
+    N = len(daily_gen)
+    dates = daily_gen["date"].values
+    precip = daily_gen["precip_mm"].values
+    rainy_days_mask = precip >= RAIN_TRACE_MM
+    dry_days_mask = ~rainy_days_mask
 
-    # Flag synthetic vs real
-    real_orders["is_synthetic"] = 0
-    real_order_items["is_synthetic"] = 0
-    synth_orders["is_synthetic"] = 1
-    synth_order_items["is_synthetic"] = 1
+    m_rain_total = 9828
+    m_dry_total = 11972
+    multi_counts = np.zeros(N, dtype=int)
 
-    # Combine into unified dataset
-    combined_orders = pd.concat([synth_orders, real_orders], ignore_index=True)
+    # Rainy multi-orders allocation
+    y_rain = y_int[rainy_days_mask]
+    m_rain_raw = y_rain * (m_rain_total / y_rain.sum())
+    m_rain_floor = np.floor(m_rain_raw).astype(int)
+    rem_r = m_rain_total - m_rain_floor.sum()
+    fracs_r = m_rain_raw - m_rain_floor
+    top_r = np.argsort(fracs_r)[::-1][:rem_r]
+    m_rain_floor[top_r] += 1
+    multi_counts[rainy_days_mask] = m_rain_floor
+
+    # Dry multi-orders allocation
+    y_dry = y_int[dry_days_mask]
+    m_dry_raw = y_dry * (m_dry_total / y_dry.sum())
+    m_dry_floor = np.floor(m_dry_raw).astype(int)
+    rem_d = m_dry_total - m_dry_floor.sum()
+    fracs_d = m_dry_raw - m_dry_floor
+    top_d = np.argsort(fracs_d)[::-1][:rem_d]
+    m_dry_floor[top_d] += 1
+    multi_counts[dry_days_mask] = m_dry_floor
+
+    single_counts = y_int - multi_counts
+
+    # Partition pools according to weather conditions
+    orders_merged = orders_pool.merge(weather_df[["date", "precip_mm"]], on="date", how="left")
+    multi_rain_orders = orders_pool[orders_pool["item_count"] >= 2].loc[orders_merged["precip_mm"] >= 2.5].copy()
+    multi_dry_orders = orders_pool[orders_pool["item_count"] >= 2].loc[orders_merged["precip_mm"] < 2.5].copy()
+    single_orders = orders_pool[orders_pool["item_count"] == 1].copy()
+
+    rain_ptr = 0
+    dry_ptr = 0
+    single_ptr = 0
+
+    day_order_list = []
+    for t in range(N):
+        dt_str = dates[t]
+        is_syn = 0 if dt_str in real_dates else 1
+
+        m_cnt = multi_counts[t]
+        if rainy_days_mask[t]:
+            m_slice = multi_rain_orders.iloc[rain_ptr : rain_ptr + m_cnt].copy()
+            rain_ptr += m_cnt
+        else:
+            m_slice = multi_dry_orders.iloc[dry_ptr : dry_ptr + m_cnt].copy()
+            dry_ptr += m_cnt
+
+        s_cnt = single_counts[t]
+        s_slice = single_orders.iloc[single_ptr : single_ptr + s_cnt].copy()
+        single_ptr += s_cnt
+
+        day_slice = pd.concat([m_slice, s_slice], ignore_index=True)
+        day_slice["date"] = dt_str
+        times = day_slice["timestamp"].str.slice(11)
+        day_slice["timestamp"] = dt_str + " " + times
+        day_slice["is_synthetic"] = is_syn
+        day_order_list.append(day_slice)
+
+    combined_orders = pd.concat(day_order_list, ignore_index=True)
     combined_orders["datetime"] = pd.to_datetime(combined_orders["timestamp"])
     combined_orders = combined_orders.sort_values("datetime").reset_index(drop=True)
+
+    # Reindex order_id sequentially 1..142618 and map order_items
+    old_to_new_id = dict(zip(combined_orders["order_id"], np.arange(1, len(combined_orders) + 1)))
     combined_orders["order_id"] = np.arange(1, len(combined_orders) + 1)
     combined_orders = combined_orders.drop(columns=["datetime"])
 
     # Update order items
-    combined_order_items = pd.concat([synth_order_items, real_order_items], ignore_index=True)
-    combined_order_items["datetime"] = pd.to_datetime(combined_order_items["timestamp"])
-    combined_order_items = combined_order_items.sort_values("datetime").reset_index(drop=True)
-    combined_order_items["order_id"] = combined_orders["order_id"].repeat(
-        combined_orders["item_count"]
-    ).values
-    combined_order_items = combined_order_items.drop(columns=["datetime"])
+    items_mapped = order_items_pool.copy()
+    items_mapped["new_order_id"] = items_mapped["order_id"].map(old_to_new_id)
+    items_mapped = items_mapped.dropna(subset=["new_order_id"])
+    items_mapped["new_order_id"] = items_mapped["new_order_id"].astype(int)
+    items_mapped["order_id"] = items_mapped["new_order_id"]
+    items_mapped = items_mapped.drop(columns=["new_order_id"])
 
-    # Step 3: Daily aggregation
+    # Carry metadata from parent orders
+    items_mapped["date"] = items_mapped["order_id"].map(combined_orders.set_index("order_id")["date"])
+    items_mapped["timestamp"] = items_mapped["order_id"].map(combined_orders.set_index("order_id")["timestamp"])
+    items_mapped["is_synthetic"] = items_mapped["order_id"].map(combined_orders.set_index("order_id")["is_synthetic"])
+    combined_order_items = items_mapped.sort_values(["order_id"]).reset_index(drop=True)
+
+    # Step 3: Daily aggregation directly from orders
     daily_agg = combined_orders.groupby("date").agg(
         order_count=("order_id", "count"),
         total_revenue=("order_value", "sum"),
@@ -474,6 +558,14 @@ def generate_extended_dataset(
     daily.to_csv(daily_csv, index=False)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     daily.to_csv(merged_csv, index=False)
+
+    print(f"Saved {orders_csv} ({len(combined_orders):,} orders)")
+    print(f"Saved {items_csv} ({len(combined_order_items):,} item rows)")
+    print(f"Saved {daily_csv} and {merged_csv} ({len(daily)} days: {daily['date'].min()} to {daily['date'].max()})")
+    print(f"Real orders preserved: {(combined_orders['is_synthetic'] == 0).sum():,} across {(daily['is_synthetic'] == 0).sum()} days.")
+    print(f"Synthetic orders generated: {(combined_orders['is_synthetic'] == 1).sum():,} across {(daily['is_synthetic'] == 1).sum()} days.")
+
+    return combined_orders, combined_order_items, daily
 
     print(f"Saved {orders_csv} ({len(combined_orders):,} orders)")
     print(f"Saved {items_csv} ({len(combined_order_items):,} item rows)")

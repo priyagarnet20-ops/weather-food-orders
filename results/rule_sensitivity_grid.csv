@@ -1,31 +1,31 @@
 min_support,min_confidence,total_itemsets,pair_itemsets,rule_count,rules_lift_ge_1_5,max_lift,mean_lift,max_confidence,top_rule
 0.0005,0.01,449,353,670,132,2.071,1.334,0.052,Apple Pie Latte -> Happy Moca (Ice)
 0.0005,0.02,449,353,670,132,2.071,1.334,0.052,Apple Pie Latte -> Happy Moca (Ice)
-0.0005,0.03,449,353,195,124,2.071,1.602,0.052,Apple Pie Latte -> Happy Moca (Ice)
-0.0005,0.04,449,353,16,16,2.071,1.963,0.052,Happy Moca (Ice) -> Apple Pie Latte
+0.0005,0.03,449,353,195,124,2.071,1.602,0.052,Happy Moca (Ice) -> Apple Pie Latte
+0.0005,0.04,449,353,16,16,2.071,1.963,0.052,Apple Pie Latte -> Happy Moca (Ice)
 0.0005,0.05,449,353,1,1,2.053,2.053,0.052,Thai Tea (Gedhe) -> Berry Cake
 0.0005,0.1,449,353,0,0,0.0,0.0,0.0,None
-0.0006,0.01,204,108,216,118,2.071,1.559,0.052,Happy Moca (Ice) -> Apple Pie Latte
-0.0006,0.02,204,108,216,118,2.071,1.559,0.052,Happy Moca (Ice) -> Apple Pie Latte
-0.0006,0.03,204,108,171,118,2.071,1.625,0.052,Apple Pie Latte -> Happy Moca (Ice)
-0.0006,0.04,204,108,16,16,2.071,1.963,0.052,Happy Moca (Ice) -> Apple Pie Latte
+0.0006,0.01,204,108,216,118,2.071,1.559,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0006,0.02,204,108,216,118,2.071,1.559,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0006,0.03,204,108,171,118,2.071,1.625,0.052,Happy Moca (Ice) -> Apple Pie Latte
+0.0006,0.04,204,108,16,16,2.071,1.963,0.052,Apple Pie Latte -> Happy Moca (Ice)
 0.0006,0.05,204,108,1,1,2.053,2.053,0.052,Thai Tea (Gedhe) -> Berry Cake
 0.0006,0.1,204,108,0,0,0.0,0.0,0.0,None
-0.0007,0.01,137,41,82,76,2.071,1.749,0.052,Apple Pie Latte -> Happy Moca (Ice)
-0.0007,0.02,137,41,82,76,2.071,1.749,0.052,Apple Pie Latte -> Happy Moca (Ice)
-0.0007,0.03,137,41,81,76,2.071,1.753,0.052,Happy Moca (Ice) -> Apple Pie Latte
-0.0007,0.04,137,41,16,16,2.071,1.963,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0007,0.01,137,41,82,76,2.071,1.749,0.052,Happy Moca (Ice) -> Apple Pie Latte
+0.0007,0.02,137,41,82,76,2.071,1.749,0.052,Happy Moca (Ice) -> Apple Pie Latte
+0.0007,0.03,137,41,81,76,2.071,1.753,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0007,0.04,137,41,16,16,2.071,1.963,0.052,Happy Moca (Ice) -> Apple Pie Latte
 0.0007,0.05,137,41,1,1,2.053,2.053,0.052,Thai Tea (Gedhe) -> Berry Cake
 0.0007,0.1,137,41,0,0,0.0,0.0,0.0,None
-0.0008,0.01,110,14,28,28,2.071,1.87,0.052,Happy Moca (Ice) -> Apple Pie Latte
-0.0008,0.02,110,14,28,28,2.071,1.87,0.052,Happy Moca (Ice) -> Apple Pie Latte
-0.0008,0.03,110,14,28,28,2.071,1.87,0.052,Happy Moca (Ice) -> Apple Pie Latte
-0.0008,0.04,110,14,14,14,2.071,1.972,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0008,0.01,110,14,28,28,2.071,1.87,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0008,0.02,110,14,28,28,2.071,1.87,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0008,0.03,110,14,28,28,2.071,1.87,0.052,Apple Pie Latte -> Happy Moca (Ice)
+0.0008,0.04,110,14,14,14,2.071,1.972,0.052,Happy Moca (Ice) -> Apple Pie Latte
 0.0008,0.05,110,14,1,1,2.053,2.053,0.052,Thai Tea (Gedhe) -> Berry Cake
 0.0008,0.1,110,14,0,0,0.0,0.0,0.0,None
-0.001,0.01,98,2,4,4,2.053,2.025,0.052,Thai Tea (Gedhe) -> Berry Cake
-0.001,0.02,98,2,4,4,2.053,2.025,0.052,Thai Tea (Gedhe) -> Berry Cake
-0.001,0.03,98,2,4,4,2.053,2.025,0.052,Thai Tea (Gedhe) -> Berry Cake
-0.001,0.04,98,2,4,4,2.053,2.025,0.052,Thai Tea (Gedhe) -> Berry Cake
+0.001,0.01,98,2,4,4,2.053,2.025,0.052,Berry Cake -> Thai Tea (Gedhe)
+0.001,0.02,98,2,4,4,2.053,2.025,0.052,Berry Cake -> Thai Tea (Gedhe)
+0.001,0.03,98,2,4,4,2.053,2.025,0.052,Berry Cake -> Thai Tea (Gedhe)
+0.001,0.04,98,2,4,4,2.053,2.025,0.052,Berry Cake -> Thai Tea (Gedhe)
 0.001,0.05,98,2,1,1,2.053,2.053,0.052,Thai Tea (Gedhe) -> Berry Cake
 0.001,0.1,98,2,0,0,0.0,0.0,0.0,None
