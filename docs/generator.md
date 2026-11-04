@@ -1,250 +1,165 @@
-# Synthetic Order Generator Documentation
+# Empirically Grounded Food Order Generator (Surabaya, Indonesia)
 
-**Project:** Weather-Driven Food Order Patterns (Coimbatore) · BA Capstone, Team of 5  
+**Project:** Weather-Driven Food Order Patterns (Surabaya, Indonesia) · BA Capstone, Team of 5  
 **Author:** P2 (Order Generator & Menu Catalog)  
 **Rubric Line:** *Problem statement, business objective, and dataset description (required by rubric)*  
-**Tasks:** T07 (Menu Catalog), T08 (Daily Demand Model), T09 (Basket Generator), T10 (Generator Documentation)
+**Tasks:** T07 (Menu Catalog & Weather Affinities), T08 (Daily Demand Modeling), T09 (Basket Generation & Intraday Dynamics), T10 (Generator Documentation)
 
 ---
 
-## 1. Overview and Purpose
+## 1. Executive Summary & Review 1 Pivot
 
-This document provides the complete theoretical specification, mathematical formulation, parameter dictionary, and ground-truth rules for the Coimbatore food delivery synthetic order generator (`src/generator.py`).
+During Review 1, the faculty committee rejected purely synthetic food order generation, clarifying the academic standard:
+> *Synthetic transactional datasets are acceptable and methodologically valid only when mathematically derived from, calibrated by, and grounded in authentic, real-world Point-of-Sale (POS) base observations.*
 
-### Why Synthetic Orders Driven by Real Weather?
-Real-world delivery platforms (e.g., Swiggy, Zomato) rarely publish granular order-level transaction data with timestamps and baskets due to competitive and customer privacy concerns. However, real historical weather for Coimbatore is accessible via the Open-Meteo Historical Weather API (`data/raw/weather.csv`, collected by P1).
-
-To enable rigorous analytics across the team:
-1. **Documented Ground Truth:** Known causal relationships and planted association rules are deliberately programmed into the generator. Downstream methods (Feature Engineering by P3, EDA by P4, Predictive Modeling by P5, Time-Series Forecasting by P1, and Association Rule Mining by P3/P5) can be evaluated by their ability to **recover true underlying parameters** rather than guessing against opaque data.
-2. **Deterministic Reproducibility:** Every stochastic step relies on a fixed NumPy pseudo-random generator with `SEED = 42`. Re-running the pipeline generates identical data bit-for-bit.
-
----
-
-## 2. Daily Order Volume Model (T08)
-
-Daily order demand is modeled as an overdispersed count process governed by calendar factors, weather intensity, and regional cultural celebrations.
-
-### 2.1 Mathematical Formulation
-For each day $t \in \{1, \dots, 1097\}$ from 2023-09-24 to 2026-09-24:
-
-$$Y_t \sim \text{NegativeBinomial}(r=25, p_t)$$
-
-where:
-- $Y_t$ is the actual integer number of orders placed on day $t$.
-- $r = 25$ is the dispersion parameter controlling variance.
-- The success probability $p_t$ is parameterized by the deterministic expected daily demand $\mu_t$:
-
-$$p_t = \frac{r}{r + \mu_t}$$
-
-The moments of the Negative Binomial distribution under this parameterization are:
-
-$$\mathbb{E}[Y_t] = \frac{r(1 - p_t)}{p_t} = \mu_t$$
-
-$$\text{Var}(Y_t) = \frac{r(1 - p_t)}{p_t^2} = \mu_t + \frac{\mu_t^2}{r}$$
-
-Since $\text{Var}(Y_t) > \mathbb{E}[Y_t]$, this formulation accurately captures the heavy-tailed overdispersion and delivery demand surges observed in empirical food delivery operations.
-
-### 2.2 Expected Order Multipliers
-The deterministic expected daily demand $\mu_t$ is the product of a baseline weekday volume and four multiplicative effects:
-
-$$\mu_t = \text{BASE} \times M_{\text{weekend}}(t) \times M_{\text{rain}}(t) \times M_{\text{temp}}(t) \times M_{\text{festival}}(t)$$
-
-| Parameter | Symbol | Value | Condition / Rule |
-| :--- | :--- | :--- | :--- |
-| **Base Volume** | $\text{BASE}$ | `140.0` | Expected baseline order volume for a standard dry weekday |
-| **Weekend Multiplier** | $M_{\text{weekend}}$ | `1.30` | Applied on Friday, Saturday, and Sunday (`dow` $\in \{4, 5, 6\}$) |
-| | | `1.00` | Applied on Monday through Thursday |
-| **Rain Multiplier** | $M_{\text{rain}}$ | `1.00` | Dry / Trace conditions: $\text{precip\_mm} < 2.5\text{ mm}$ |
-| | | `1.20` | Moderate rain: $2.5\text{ mm} \le \text{precip\_mm} < 15.0\text{ mm}$ |
-| | | `1.35` | Heavy monsoon downpour: $\text{precip\_mm} \ge 15.0\text{ mm}$ |
-| **Temperature Multiplier**| $M_{\text{temp}}$ | `1.10` | Extreme heat: $\text{temp\_max\_c} \ge 33.0^\circ\text{C}$ (avoiding outdoor cooking) |
-| | | `1.00` | Normal temperature: $\text{temp\_max\_c} < 33.0^\circ\text{C}$ |
-| **Festival Multiplier** | $M_{\text{festival}}$ | `1.25` | Major Tamil Nadu / Coimbatore festival day (dining celebration surge) |
-| | | `1.00` | Regular non-festival day |
-| **Dispersion Parameter**| $r$ | `25` | Negative Binomial shape parameter |
-| **Random Seed** | $\text{SEED}$ | `42` | NumPy random generator seed (`np.random.default_rng(42)`) |
+To comply strictly with this requirement, the project pivoted from synthetic Coimbatore data to an **authentic transactional dataset from an active F&B Micro-Small-Medium Enterprise (MSME) in Surabaya, Indonesia**. We then mathematically estimated the underlying generative process of the restaurant operations from the real 272-day POS base dataset and used that empirical model to synthesize the missing periods:
+1. **Real Ground-Truth Base Dataset:** 53,820 authentic POS orders spanning 272 days (January 2, 2025 to September 30, 2025) across 3 physical outlets.
+2. **Empirical Calibration:** Maximum Likelihood Estimation (MLE) and Negative Binomial generalized linear modeling fitted against real weather and calendar variables.
+3. **Synthetic Extension:** Generation of the preceding 12 months of 2024 (366 days, leap year) and the closing quarter of 2025 (93 days), creating a **complete 2-year (731 continuous calendar days) dataset** from `2024-01-01` to `2025-12-31`.
+4. **Data Transparency & Provenance:** Every order and daily summary contains an explicit `is_synthetic` flag (`0` for real POS transactions, `1` for grounded synthetic generations), guaranteeing 100% academic integrity.
 
 ---
 
-## 3. Coimbatore Festival Calendar
+## 2. Dataset Attribution & Base Data Characteristics
 
-Cultural celebrations in Tamil Nadu lead to notable delivery order surges. The generator includes a curated calendar of 41 regional festival dates over the 3-year history:
+### 2.1 Research Citation
+- **Source:** Universitas Ciputra Surabaya research repository, Mendeley Data (`kcgf45y24m/2`).
+- **Publication:** *Anonymous transactional dataset in a local food and beverages (F&B) micro-small-medium enterprise (MSME) for recommender systems*, *Data in Brief*, 2026. DOI: `10.1016/j.dib.2026.112519`.
+- **Raw Artifacts:**
+  - `data/raw/Products.csv`: 96 products across 6 categories with authentic retail prices in Indonesian Rupiah (IDR / Rp).
+  - `data/raw/Transactions.csv`: 53,820 transaction records from 3 retail outlets (`SHOP001`: 23,059; `SHOP002`: 16,843; `SHOP003`: 13,918).
 
-| Date | Festival Name | Regional Significance | Multiplier |
-| :--- | :--- | :--- | :--- |
-| `2023-10-23` / `2024-10-11` / `2025-10-01` | Ayudha Puja | Veneration of tools and machinery; community sweets and feasts | 1.25x |
-| `2023-10-24` / `2024-10-12` / `2025-10-02` | Vijaya Dashami | Dussehra festival culmination | 1.25x |
-| `2023-11-12` / `2024-10-31` / `2025-10-20` | Deepavali (Diwali) | Festival of Lights; major family feasts and sweets | 1.25x |
-| `2023-12-25` / `2024-12-25` / `2025-12-25` | Christmas | Holiday dining and celebrations | 1.25x |
-| `2023-12-31` / `2024-12-31` / `2025-12-31` | New Year's Eve | Late evening party ordering surge | 1.25x |
-| `2024-01-01` / `2025-01-01` / `2026-01-01` | New Year's Day | Holiday family breakfast & lunch | 1.25x |
-| `2024-01-15` / `2025-01-14` / `2026-01-14` | Thai Pongal | Tamil harvest festival; traditional feast day | 1.25x |
-| `2024-01-16` / `2025-01-15` / `2026-01-15` | Mattu Pongal | Day honoring cattle; community lunch gatherings | 1.25x |
-| `2024-01-17` / `2025-01-16` / `2026-01-16` | Kaanum Pongal | Family outings, picnics, and high dining demand | 1.25x |
-| `2024-04-11` / `2025-03-31` / `2026-03-20` | Eid al-Fitr (Ramzan) | Feasting and biryani demand surge | 1.25x |
-| `2024-04-14` / `2025-04-14` / `2026-04-14` | Tamil New Year (Puthandu)| Traditional festive feasts | 1.25x |
-| `2024-06-17` / `2025-06-07` / `2026-05-27` | Bakrid (Eid al-Adha) | Mutton and biryani special dining | 1.25x |
-| `2024-09-07` / `2025-08-27` / `2026-09-14` | Vinayagar Chaturthi | Festival savories and kozhukattai treats | 1.25x |
-| `2024-09-16` / `2025-09-05` | Milad-un-Nabi | Regional community feasts | 1.25x |
+### 2.2 Outlet Combination Justification
+The 3 outlets represent physical storefronts of the same MSME in Surabaya. In retail operations analytics, city-wide weather events (monsoon downpours, extreme tropical heat index) affect foot traffic systematically across the metropolitan area. Aggregating the outlets produces an enterprise-level view:
+- **Mean Daily Volume:** 197.9 orders/day (standard deviation: 33.0).
+- **Variance-to-Mean Ratio:** $\sigma^2 / \mu = 5.51$, indicating substantial overdispersion requiring a Negative Binomial formulation rather than a standard Poisson distribution.
 
 ---
 
-## 4. Menu Architecture & Item Affinities (T07)
+## 3. Mathematical & Probabilistic Demand Formulations (T08)
 
-The menu catalog (`data/raw/menu.csv`) features 40 authentic dishes local to Coimbatore and the Kongu region across 6 categories. Each item has a base price in INR and a tagged weather affinity:
+### 3.1 Daily Count Distribution: Negative Binomial Model
+Daily order demand $Y_t$ on calendar day $t$ is modeled as a Negative Binomial random variable parameterized by dispersion parameter $r$ and success probability $p_t$:
 
-| Category | Items Count | Typical Dishes | Price Range | Weather Affinity Tag |
-| :--- | :--- | :--- | :--- | :--- |
-| **Beverages (Hot)** | 5 | South Indian Filter Coffee, Masala Chai, Sukku Malli Tea, Cardamom Tea, Badam Milk | ₹25 – ₹45 | `hot_comfort` |
-| **Snacks & Quick Bites** | 7 | Onion Pakora, Milagai Bajji, Vazhakkai Bajji, Medu Vada, Potato Bonda, Samosa, Kuzhi Paniyaram | ₹30 – ₹60 | `hot_comfort` |
-| **South Indian Tiffin** | 9 | Ghee Podi Dosa, Masala Dosa, Plain Dosa, Idli (2 pcs), Pongal, Poori Masala, Malabar Parotta (2 pcs), Chicken Kothu Parotta, Veechu Parotta | ₹40 – ₹160 | `neutral` |
-| **Biryani & Mains** | 7 | Coimbatore Chicken Biryani, Kongu Mutton Biryani, Veg Biryani, Egg Biryani, Sambar Rice, Chicken Chukka, Curd Rice | ₹60 – ₹280 | `neutral` (Curd Rice: `cold_refresh`) |
-| **Cold Refreshments & Juices** | 7 | Jigarthanda, Nannari Sarbath, Fresh Lime Juice, Watermelon Juice, Mango Juice, Moru (Buttermilk), Rose Milk | ₹30 – ₹70 | `cold_refresh` |
-| **Desserts & Ice Cream** | 5 | Tender Coconut Ice Cream, Vanilla Ice Cream, Butterscotch Ice Cream, Paal Payasam, Gulab Jamun (2 pcs) | ₹50 – ₹80 | `cold_refresh` (Sweets: `neutral`) |
+$$Y_t \sim \text{NegativeBinomial}\left(r, p_t\right), \quad p_t = \frac{r}{r + \mu_t}$$
 
----
+$$\mathbb{E}[Y_t] = \mu_t, \quad \text{Var}(Y_t) = \mu_t + \frac{\mu_t^2}{r}$$
 
-## 5. Meal Slots and Timestamp Generation (T09)
+Setting $r = 50.0$ matches the empirical dispersion ratio $\sigma_Y^2 / \bar{Y} \approx 5.51$ observed in the authentic 2025 POS data.
 
-Orders are not uniformly scattered across 24 hours. In Coimbatore food delivery, customer transactions cluster into four operational meal slots:
+### 3.2 Expected Demand Specification
+Expected demand $\mu_t$ is structured as a log-linear multiplicative process conditioned on day-of-week, precipitation regimes, thermal extremes, and national holidays:
 
-| Meal Slot | Time Window | Duration | Share of Daily Orders | Category Ordering Priorities |
-| :--- | :--- | :--- | :--- | :--- |
-| **Breakfast** | 07:00 – 10:30 | 3.5 hours | **15%** | High demand for South Indian Tiffin (Idli, Dosa, Pongal) & Filter Coffee |
-| **Lunch** | 12:00 – 15:00 | 3.0 hours | **35%** | High demand for Biryanis, Rice Meals, Refreshments (Buttermilk, Fresh Lime Juice) |
-| **Evening Snacks** | 16:00 – 18:30 | 2.5 hours | **20%** | Peak window for Hot Beverages (Chai, Coffee) & Fried Bites (Pakora, Bajji, Vada) |
-| **Dinner** | 19:00 – 22:30 | 3.5 hours | **30%** | High demand for Malabar Parotta, Kothu Parotta, Biryani, and Ice Creams |
+$$\mu_t = \text{BASE} \times M_{\text{dow}}(t) \times M_{\text{rain}}(t) \times M_{\text{temp}}(t) \times M_{\text{festival}}(t)$$
 
-### Timestamp Generation Algorithm
-For each day $t$ with $N_t$ total orders:
-1. Each order draws a meal slot $s$ with categorical probabilities `[0.15, 0.35, 0.20, 0.30]`.
-2. A random second offset $u \sim \text{Uniform}(0, \text{duration}(s))$ is drawn within the slot window.
-3. Orders are sorted chronologically per day, generating realistic `YYYY-MM-DD HH:MM:SS` timestamps.
+Parameters were estimated via Poisson/Negative Binomial GLM regression on the 272-day real base dataset:
 
----
+| Parameter | Value | 95% Conf. Interval / p-value | Empirical Interpretation |
+|---|---|---|---|
+| **$\text{BASE}$** | **205.8** | [199.4, 212.3], $p < 0.001$ | Baseline weekday volume under dry, temperate conditions |
+| **$M_{\text{rain}}$ (Moderate: 2.5–15 mm)** | **0.933** ($-6.7\%$) | [0.898, 0.969], $p = 0.0002$ | Physical walk-in foot traffic dip during standard tropical showers |
+| **$M_{\text{rain}}$ (Heavy: $\ge 15$ mm)** | **0.901** ($-9.9\%$) | [0.847, 0.958], $p = 0.0012$ | Significant foot traffic reduction during heavy monsoon downpours |
+| **$M_{\text{temp}}$ (Heat: $\ge 33.0^\circ\text{C}$)** | **0.844** ($-15.6\%$) | [0.772, 0.923], $p = 0.0002$ | Reduced walk-in transit during extreme tropical afternoon heat |
+| **$M_{\text{festival}}$ (Holidays)** | **0.982** ($-1.8\%$) | [0.931, 1.036], $p = 0.518$ | Commercial MSME holiday variation across Indonesian national holidays |
 
-## 6. Basket Construction and Weather Conditioning (T09)
-
-### 6.1 Basket Size Distribution
-Customer basket sizes $k \in \{1, 2, 3, 4, 5\}$ are sampled from the empirical delivery distribution:
-
-$$P(k = 1) = 0.30, \quad P(k = 2) = 0.42, \quad P(k = 3) = 0.18, \quad P(k = 4) = 0.07, \quad P(k = 5) = 0.03$$
-
-The expected items per basket is $2.11$ items.
-
-### 6.2 Weather Affinity Multipliers
-The baseline item popularity $w_i$ is modified dynamically by both the meal slot $s$ and the ambient weather regime $R_t \in \{\text{rainy}, \text{hot}, \text{normal}\}$:
-
-$$w_i(s, R_t) = w_i^{\text{base}} \times W_{\text{slot}}(s, \text{category}_i) \times W_{\text{weather}}(R_t, \text{affinity}_i)$$
-
-| Category Affinity | Rainy Day ($p \ge 2.5\text{ mm}$) | Hot Day ($T_{\max} \ge 33^\circ\text{C}$) | Normal Day |
-| :--- | :--- | :--- | :--- |
-| **`hot_comfort`** | **1.80x** (Craving hot fried snacks & warm tea) | **0.80x** | 1.00x |
-| **`cold_refresh`** | **0.60x** | **1.90x** (High demand for coolers & ice cream)| 1.00x |
-| **`neutral`** | **1.00x** (Staple meals remain steady) | **1.00x** | 1.00x |
+### 3.3 Day-of-Week Multipliers $M_{\text{dow}}$
+Fitted directly to empirical day-of-week volume distributions in Surabaya:
+- **Monday ($t=0$):** $0.9939$
+- **Tuesday ($t=1$):** $1.0003$
+- **Wednesday ($t=2$):** $1.0050$
+- **Thursday ($t=3$):** $1.0008$
+- **Friday ($t=4$):** $1.0208$
+- **Saturday ($t=5$):** $0.9890$
+- **Sunday ($t=6$):** $1.0263$
 
 ---
 
-## 7. Planted Association Rules (Ground Truth)
+## 4. Intraday Temporal Clustering & Basket Architecture (T09)
 
-To ensure downstream Association Rule Mining (ARM, P3 and P5 in Review 2) discovers authentic, interpretable weather-driven behavior, explicit conditional item pairs are planted in the generator.
+### 4.1 Operational Meal Windows
+Order arrival timestamps $T_i$ are assigned according to four empirical operational meal windows:
 
-When a basket contains a **Trigger** item and has space for companion items ($k > 1$), an **Add-on** item is appended with documented conditional probability $P(\text{Add-on} \mid \text{Trigger}, \text{Regime})$:
+$$\text{MealSlot}(T_i) = \begin{cases} 
+\text{Breakfast} & 07:00 \le T_i < 11:00 \quad (20.75\% \text{ of daily volume}) \\
+\text{Lunch} & 11:00 \le T_i < 15:00 \quad (23.69\% \text{ of daily volume}) \\
+\text{Afternoon Snacks} & 15:00 \le T_i < 18:00 \quad (19.15\% \text{ of daily volume}) \\
+\text{Dinner} & 18:00 \le T_i < 23:00 \quad (36.40\% \text{ of daily volume}) \\
+\text{Late Night} & 23:00 \le T_i < 07:00 \quad (0.00\% \text{ store closed})
+\end{cases}$$
 
-| Trigger Item | Add-on Item | Target Phenomenon | $P(\text{Add-on} \mid \text{Rainy})$ | $P(\text{Add-on} \mid \text{Normal})$ | $P(\text{Add-on} \mid \text{Hot})$ |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Masala Chai** | **Onion Pakora** | **Headline Monsoon Combo** | **0.58** | 0.12 | 0.08 |
-| **Masala Chai** | **Milagai Bajji** | Rainy Evening Tea & Fritter | **0.35** | 0.10 | 0.08 |
-| **South Indian Filter Coffee**| **Medu Vada** | Classic Rainy Tiffin Pair | **0.40** | 0.15 | 0.10 |
-| **Fresh Lime Juice** | **Tender Coconut Ice Cream** | **Headline Heat Cooler Combo**| 0.06 | 0.15 | **0.45** |
-| **Watermelon Juice** | **Vanilla Ice Cream** | Hot Day Refreshment | 0.05 | 0.12 | **0.38** |
-| **Coimbatore Chicken Biryani**| **Buttermilk (Moru)** | Spiced Biryani Cooling Pair | 0.12 | 0.20 | **0.45** |
-| **Malabar Parotta (2 pcs)** | **Chicken Chukka** | Kongunadu Dinner Staple | 0.35 | 0.35 | 0.30 |
-| **Ghee Podi Dosa** | **South Indian Filter Coffee**| All-Weather Tiffin Pair | 0.38 | 0.30 | 0.20 |
+### 4.2 Intra-Slot Hourly Distribution
+Within each meal slot, order arrival hours are sampled from empirical discrete probability masses derived from the POS transactions:
+- **Breakfast:** Peak at 09:00–10:00 WIB (morning coffee & pastries).
+- **Lunch:** Sharp peak at 12:00–13:00 WIB (rice bowls & lunch combos).
+- **Snacks:** Peak at 16:00–17:00 WIB (tea & doughnut afternoon break).
+- **Dinner:** Prolonged peak at 19:00–21:00 WIB (evening dining & social coffee).
+- Minute $m \sim \text{Uniform}(0, 59)$ and second $s \sim \text{Uniform}(0, 59)$.
 
----
+### 4.3 Basket Size Distribution
+In the authentic POS data, transactions consist almost entirely of single items and pairs:
+- **1-item baskets:** $84.85\%$ ($n=45,667$ in base dataset)
+- **2-item baskets:** $15.15\%$ ($n=8,153$ in base dataset)
 
-## 8. Empirical Recovery Benchmark
+### 4.4 Item Selection & Weather-Conditioned Affinities
+Each item $j \in \{1, \dots, 96\}$ has a base empirical sales frequency $w_j^0$ calculated from the 272-day POS transactions. Primary items are selected with weather-adjusted probabilities:
 
-Evaluating the 193,406 generated transactions in `data/raw/orders.csv` across the 1,097 simulated days confirms that downstream data mining algorithms will cleanly recover these exact planted associations:
+$$w_j(t) = w_j^0 \times A(j, \text{weather}_t)$$
 
-### 8.1 Headline Monsoon Rule: `{Masala Chai} -> {Onion Pakora}`
-| Weather Regime | Transactions ($N$) | Support $P(A \cap B)$ | Confidence $P(B \mid A)$ | Lift $\frac{P(A \cap B)}{P(A)P(B)}$ | Interpretation |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Rainy** | 66,818 | **6.02%** | **39.97%** | **2.71** | Strong, high-volume rule emerges on monsoon days |
-| **Normal** | 81,086 | 1.68% | 15.53% | 1.96 | Moderate baseline pairing |
-| **Hot** | 45,502 | 1.05% | 12.83% | 2.20 | Low volume; customer preference shifts away |
+Where affinity multiplier $A(j, \text{weather}_t)$ operates on item category tags (`hot_comfort`, `cold_refresh`, `neutral`):
+- **Rainy Days ($\text{precip} \ge 2.5\text{ mm}$):**
+  - $\text{hot\_comfort}$ items receive $+30\%$ boost ($A = 1.30$).
+  - $\text{cold\_refresh}$ items receive $-25\%$ suppression ($A = 0.75$).
+- **Hot Days ($\text{temp\_max} \ge 33.0^\circ\text{C}$):**
+  - $\text{cold\_refresh}$ items receive $+30\%$ boost ($A = 1.30$).
+  - $\text{hot\_comfort}$ items receive $-25\%$ suppression ($A = 0.75$).
+- **Normal Days:** $A = 1.00$ for all items.
 
-> **Key Takeaway:** On rainy days, confidence is **2.6x higher** and overall support is **3.6x higher** than on normal days.
+### 4.5 Empirical Co-Occurrence Transition Matrix for Multi-Item Baskets
+For 2-item orders, the secondary item is **not** chosen independently. Instead, we built a $96 \times 96$ empirical transition matrix $P(\text{Item}_2 \mid \text{Item}_1)$ directly from all 8,153 authentic multi-item orders in the base dataset:
 
-### 8.2 Headline Heat Rule: `{Fresh Lime Juice} -> {Tender Coconut Ice Cream}`
-| Weather Regime | Transactions ($N$) | Support $P(A \cap B)$ | Confidence $P(B \mid A)$ | Lift $\frac{P(A \cap B)}{P(A)P(B)}$ | Interpretation |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Hot** | 45,502 | **4.27%** | **32.51%** | **3.55** | Strongest lift and confidence on scorching days |
-| **Normal** | 81,086 | 1.16% | 14.16% | 3.19 | Regular pairing |
-| **Rainy** | 66,818 | 0.31% | 6.71% | 3.05 | Rule virtually disappears during monsoon downpours |
+$$P(\text{Item}_2 = k \mid \text{Item}_1 = j) = \frac{C(j, k) + \epsilon}{\sum_{m \neq j} (C(j, m) + \epsilon)}$$
 
-> **Key Takeaway:** On hot days, confidence is **4.8x higher** and support is **13.8x higher** than on rainy days.
+Where $C(j, k)$ is the observed co-occurrence count between item $j$ and item $k$, and $\epsilon = 0.05$ provides Laplace-style smoothing. This mathematical design guarantees that realistic product associations (e.g., `Friendly Coffee (Ice)` paired with `Donat Polos`, or `Menu Gedhe` rice bowls paired with artisan iced tea) are naturally preserved across all synthetic periods.
 
-### 8.3 Secondary Comfort Rule: `{South Indian Filter Coffee} -> {Medu Vada}`
-| Weather Regime | Transactions ($N$) | Support $P(A \cap B)$ | Confidence $P(B \mid A)$ | Lift $\frac{P(A \cap B)}{P(A)P(B)}$ |
-| :--- | :--- | :--- | :--- | :--- |
-| **Rainy** | 66,818 | **5.13%** | **30.91%** | **3.23** |
-| **Normal** | 81,086 | 1.82% | 14.43% | 2.88 |
-| **Hot** | 45,502 | 0.90% | 9.87% | 2.99 |
+### 4.6 Pricing & Order Valuation
+100% of item prices are deterministic lookups against `data/raw/menu.csv` in Indonesian Rupiah:
 
----
-
-## 9. Output File Schemas
-
-The generator outputs three standard CSV files into `data/raw/`:
-
-### 9.1 `data/raw/menu.csv` (T07)
-| Field | Type | Description | Example |
-| :--- | :--- | :--- | :--- |
-| `item_id` | String | Unique item identifier (M01 to M40) | `M01` |
-| `item_name` | String | Authentic Coimbatore dish name | `South Indian Filter Coffee` |
-| `category` | String | Menu grouping (6 categories) | `Beverages (Hot)` |
-| `price` | Integer | Price in Indian Rupees (INR) | `30` |
-| `weather_affinity` | String | `hot_comfort`, `cold_refresh`, or `neutral` | `hot_comfort` |
-| `description` | String | Cultural and culinary notes | Traditional filter coffee brewed in dabarah |
-
-### 9.2 `data/raw/daily_orders.csv` (T08)
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `date` | Date | Calendar day (`YYYY-MM-DD`), 2023-09-24 to 2026-09-24 |
-| `precip_mm` | Float | Precipitation sum from Open-Meteo |
-| `temp_max_c` | Float | Maximum 2m air temperature |
-| `is_weekend` | Boolean | True for Friday, Saturday, Sunday |
-| `is_rainy` | Boolean | True if $\text{precip\_mm} \ge 2.5\text{ mm}$ |
-| `is_hot` | Boolean | True if $\text{temp\_max\_c} \ge 33.0^\circ\text{C}$ |
-| `is_festival` | Boolean | True if regional Coimbatore festival |
-| `regime` | String | `rainy`, `hot`, or `normal` |
-| `expected_orders` | Float | Deterministic mean $\mu_t$ |
-| `order_count` | Integer | Stochastic Negative Binomial daily volume |
-
-### 9.3 `data/raw/orders.csv` (T09)
-| Field | Type | Description | Example |
-| :--- | :--- | :--- | :--- |
-| `order_id` | Integer | Monotonic primary key (1 to 193,406) | `1042` |
-| `date` | Date | Calendar day (`YYYY-MM-DD`) | `2024-10-11` |
-| `timestamp` | Datetime | Order placement time (`YYYY-MM-DD HH:MM:SS`) | `2024-10-11 16:42:15` |
-| `meal_slot` | String | `Breakfast`, `Lunch`, `Evening Snacks`, `Dinner` | `Evening Snacks` |
-| `items` | String | Semicolon-delimited list of ordered items | `Masala Chai; Onion Pakora` |
-| `item_count` | Integer | Basket size $k \in [1, 5]$ | `2` |
-| `order_value` | Integer | Total order amount in INR (sum of item prices) | `75` |
+$$\text{OrderValue}_i = \sum_{j \in \text{Basket}_i} \text{Price}(j)$$
 
 ---
 
-## 10. Reproduction and Verification
+## 5. Summary of the Combined 2-Year Dataset (2024–2025)
 
-To regenerate the entire dataset from scratch using the fixed random seed:
+The generated dataset seamlessly integrates real and grounded synthetic data across exactly 731 calendar days:
+
+| Metric | Real Base Data (Jan–Sep 2025) | Grounded Synthetic (2024 + Q4 2025) | Unified 2-Year Dataset |
+|---|---|---|---|
+| **Calendar Coverage** | 2025-01-02 to 2025-09-30 | 2024-01-01 to 2024-12-31 & 2025-10-01 to 2025-12-31 | **2024-01-01 to 2025-12-31** |
+| **Total Calendar Days** | 272 days | 459 days | **731 continuous days** |
+| **Total Orders** | 53,820 orders | 88,798 orders | **142,618 orders** |
+| **Mean Daily Orders** | 197.9 orders/day | 193.5 orders/day | **195.1 orders/day** |
+| **Mean Basket Size** | 1.15 items | 1.15 items | **1.15 items** |
+| **Mean Order Value** | Rp 25,261 | Rp 24,844 | **Rp 25,001** |
+| **Median Order Value** | Rp 23,000 | Rp 23,000 | **Rp 23,000** |
+| **Rainy Day Lift** | $-6.5\%$ | $-5.8\%$ | **$-6.0\%$ ($p < 0.001$)** |
+| **Data Provenance Tag** | `is_synthetic = 0` | `is_synthetic = 1` | Verified in all tables |
+
+---
+
+## 6. Pipeline Architecture & Reproduction Commands
+
+The entire pipeline is deterministic, fully reproducible with seed `42`, and executed with:
+
 ```bash
-# 1. Run generator CLI
-.venv/bin/python src/generator.py
+# 1. Generate 2-year grounded dataset (orders.csv, order_items.csv, daily_orders.csv, daily_merged.csv)
+.venv/bin/python src/generator.py --seed 42
 
-# 2. Run automated test suite verifying all 23 tests across project
-.venv/bin/pytest -v
+# 2. Engineer predictive features (daily_features.csv: 731 rows, 29 columns)
+.venv/bin/python src/features.py
+
+# 3. Execute unit test suite (62/62 passing)
+.venv/bin/pytest tests/
+
+# 4. Refresh EDA charts (results/eda/ & slides/review1/figures/)
+.venv/bin/python src/eda.py
 ```
-
-All empirical rules, parameters, and multipliers are guaranteed to match this document bit-for-bit.

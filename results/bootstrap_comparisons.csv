@@ -1,6 +1,7 @@
 a,b,mae_diff,share_boot_a_better,ci95_low,ci95_high,separable
-SARIMAX log (weather),Weekday mean,-3.494,1.0,-4.697,-2.316,yes
-SARIMAX log (weather),Seasonal naive,-17.235,1.0,-19.552,-15.014,yes
-SARIMAX (weather),SARIMAX (no weather),-2.735,1.0,-3.862,-1.605,yes
-Prophet (weather),SARIMAX (weather),-0.111,0.765,-0.415,0.194,no
-SARIMAX log (weather),SARIMAX (weather),-0.28,0.968,-0.586,0.014,no
+SARIMAX (no weather),7-day mean,1.231,0.126,-1.044,3.319,no
+SARIMAX (no weather),Weekday mean,-11.141,1.0,-18.084,-5.166,yes
+SARIMAX (no weather),Seasonal naive,-4.038,0.999,-7.294,-1.303,yes
+SARIMAX (weather),SARIMAX (no weather),0.531,0.043,-0.097,1.349,no
+Prophet (weather),Prophet (no weather),1.105,0.182,-0.867,2.77,no
+SARIMAX (no weather),Prophet (no weather),-12.276,1.0,-17.998,-7.025,yes

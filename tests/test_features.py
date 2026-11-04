@@ -61,8 +61,8 @@ def test_weekend_is_friday_to_sunday():
 
 
 @pytest.mark.parametrize("month,expected", [
-    (1, "dry_season"), (5, "dry_season"), (6, "sw_monsoon"), (9, "sw_monsoon"),
-    (10, "ne_monsoon"), (12, "ne_monsoon"),
+    (1, "nw_monsoon"), (4, "nw_monsoon"), (5, "dry_season"), (8, "dry_season"),
+    (10, "dry_season"), (11, "nw_monsoon"), (12, "nw_monsoon"),
 ])
 def test_monsoon_phase_by_month(month, expected):
     df = _frame([0.0], [30.0]).assign(date=pd.Timestamp(2024, month, 15))
@@ -87,10 +87,11 @@ def test_festival_flag_fails_loudly_when_dates_are_missing(tmp_path):
 
 
 @pytest.mark.skipif(not (ROOT / "data/processed/daily_features.csv").exists(), reason="processed data not present")
-def test_processed_table_has_festival_flag_matching_the_generator():
+def test_processed_table_has_festival_flag_matching_raw():
     f = pd.read_csv(ROOT / "data/processed/daily_features.csv", parse_dates=["date"])
     raw = pd.read_csv(ROOT / "data/raw/daily_orders.csv", parse_dates=["date"])
     assert "is_festival" in f.columns
     merged = f.merge(raw[["date", "is_festival"]], on="date", suffixes=("", "_raw"))
     assert (merged["is_festival"].astype(int) == merged["is_festival_raw"].astype(int)).all()
-    assert f["is_festival"].sum() == 41
+    assert f["is_festival"].sum() == raw["is_festival"].sum()
+    assert f["is_festival"].sum() > 0

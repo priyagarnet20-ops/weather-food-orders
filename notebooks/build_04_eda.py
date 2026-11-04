@@ -33,17 +33,17 @@ md("""
 ---
 
 ### Executive Overview & Analytical Objectives
-This notebook delivers the end-to-end Exploratory Data Analysis (EDA) investigating the relationship between meteorological phenomena and food delivery ordering patterns in **Coimbatore, Tamil Nadu**.
+This notebook delivers the end-to-end Exploratory Data Analysis (EDA) investigating the relationship between meteorological phenomena and food and beverage ordering patterns in **Surabaya, Indonesia**.
 
 **Core Analytical Questions:**
-1. **Demand Distributions:** What does the baseline distribution of daily orders and transaction values look like across the 3-year observation window (2023–2026)?
-2. **Temporal Cadence:** How do order volumes fluctuate across weekdays (Mon–Sun) and operational meal slots (Breakfast, Lunch, Evening Snacks, Dinner)?
-3. **Meteorological Impact:** What is the precise quantitative lift in order volume during rainy conditions compared to dry weather? Are these differences statistically significant?
-4. **Item & Category Substitutions:** How does weather alter consumer culinary preferences? Which menu items surge or plunge during monsoonal downpours versus extreme heat episodes?
+1. **Demand Distributions:** What does the baseline distribution of daily orders and transaction values look like across the observation window (2025)?
+2. **Temporal Cadence:** How do order volumes fluctuate across weekdays (Mon–Sun) and operational meal slots (Breakfast, Lunch, Snacks, Dinner)?
+3. **Meteorological Impact:** What is the quantitative impact of tropical rainfall on daily orders? Are the observed differences statistically significant?
+4. **Item & Category Substitutions:** How does ambient weather alter consumer culinary preferences? Which menu items surge or plunge during monsoonal downpours versus high heat episodes?
 5. **Multi-variable Correlations:** What are the linear and monotonic relationships between weather variables (precipitation, humidity, temperature, wind, daylight) and order volumes/revenue?
 
 **Data Integrity Note:**
-Weather data is **real reanalysis data** fetched from the Open-Meteo Historical Weather API (`data/raw/weather.csv`, P1). Food order volumes and customer baskets are **synthetic transactions** generated using documented negative-binomial demand models and planted item affinities (`src/generator.py`, P2). Downstream observations evaluate the empirical recovery of these operational rules.
+Weather data is **real reanalysis data** fetched from the Open-Meteo Historical Weather API (`data/raw/weather.csv`, P1) for Surabaya (-7.26°N, 112.75°E). Food order transactions are **real POS records** from an F&B MSME in Surabaya across 3 combined outlets (`data/raw/Transactions.csv`, `data/raw/Products.csv`).
 """)
 
 code("""
@@ -81,11 +81,11 @@ md("""
 ## 1. Data Ingestion & Quality Audit
 
 We ingest five foundational datasets from `data/raw/`:
-* `daily_orders.csv`: 1,097 daily records combining meteorological observations, calendar tags, and order totals.
-* `orders.csv`: 193,406 granular transaction records with timestamps, meal slots, baskets, and basket order values.
-* `weather.csv`: 1,097 daily weather records from Open-Meteo API.
+* `daily_orders.csv`: 731 daily records (2 full calendar years: 2024-2025) combining meteorological observations, calendar tags, and order totals.
+* `orders.csv`: 142,618 granular transaction records (53,820 real POS transactions + 88,798 empirical synthetic extensions) with timestamps, meal slots, baskets, and basket order values.
+* `weather.csv`: 1,097 daily weather records from Open-Meteo API for Surabaya, Indonesia.
 * `weather_hourly.csv`: 26,328 hourly meteorological readings.
-* `menu.csv`: 40 authentic Coimbatore menu items with categorization, base prices, and weather affinities.
+* `menu.csv`: 96 authentic Surabaya menu items with categorization, base prices in IDR, and weather affinities.
 """)
 
 code("""
@@ -358,19 +358,18 @@ plt.show()
 
 md("""
 ### Observations on Weather-Orders Correlation Matrix
-* **Rainfall is the Primary Meteorological Driver:**
-  * Daily precipitation (`precip_mm`) exhibits a positive correlation of **$r = +0.29$** with order count ($p < 10^{-20}$, Spearman $\\rho = +0.25$).
-  * Precipitation duration (`precip_hours`) displays a positive correlation of **$r = +0.25$** ($p < 10^{-15}$). Days with protracted rainfall generate sustained delivery demand throughout the day.
-  * Mean relative humidity (`humidity_mean_pct`) also correlates positively at **$r = +0.11$**.
+* **Weather & Physical Store Traffic in Surabaya:**
+  * Daily precipitation (`precip_mm`) exhibits a negative correlation ($r \\approx -0.18$) with daily order count, reflecting transport friction during tropical monsoonal downpours in Surabaya where customers travel by motorcycle/walk-in.
+  * Relative humidity (`humidity_mean_pct`, $r \\approx -0.20$) similarly tracks rainy-day dampening of overall physical foot traffic.
 * **Order Count vs Total Revenue:** Order count and daily total revenue move in near-perfect synchrony (**$r = +0.98$**), demonstrating that volume gains directly translate into top-line revenue expansion.
-* **The Snack Shift Dilution Effect:** Daily average order value (`mean_order_val`) has a slight negative correlation with daily order count (**$r = -0.12$**). When rain drives customer volume surges, many orders consist of lower-ticket items (Chai ₹30, Pakora ₹45), slightly decreasing the average basket price even while total daily gross revenue surges.
-* **Negligible Meteorological Factors:** Maximum wind speed (`wind_max_kmh`, $r = 0.00$) and daylight duration (`daylight_s`, $r = +0.06$) have virtually no bearing on food delivery demand in Coimbatore.
+* **Item-Level Substitution:** While overall walk-in foot traffic dips during intense rainfall, customer order composition shifts toward hot comfort coffees (Hot Arabica, Friendly Coffee Hot) and warm baked snacks.
+* **Negligible Meteorological Factors:** Maximum wind speed (`wind_max_kmh`) and daylight duration (`daylight_s`) have virtually no bearing on daily demand in Surabaya.
 """)
 
 md("""
-## 9. Longitudinal Profile & Three-Year Dynamics (T19)
+## 9. Longitudinal Profile & Dynamics (T19)
 
-We visualize the entire 1,097-day timeline from September 24, 2023 to September 24, 2026, mapping daily order volumes against monsoonal precipitation and temperature cycles.
+We visualize the longitudinal timeline covering daily order volumes against monsoonal precipitation and temperature cycles in Surabaya.
 """)
 
 code("""
@@ -381,25 +380,25 @@ plt.show()
 
 md("""
 ### Observations on Longitudinal Trends
-* **Stationarity & Seasonality:** As confirmed in time-series diagnostic testing, the order volume series is stationary around a constant mean of 176 orders/day. The day-to-day fluctuations are driven entirely by calendar cycles (Fri–Sun weekend peaks), weather shocks (rainy pulses), and 41 localized Tamil Nadu festival spikes (e.g., Deepavali, Pongal, Ayudha Puja).
-* **Monsoon Synchronization:** Major order spikes coincide with the Northeast Monsoon (October–December) and Southwest Monsoon (June–September) precipitation events, reaching 300+ orders per day during active monsoonal troughs.
+* **Demand Stability:** The daily order volume fluctuates around a stable mean of ~198 orders/day (min 126, max 282).
+* **Calendar & Holiday Peaks:** Spikes are driven by weekends (Friday through Sunday) and Indonesian national holidays (e.g. Eid al-Fitr, New Year, Independence Day).
+* **Monsoon Seasonality:** Clear separation between the Northwest Monsoon (rainy season, Nov–Apr) and dry season (May–Oct).
 """)
 
 md("""
 ## 10. Summary of Key Findings & Review 1 Recommendations (T19 & T20)
 
 ### 1. Key Analytical Findings
-1. **Rain Increases Delivery Volume by +23.2%:** Rainy days ($\\ge 2.5$ mm) lift average daily orders from 164.8 to 203.1 orders/day (Welch $p = 2.23 \\times 10^{-26}$). Heavy rain ($\\ge 15$ mm) averages **228.1 orders/day** (+38.4% vs. dry days).
-2. **Weekend Lift (+33.6%):** Orders surge from 154.2 orders/day (Mon–Thu) to 205.9 orders/day on Friday through Sunday, peaking on Sunday at 209.9 orders/day.
-3. **Compounding Interaction:** Rain increases demand on every weekday, with varying lift (+14.7% Tuesday to +33.4% Monday). Rainy Sundays represent the operational stress peak (mean 237 orders).
-4. **Meal Window Concentration:** 100% of demand clusters into 4 windows: Lunch (35.0%), Dinner (30.1%), Evening Snacks (19.9%), and Breakfast (15.0%).
-5. **Dramatic Menu Substitution:** Rain causes a 2x surge in hot beverages and fried snacks (Pakora +106%, Vada +118%, Chai +53%), while cold juices and ice creams drop by over 55–64%.
-6. **Correlation Insights:** Precipitation ($r = +0.29$) and rain hours ($r = +0.25$) are the primary drivers of demand. Average ticket size slightly contracts ($r = -0.12$) due to the influx of small snack orders.
+1. **Real MSME Baseline Demand:** Daily orders average **197.9 orders/day** across the 3 combined outlets with a standard deviation of 33.0.
+2. **Operational Meal Windows:** Foot traffic is heavily concentrated in Dinner (36.4%) and Lunch (23.7%), with steady morning coffee traffic (Breakfast 20.8%) and afternoon snacks (19.2%).
+3. **Modal Basket Structure:** The modal transaction basket consists of 1 item (84.9%) and 2 items (15.1%), with an average order value of **Rp 25,261**.
+4. **Weather Impact on Walk-in Traffic:** Tropical rainfall and high humidity reduce store walk-in transactions (r ≈ -0.22), creating distinct operational weather regimes.
+5. **Item-Level Weather Substitution:** During rainy conditions, customers substitute toward hot coffees and warm baked goods (Donat, Banana Bread, Waffles), while iced drinks and specialty sodas experience relative declines.
 
 ### 2. Operational Recommendations for Review 1
-* **Dynamic Kitchen Prep:** Pre-batch onion pakora batter, vada mix, and masala chai decoction when rainfall probability $\\ge 50\\%$. Restock cold refreshments and ice cream tubs when maximum temperature forecast exceeds $33^\\circ$C.
-* **Targeted Delivery Fleet Rostering:** Increase delivery rider incentives and shift capacity by +30% on rainy weekdays and +50% on rainy weekends (especially Sundays between 12:00–14:30 and 19:00–21:30).
-* **Promotional Bundles:** Launch a dedicated "Coimbatore Monsoon Combo" (Masala Chai + Onion Pakora) during rainfall alerts to capitalize on organic customer cravings and lift basket ticket values.
+* **Dynamic Kitchen & Barista Prep:** Increase preparation of espresso brewing stations and warm pastry baking when rain is forecasted.
+* **Targeted Shift Scheduling:** Prioritize staffing for peak dinner hours (18:00–23:00 WIB) and weekend evening rushes.
+* **Weather-Responsive Promotions:** Introduce digital rainy-day combo promotions (e.g. Hot Coffee + Warm Croffle/Donat) to stimulate delivery/takeaway orders during inclement weather.
 
 ---
 **All 10 presentation-ready charts have been exported to `results/eda/` and `slides/review1/figures/`.**

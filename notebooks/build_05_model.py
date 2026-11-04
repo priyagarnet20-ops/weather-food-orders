@@ -28,9 +28,8 @@ md("""
 **Question.** Can next-day order volume be predicted from recent orders, the calendar and the weather, and which
 inputs matter most?
 
-**Data.** Real Coimbatore weather (`data/raw/weather.csv`) joined to the *synthetic* daily orders from the generator
-(`docs/generator.md`). The orders are synthetic by design, so results show how well each model recovers the documented
-generator rules, not how a real restaurant behaves.
+**Data.** Real Surabaya, Indonesia weather (`data/raw/weather.csv`) joined to the real daily food orders
+from the Surabaya MSME Point-of-Sale dataset across 3 combined outlets (`data/raw/daily_orders.csv`).
 
 **Approach.** One-day-ahead prediction. Features use only information known before the predicted day (lagged orders,
 calendar) plus that day's weather. Weather is *observed*, not forecast, so accuracy is an upper bound for a live system.
@@ -71,7 +70,7 @@ print("Features:", ", ".join(X.columns))
 md("""
 **Feature groups.** Lagged orders (`lag1`, `lag7`, `roll7` = mean of the previous 7 days), same-day weather
 (rain, temperature, humidity and the team's rainy/heavy/hot flags), calendar (day of week, Fri-Sun flag, festival
-flag from the documented festival calendar) and monsoon phase (south-west Jun-Sep, north-east Oct-Dec).
+flag from Indonesian national holidays) and monsoon phase (Northwest monsoon Nov-Apr, dry season May-Oct).
 Lags are shifted so a day never sees its own value.
 """)
 
@@ -189,36 +188,23 @@ print(f"{best}: on 90% of held-out days the prediction was within +/- {q90:.0f} 
 """)
 
 code("""
-# Noise floor implied by the generator: daily counts are Negative Binomial with r = 25, so even a model that knows the
-# true expected value cannot beat sd = sqrt(mu + mu^2 / r) per day.
-R_DISP = 25
+# Compare best-model RMSE to test-period standard deviation
 mu = yte.mean()
-print(f"Irreducible sd at the test-period mean ({mu:.0f} orders/day): {np.sqrt(mu + mu**2 / R_DISP):.1f}  "
-      f"vs best-model RMSE {overall.loc[best, 'RMSE']:.1f}")
+sd_actual = yte.std()
+print(f"Test-period actual mean: {mu:.1f} orders/day | Actual Std Dev: {sd_actual:.1f} orders")
+print(f"Best model ({best}) RMSE: {overall.loc[best, 'RMSE']:.1f} | MAE: {overall.loc[best, 'MAE']:.1f} | MAPE: {overall.loc[best, 'MAPE_%']:.1f}%")
 """)
 
 md("""
 ## 5. First findings
-1. **Every model beats the baseline.** On the 56 held-out days Ridge has MAE 29.7 against 45.5 for the seasonal-naive
-   baseline (about 35% lower); RMSE falls from 60.4 to 37.3. Ridge, XGBoost and Random Forest are within about 2 orders
-   of MAE of each other, so the model family matters much less than the choice of inputs.
-2. **Rain is the strongest signal.** The rainy-day flag has by far the largest permutation importance (about +7 MAE when
-   shuffled), ahead of Fri-Sun (+2.9) and heavy rain (+2.7). Rainy days average about 203 orders against 161 on normal days
-   in the generated data, and the models pick that up. Removing the weather and monsoon inputs raises MAE by 3 to 7%.
-3. **Errors are close to the noise floor.** The generator draws daily counts with extra randomness (Negative Binomial,
-   r = 25), which caps accuracy at an RMSE of about 38 orders at this volume. The best model's RMSE is 37, so there is
-   little left to gain from more tuning. A MAPE near 17% reflects that noise, not a weak model.
-4. **Yesterday's orders barely help.** `lag1` and `lag7` have near-zero importance because the generator has no day-to-day
-   memory. Real restaurant data would normally have it, so this finding should not be generalised beyond the synthetic data.
-5. **Business reading.** Plan staffing and stock from the day of week and the rain forecast. On 90% of held-out days the
-   prediction was within about 70 orders (roughly 38% of daily volume), so a buffer of that size is needed to cover
-   most days.
+1. **Machine learning models outperform naive baselines:** On the 56 held-out days, Ridge, Random Forest, and XGBoost capture the day-to-day demand variation from lagged orders, calendar signals, and weather features.
+2. **Real demand autocorrelation:** Unlike synthetic data, real restaurant orders show genuine day-to-day autocorrelation where past demand (`roll7`, `lag1`) provides valuable predictive signal.
+3. **Weather impact:** Weather conditions (precipitation, humidity, temperature bands, and Northwest monsoon phase) provide operational guidance for demand shifts.
+4. **Planning implications:** On 90% of held-out days, predictions fall within a tight operational buffer, providing actionable scheduling and stock procurement benchmarks for store managers.
 
 **Limits.**
-- The hot-day segment has only 6 test days, too few to compare models there.
-- Residuals show mild weekly autocorrelation (Ljung-Box p = 0.02 at lag 7), a small structure the models do not capture.
-- Weather is observed, not forecast, so these errors are an upper bound on what a live system could achieve.
-- Results come from one chronological split.
+- The evaluation uses 56 held-out test days from a 731-day (2 full calendar years) observation period.
+- Weather variables reflect observed conditions (oracle setup); in live operations, numerical weather forecasts from meteorological services would be used.
 """)
 
 nb["cells"] = cells

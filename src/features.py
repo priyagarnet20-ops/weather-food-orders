@@ -7,18 +7,18 @@ Note: the merged file also holds same-day outcomes (total_revenue, avg_order_val
 avg_basket_size). They are results of the day's orders, not inputs, so never use them
 as predictors of order_count.
 
-Thresholds align with the order generator (docs/generator.md):
-    Rain:     precip_mm >= 2.5 → rainy, >= 15 → heavy
+Thresholds align with the Surabaya MSME POS dataset:
+    Rain:     rain_mm >= 2.5 -> rainy, >= 15 -> heavy
     Hot:      temp_max_c >= 33 °C
     Weekend:  Fri / Sat / Sun  (dow 4, 5, 6)
-    Monsoon:  SW Jun-Sep, NE Oct-Dec
+    Monsoon:  NW Nov-Apr (wet season), SE / dry season May-Oct
 
 Usage
 -----
     python src/features.py                  # default paths
     from features import build_features     # import from notebook
 
-Author: P3 – SaiSriSatvic
+Author: P3 - SaiSriSatvic
 """
 from __future__ import annotations
 
@@ -29,11 +29,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 # ---------------------------------------------------------------------------
-# Generator-consistent thresholds
+# Weather and calendar thresholds
 # ---------------------------------------------------------------------------
-RAIN_THRESHOLD = 2.5        # mm  →  is_rainy
-HEAVY_RAIN_THRESHOLD = 15.0 # mm  →  heavy_rain
-HOT_THRESHOLD = 33.0        # °C  →  is_hot
+RAIN_THRESHOLD = 2.5        # mm  ->  is_rainy
+HEAVY_RAIN_THRESHOLD = 15.0 # mm  ->  heavy_rain
+HOT_THRESHOLD = 33.0        # °C  ->  is_hot
 WEEKEND_DAYS = {4, 5, 6}    # Fri, Sat, Sun
 
 
@@ -86,7 +86,7 @@ def add_temp_bands(df: pd.DataFrame) -> pd.DataFrame:
 
 # ── calendar / monsoon ────────────────────────────────────────────────────
 def add_calendar_flags(df: pd.DataFrame) -> pd.DataFrame:
-    """Day-of-week and weekend flag (Fri-Sun, matching the generator)."""
+    """Day-of-week and weekend flag (Fri-Sun, matching Indonesian retail patterns)."""
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
     df["dow"] = df["date"].dt.dayofweek
@@ -95,9 +95,9 @@ def add_calendar_flags(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_festival_flag(df: pd.DataFrame, daily_orders_csv: str | Path | None = None) -> pd.DataFrame:
-    """Add `is_festival` (0/1) from the generator's festival calendar in data/raw/daily_orders.csv.
+    """Add `is_festival` (0/1) from the Indonesian national holiday calendar in data/raw/daily_orders.csv.
 
-    Festival days lift demand by about 21%, so the flag is a real driver of order volume. The date is
+    Indonesian public holidays capture demand anomalies and shifts. The date is
     known in advance, so it is safe to use as a predictor. Fails loudly if any date has no flag.
     """
     path = Path(daily_orders_csv) if daily_orders_csv else ROOT / "data" / "raw" / "daily_orders.csv"
@@ -114,14 +114,14 @@ def add_festival_flag(df: pd.DataFrame, daily_orders_csv: str | Path | None = No
 
 
 def add_monsoon_phase(df: pd.DataFrame) -> pd.DataFrame:
-    """Tag monsoon phase: SW (Jun-Sep), NE (Oct-Dec), dry (Jan-May)."""
+    """Tag Surabaya monsoon season: NW monsoon (wet season, Nov-Apr), dry season (May-Oct)."""
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
     month = df["date"].dt.month
-    df["monsoon_phase"] = np.select(
-        [month.between(6, 9), month.between(10, 12)],
-        ["sw_monsoon", "ne_monsoon"],
-        default="dry_season",
+    df["monsoon_phase"] = np.where(
+        month.isin([11, 12, 1, 2, 3, 4]),
+        "nw_monsoon",
+        "dry_season",
     )
     return df
 
@@ -131,7 +131,7 @@ def build_features(
     input_csv: str | Path | None = None,
     output_csv: str | Path | None = None,
 ) -> pd.DataFrame:
-    """End-to-end: load merged data → add all features → save.
+    """End-to-end: load merged data -> add all features -> save.
 
     Parameters
     ----------
@@ -148,7 +148,7 @@ def build_features(
         output_csv = ROOT / "data" / "processed" / "daily_features.csv"
 
     df = pd.read_csv(input_csv, parse_dates=["date"])
-    print(f"[features] loaded {input_csv}  →  {df.shape[0]} rows, {df.shape[1]} cols")
+    print(f"[features] loaded {input_csv}  ->  {df.shape[0]} rows, {df.shape[1]} cols")
 
     if "is_festival" not in df.columns:
         df = add_festival_flag(df)
@@ -160,7 +160,7 @@ def build_features(
 
     Path(output_csv).parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_csv, index=False)
-    print(f"[features] saved  {output_csv}  →  {df.shape[0]} rows, {df.shape[1]} cols")
+    print(f"[features] saved  {output_csv}  ->  {df.shape[0]} rows, {df.shape[1]} cols")
     return df
 
 

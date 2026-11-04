@@ -1,0 +1,9 @@
+trait,value,reading,points_to
+Training days,120.0,Sample available before the first forecast,Sets how complex a model can be
+Days per feature,6.316,"Small sample, overfitting risk","Regularised linear: Ridge, ElasticNet"
+Variance / mean,4.668,Counts spread wider than Poisson,Negative Binomial
+Autocorrelation at 1 day,0.785,Yesterday carries information about today,"Lag features, SARIMAX"
+Autocorrelation at 7 days,0.587,Weekly memory,"SARIMAX, seasonal baselines"
+ADF p-value,0.117,Below 0.05 rejects a unit root,Decides differencing in SARIMAX
+KPSS p-value,0.01,Below 0.05 rejects stationarity,Decides differencing in SARIMAX
+RESET p-value,0.718,No evidence against a linear form,Linear models; trees as a check
