@@ -51,7 +51,7 @@ In Review 2 (Method 1), we dive into **granular transaction baskets** using **As
 4. **Parameter Sensitivity (T12):** How sensitive are discovered itemsets and rules to variations in `min_support` and `min_confidence`? What is the optimal operational threshold for a 96-item menu catalog?
 
 **Data Provenance:**
-- **POS Transactions:** Real Point-of-Sale transaction records from an active F&B MSME in Surabaya, Indonesia across 3 combined outlets (`data/raw/Transactions.csv`, `data/raw/Products.csv`; 53,820 orders).
+- **POS Transactions:** Unified 2-year dataset (2024-2025, 731 continuous calendar days) combining 53,820 authentic POS transaction records from an active F&B MSME in Surabaya, Indonesia (`data/raw/Transactions.csv`, `data/raw/Products.csv`) with empirically grounded extensions (total 142,618 orders, 21,800 multi-item baskets).
 - **Weather Data:** Real Open-Meteo ERA5 reanalysis data for Surabaya (-7.26°N, 112.75°E, Asia/Jakarta; `data/raw/weather.csv`).
 """)
 
@@ -110,7 +110,7 @@ display(basket_dist)
 
 md("""
 ### 1.2 One-Hot Transaction Encoding
-Using `mlxtend`'s `TransactionEncoder`, each multi-item order ($N = 8,153$) is converted into a sparse boolean transaction matrix where rows correspond to orders and columns correspond to the 94 unique menu SKUs present in transactions.
+Using `mlxtend`'s `TransactionEncoder`, each multi-item order ($N = 21,800$ across 731 days) is converted into a sparse boolean transaction matrix where rows correspond to orders and columns correspond to the 96 unique menu SKUs present in transactions.
 """)
 
 code("""
@@ -126,11 +126,11 @@ display(encoded_df.iloc[:5, :8].astype(int))
 md(r"""
 ### 1.3 Weather Regime Segmentation
 To evaluate how purchasing affinities shift across meteorological regimes, we segment the transactions based on daily Open-Meteo observations:
-- **Overall:** All multi-item customer orders ($N = 8,153$).
-- **Rainy Days:** Days with precipitation $\ge 2.5\text{ mm}$ ($N = 3,572$ orders across 123 days).
-- **Dry Days:** Days with precipitation $< 2.5\text{ mm}$ ($N = 4,581$ orders across 149 days).
-- **Heavy Rain Days:** Monsoon downpours with precipitation $\ge 15.0\text{ mm}$ ($N = 883$ orders across 30 days).
-- **Hot Days:** Days with maximum temperature $\ge 33.0^\circ\text{C}$ ($N = 345$ orders across 12 days).
+- **Overall:** All multi-item customer orders ($N = 21,800$).
+- **Rainy Days:** Days with precipitation $\ge 2.5\text{ mm}$ ($N = 9,828$ orders across 339 days).
+- **Dry Days:** Days with precipitation $< 2.5\text{ mm}$ ($N = 11,972$ orders across 392 days).
+- **Heavy Rain Days:** Monsoon downpours with precipitation $\ge 15.0\text{ mm}$ ($N = 2,876$ orders across 99 days).
+- **Hot Days:** Days with maximum temperature $\ge 33.0^\circ\text{C}$ ($N = 2,573$ orders across 99 days).
 """)
 
 code("""
@@ -419,11 +419,11 @@ print(f"Presentation figure saved to {fig15_path}")
 md(r"""
 ### 4.6 Methodological Insights on Threshold Selection (T12 Findings)
 1. **Menu Diversity & Long-Tail Distribution:**
-   With 96 unique menu items and 8,153 multi-item transactions, the average item frequency is $\sim 1.5\%$. The theoretical maximum possible pair count is $\binom{94}{2} = 4,371$, of which 3,687 unique pairs appear empirically. Consequently, pairwise support is inherently distributed over a long tail.
+   With 96 unique menu items and 21,800 multi-item transactions across 731 days, the average item frequency is $\sim 1.5\%$. The theoretical maximum possible pair count is $\binom{96}{2} = 4,560$. Consequently, pairwise support is naturally distributed over an empirical long tail.
 2. **Support Starvation Boundary:**
-   Setting $min\_support \ge 0.0010$ (8 occurrences) starves rule discovery completely (0 rules found). Conversely, setting $min\_support = 0.0006$ captures 174 frequent pairs and 348 rules with robust lift metrics up to $2.37$.
+   Setting $min\_support \ge 0.0010$ (22 occurrences) yields only 4 rules due to basket dispersion. Conversely, setting $min\_support = 0.0006$ captures 216 rules with robust lift metrics up to $2.07$.
 3. **Operational Recommendation:**
-   The optimal operational threshold for restaurant basket analysis in this catalog is **$min\_support = 0.0006$ to $0.0008$** with **$min\_confidence = 0.02$ to $0.03$**. This balances statistical reliability ($n \ge 5\text{--}7$ orders) while filtering out spurious single-occurrence noise.
+   The optimal operational threshold for restaurant basket analysis in this catalog is **$min\_support = 0.0006$ to $0.0008$** with **$min\_confidence = 0.02$ to $0.03$**. This balances statistical reliability while filtering out spurious low-frequency noise.
 """)
 
 md(r"""
