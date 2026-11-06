@@ -1,0 +1,27 @@
+group,check,expected,observed,passed,method
+grounding,Order hour profile,same as Swiggy,"chi2=1.2, p=1.00",True,chi-square goodness of fit
+grounding,Food basket size,same as Swiggy,"chi2=0.3, p=0.96",True,chi-square goodness of fit
+grounding,Food order value,same distribution as Swiggy,"KS D=0.015, p=1.00",True,two-sample KS
+grounding,Food item mix,same as Swiggy,"chi2=3.4, p=1.00",True,chi-square goodness of fit
+grounding,Day-to-day volume pattern,positive correlation with Swiggy,"r=0.50, p=0.000",True,Pearson correlation
+recovery,Volume effect: weekend,planted x2.47,"x2.45 [2.41, 2.49]",True,"quasi-Poisson GLM on 1,097 synthetic days, 95% CI"
+survey,Direction: weekend,"survey says more {'less': 3, 'same': 7, 'more': 17}",x2.45,True,sign of synthetic effect vs survey majority
+recovery,Volume effect: rain_weekday,planted x1.55,"x1.56 [1.53, 1.60]",True,"quasi-Poisson GLM on 1,097 synthetic days, 95% CI"
+survey,Direction: rain_weekday,"survey says less {'less': 18, 'same': 5, 'more': 4}",x1.56,False,sign of synthetic effect vs survey majority
+recovery,Volume effect: rain_weekend,planted x0.54,"x0.53 [0.52, 0.54]",True,"quasi-Poisson GLM on 1,097 synthetic days, 95% CI"
+survey,Direction: rain_weekend,"survey says less {'less': 18, 'same': 5, 'more': 4}",x0.53,True,sign of synthetic effect vs survey majority
+recovery,Volume effect: heat,planted x1.07,"x1.06 [1.05, 1.08]",True,"quasi-Poisson GLM on 1,097 synthetic days, 95% CI"
+survey,Direction: heat,"survey says more {'less': 5, 'same': 15, 'more': 7}",x1.06,True,sign of synthetic effect vs survey majority
+recovery,Volume effect: festival,planted x0.89,"x0.87 [0.84, 0.91]",True,"quasi-Poisson GLM on 1,097 synthetic days, 95% CI"
+survey,Direction: festival,"survey says less {'less': 11, 'same': 8, 'more': 8}",x0.87,True,sign of synthetic effect vs survey majority
+survey,Pair Chai -> Pakora: weather ordering,"rainy 0.30, normal 0.22","rainy 0.31, normal 0.22",True,confidence by weather vs survey frequency score
+recovery,Pair Chai -> Pakora: rule found,"confidence = planted (within 2.94 SE, Bonferroni) and lift > 1 in every weather","lift rainy 4.0, hot 5.8, normal 11.3",True,association rule confidence and lift per regime
+survey,Pair Chai -> Samosa: weather ordering,"rainy 0.32, normal 0.25","rainy 0.32, normal 0.23",True,confidence by weather vs survey frequency score
+recovery,Pair Chai -> Samosa: rule found,"confidence = planted (within 2.94 SE, Bonferroni) and lift > 1 in every weather","lift rainy 2.7, hot 6.3, normal 11.5",True,association rule confidence and lift per regime
+survey,Pair Coffee -> Vada: weather ordering,"rainy 0.31, normal 0.27","rainy 0.31, normal 0.27",True,confidence by weather vs survey frequency score
+recovery,Pair Coffee -> Vada: rule found,"confidence = planted (within 2.94 SE, Bonferroni) and lift > 1 in every weather","lift rainy 4.6, hot 7.9, normal 4.9",True,association rule confidence and lift per regime
+survey,Pair Ice Cream -> Cold Coffee: weather ordering,"rainy 0.23, hot 0.31, normal 0.28","rainy 0.24, hot 0.32, normal 0.28",True,confidence by weather vs survey frequency score
+recovery,Pair Ice Cream -> Cold Coffee: rule found,"confidence = planted (within 2.94 SE, Bonferroni) and lift > 1 in every weather","lift rainy 6.0, hot 1.7, normal 6.6",True,association rule confidence and lift per regime
+survey,Pair Biryani -> Buttermilk: weather ordering,"rainy 0.30, hot 0.30, normal 0.30","rainy 0.30, hot 0.29, normal 0.28",True,confidence by weather vs survey frequency score
+recovery,Pair Biryani -> Buttermilk: rule found,"confidence = planted (within 2.94 SE, Bonferroni) and lift > 1 in every weather","lift rainy 9.8, hot 2.1, normal 10.9",True,association rule confidence and lift per regime
+survey,Share of snack/drink orders by weather,hot 0.54 > rainy 0.35 > normal 0.18,hot 0.54 > rainy 0.34 > normal 0.18,True,snack/drink share of orders per regime vs survey Q9-Q11
