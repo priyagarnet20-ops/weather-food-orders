@@ -1,41 +1,81 @@
 item_id,item_name,category,price,weather_affinity,description
-M01,South Indian Filter Coffee,Beverages (Hot),30,hot_comfort,Traditional chicory-blended filter coffee brewed in a brass dabarah
-M02,Masala Chai,Beverages (Hot),25,hot_comfort,"Spiced milk tea infused with crushed ginger, cardamom, and cloves"
-M03,Sukku Malli Tea,Beverages (Hot),30,hot_comfort,Herbal dry ginger and coriander seed tea popular in western Tamil Nadu
-M04,Cardamom Tea,Beverages (Hot),25,hot_comfort,Aromatic milk tea flavored with freshly ground green cardamom
-M05,Badam Milk,Beverages (Hot),45,hot_comfort,Warm sweetened milk enriched with almond paste and saffron
-M06,Onion Pakora,Snacks & Quick Bites,50,hot_comfort,Crispy golden-fried sliced onion fritters spiced with curry leaves and green chillies
-M07,Milagai Bajji,Snacks & Quick Bites,45,hot_comfort,Spicy banana pepper fritters dipped in seasoned gram flour batter
-M08,Vazhakkai Bajji,Snacks & Quick Bites,45,hot_comfort,Thinly sliced raw plantain fritters served with coconut and tomato chutney
-M09,Medu Vada,Snacks & Quick Bites,35,hot_comfort,Crisp fried black gram doughnut-shaped fritters served with sambar and chutney
-M10,Potato Bonda,Snacks & Quick Bites,40,hot_comfort,Deep-fried spiced mashed potato balls encased in besan batter
-M11,Samosa,Snacks & Quick Bites,30,hot_comfort,Flaky pastry cones stuffed with seasoned potato and green pea filling
-M12,Kuzhi Paniyaram,Snacks & Quick Bites,60,hot_comfort,Pan-fried fermented rice-lentil dumplings tempered with mustard and onions
-M13,Ghee Podi Dosa,South Indian Tiffin,85,neutral,Crisp fermented crepe smeared with aromatic spiced gunpowder and melted ghee
-M14,Masala Dosa,South Indian Tiffin,80,neutral,Crispy rice-lentil crepe wrapped around savory spiced potato masala
-M15,Plain Dosa,South Indian Tiffin,60,neutral,Golden crispy thin South Indian crepe served with chutney trio and sambar
-M16,Idli (2 pcs),South Indian Tiffin,40,neutral,Steamed fluffy rice and urad dal cakes served with sambar and chutneys
-M17,Pongal,South Indian Tiffin,60,neutral,Classic Tamil Nadu ghee-laden rice and moong dal porridge tempered with black pepper and cashews
-M18,Poori Masala,South Indian Tiffin,65,neutral,Puffed deep-fried wheat breads served with South Indian potato masala gravy
-M19,Malabar Parotta (2 pcs),South Indian Tiffin,60,neutral,Flaky layered layered flatbreads served with vegetable salna
-M20,Chicken Kothu Parotta,South Indian Tiffin,160,neutral,"Shredded parotta stir-fried on hot tawa with shredded chicken, eggs, and salna"
-M21,Veechu Parotta,South Indian Tiffin,50,neutral,Thin stretched square parotta tossed on hot iron griddle
-M22,Coimbatore Chicken Biryani,Biryani & Mains,220,neutral,Fragrant Seeraga Samba rice chicken biryani cooked Kongu style with whole spices
-M23,Kongu Mutton Biryani,Biryani & Mains,280,neutral,Signature Coimbatore Seeraga Samba short-grain biryani with tender mutton pieces
-M24,Veg Biryani,Biryani & Mains,140,neutral,Aromatic Seeraga Samba rice cooked with seasonal vegetables and mild spices
-M25,Egg Biryani,Biryani & Mains,170,neutral,Seeraga Samba biryani rice served with two seasoned hard-boiled eggs
-M26,Curd Rice,Biryani & Mains,60,cold_refresh,"Tempered cooling yoghurt rice with mustard, ginger, green chillies, and pomegranate"
-M27,Sambar Rice,Biryani & Mains,70,neutral,Slow-cooked rice blended with aromatic drumstick-shallot sambar and generous ghee
-M28,Chicken Chukka,Biryani & Mains,180,neutral,"Dry spicy Kongunadu chicken roast with shallots, curry leaves, and freshly ground pepper"
-M29,Jigarthanda,Cold Refreshments & Juices,70,cold_refresh,"Famous cooling drink with almond gum (badam pisin), nannari syrup, milk, and basundi"
-M30,Nannari Sarbath,Cold Refreshments & Juices,40,cold_refresh,Traditional sarsaparilla root extract drink with fresh lime and chilled water
-M31,Fresh Lime Juice,Cold Refreshments & Juices,40,cold_refresh,Refreshing chilled lemonade freshly squeezed with mint leaves
-M32,Watermelon Juice,Cold Refreshments & Juices,55,cold_refresh,Freshly extracted pure chilled watermelon juice
-M33,Mango Juice,Cold Refreshments & Juices,65,cold_refresh,Rich pulp juice made from ripe Alphonso/Banganapalli mangoes
-M34,Buttermilk (Moru),Cold Refreshments & Juices,30,cold_refresh,"Whisked spiced curd cooler tempered with curry leaves, ginger, and green chillies"
-M35,Rose Milk,Cold Refreshments & Juices,45,cold_refresh,Classic fragrant chilled milk beverage flavored with sweet rose syrup
-M36,Tender Coconut Ice Cream,Desserts & Ice Cream,80,cold_refresh,Creamy artisanal ice cream infused with fresh malai and tender coconut water
-M37,Vanilla Ice Cream,Desserts & Ice Cream,60,cold_refresh,Classic smooth and rich real Madagascar vanilla bean scoop
-M38,Butterscotch Ice Cream,Desserts & Ice Cream,75,cold_refresh,Crunchy caramelized cashew praline blended with rich butterscotch cream
-M39,Paal Payasam,Desserts & Ice Cream,60,neutral,"Traditional slow-simmered rice pudding with reduced milk, cardamom, and ghee-roasted nuts"
-M40,Gulab Jamun (2 pcs),Desserts & Ice Cream,50,neutral,Soft fried khoya milk dumplings soaked in warm rose and cardamom scented sugar syrup
+M01,Boiled Egg,Egg,51,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M02,Butter Chicken,Starters & Gravies,382,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M03,Butter Naan,Breads & Tiffin,94,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M04,Butter Roti,Breads & Tiffin,90,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M05,Chapati 1 pce,Breads & Tiffin,57,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M06,Chicken Chinthamani Special Soup,Soups,152,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M07,Chicken Dum Biryani,Biryani & Rice,351,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M08,Chicken Dynamite,Chinese,363,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M09,Chicken Fried Rice,Biryani & Rice,363,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M10,Chicken Hot Pepper,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M11,Chicken Kozhi Malli Soup,Soups,149,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M12,Chicken Kozhi Milagu Soup,Soups,148,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M13,Chicken Kozhi Rasam,Soups,148,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M14,Chicken Lollipop (4 Pcs ),Chinese,369,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M15,Chicken Podi Varuval,Starters & Gravies,360,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M16,Chicken Schezwan Fried Rice,Biryani & Rice,376,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M17,Chilli Fish ( 65),Chinese,337,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M18,Chineese Chilli Chicken,Chinese,369,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M19,Chinese Chilli Paneer,Chinese,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M20,Chinthamani Special Kothu Kozhi,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M21,Dragon Chicken,Chinese,376,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M22,Egg Biryani,Biryani & Rice,286,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M23,Egg Fried Rice,Biryani & Rice,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M24,Egg Kothu Parotta,Breads & Tiffin,260,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M25,Egg Masala,Egg,174,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M26,Egg Podimas,Egg,91,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M27,Egg Roast (DOSAI),Breads & Tiffin,100,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M28,Garlic Naan,Breads & Tiffin,105,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M29,Ghee Rice,Biryani & Rice,265,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M30,Ghee Roast,Breads & Tiffin,164,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M31,Ginger Chicken,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M32,Gobi Manchurian,Chinese,246,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M33,Gobi Pepper Salt,Starters & Gravies,239,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M34,Gundur Kozhi Mirapa,Starters & Gravies,350,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M35,Hot And Sour Chicken Soup,Soups,155,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M36,Hot And Sour Veg Soup,Soups,135,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M37,Kadai Paneer,Starters & Gravies,233,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M38,Kal Dosa,Breads & Tiffin,51,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M39,Kozhi 65,Starters & Gravies,343,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M40,Kozhi Masala,Starters & Gravies,436,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M41,Kozhi Milagu Perattu,Starters & Gravies,350,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M42,Masala Kalakki,Egg,62,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M43,Mixed Non-Veg Fried Rice,Biryani & Rice,408,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M44,Mixed Veg Gravy,Starters & Gravies,233,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M45,Mushroom Fried Rice,Biryani & Rice,285,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M46,Mushroom Masala,Starters & Gravies,246,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M47,Mushroom Pepper Fry,Starters & Gravies,246,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M48,Mutton Chukka,Starters & Gravies,454,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M49,Mutton Dum Biryani,Biryani & Rice,488,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M50,Mutton Fry,Starters & Gravies,449,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M51,Mutton Kudal Fry,Starters & Gravies,317,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M52,Mutton Schezwan Noodles,Chinese,428,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M53,Naan,Breads & Tiffin,90,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M54,Nethili Fry,Starters & Gravies,350,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M55,Non Veg Meals,Meals,286,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M56,Omelette,Egg,61,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M57,Pallipalayam Chicken Varuval,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M58,Paneer Butter Masala,Starters & Gravies,249,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M59,Paneer Fried Rice,Biryani & Rice,291,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M60,Paneer Pepper Fry,Starters & Gravies,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M61,Parotta 1 Pcs,Breads & Tiffin,57,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M62,Plain Biryani,Biryani & Rice,286,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M63,Podi Roast,Breads & Tiffin,148,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M64,Prawns Fry,Starters & Gravies,376,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M65,Prawns Masala,Starters & Gravies,377,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M66,Roti,Breads & Tiffin,85,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M67,Veg Clear Soup,Soups,108,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M68,Veg Fried Rice,Biryani & Rice,252,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M69,Veg Meals,Meals,234,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M70,Veg Schezwan Fried Rice,Biryani & Rice,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M71,Chai,Hot Beverages,38,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M72,Coffee,Hot Beverages,42,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M73,Samosa,Snacks,35,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M74,Pakora,Snacks,36,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M75,Bajji,Snacks,29,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M76,Vada,Snacks,15,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M77,Ice Cream,Cold Drinks & Desserts,79,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M78,Cold Coffee,Cold Drinks & Desserts,75,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M79,Fresh Lime Juice,Cold Drinks & Desserts,100,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M80,Buttermilk,Cold Drinks & Desserts,48,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
