@@ -1,89 +1,92 @@
-"""Unit tests for weather-driven daily demand generator (T08).
+"""Unit tests for the evidence-based daily demand generator (T08).
 
 Run: pytest -q tests/test_generator_daily.py
 """
 import sys
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+import calibration as C  # noqa: E402
+import forecast as F  # noqa: E402
 import generator as G  # noqa: E402
-import forecast as F   # noqa: E402
 
 WEATHER_CSV = ROOT / "data" / "raw" / "weather.csv"
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
+def cal():
+    return C.calibrate()
+
+
+@pytest.fixture(scope="module")
 def weather_df():
     assert WEATHER_CSV.exists(), f"Missing weather CSV at {WEATHER_CSV}"
     return pd.read_csv(WEATHER_CSV)
 
 
-def test_seed_reproducibility(weather_df):
-    """Running generate_daily_demand with fixed seed must be bitwise deterministic."""
-    run1 = G.generate_daily_demand(weather_df, seed=42)
-    run2 = G.generate_daily_demand(weather_df, seed=42)
-    pd.testing.assert_series_equal(run1["order_count"], run2["order_count"])
-
-    # Different seed should yield different stochastic counts
-    run3 = G.generate_daily_demand(weather_df, seed=99)
-    assert not run1["order_count"].equals(run3["order_count"])
+@pytest.fixture(scope="module")
+def daily(weather_df, cal):
+    return G.generate_daily_demand(weather_df, cal, seed=42)
 
 
-def test_multipliers_and_regimes(weather_df):
-    """Verify multiplier mappings and weather regime categorization."""
-    df = G.generate_daily_demand(weather_df, seed=42)
-
-    # Weekday multiplier: Fri(4), Sat(5), Sun(6) are 1.30; Mon-Thu are 1.00
-    assert (df.loc[df["is_weekend"], "mult_weekend"] == G.WEEKEND_MULT).all()
-    assert (df.loc[~df["is_weekend"], "mult_weekend"] == 1.00).all()
-
-    # Rain multiplier checks
-    dry_mask = df["precip_mm"] < G.RAIN_TRACE_MM
-    mid_rain_mask = (df["precip_mm"] >= G.RAIN_TRACE_MM) & (df["precip_mm"] < G.RAIN_HEAVY_MM)
-    heavy_rain_mask = df["precip_mm"] >= G.RAIN_HEAVY_MM
-
-    assert (df.loc[dry_mask, "mult_rain"] == 1.00).all()
-    assert (df.loc[mid_rain_mask, "mult_rain"] == G.RAIN_MID_MULT).all()
-    assert (df.loc[heavy_rain_mask, "mult_rain"] == G.RAIN_HEAVY_MULT).all()
-
-    # Heat multiplier checks
-    hot_mask = df["temp_max_c"] >= G.TEMP_HOT_C
-    assert (df.loc[hot_mask, "mult_temp"] == G.HEAT_MULT).all()
-    assert (df.loc[~hot_mask, "mult_temp"] == 1.00).all()
-
-    # Regime categorization
-    assert set(df["regime"].unique()).issubset({"rainy", "hot", "normal"})
-    assert (df.loc[df["is_rainy"], "regime"] == "rainy").all()
+def test_seed_reproducibility(weather_df, cal, daily):
+    again = G.generate_daily_demand(weather_df, cal, seed=42)
+    pd.testing.assert_series_equal(daily["order_count"], again["order_count"])
+    other = G.generate_daily_demand(weather_df, cal, seed=99)
+    assert not daily["order_count"].equals(other["order_count"])
 
 
-def test_festival_multiplier(weather_df):
-    """Verify Coimbatore and Tamil Nadu festival calendar multipliers."""
-    df = G.generate_daily_demand(weather_df, seed=42)
-    assert (df.loc[df["is_festival"], "mult_festival"] == G.FESTIVAL_MULT).all()
-    assert (df.loc[~df["is_festival"], "mult_festival"] == 1.00).all()
-    assert df["is_festival"].sum() > 0, "Expected festival days to be identified"
+def test_covers_the_full_old_period(daily):
+    assert len(daily) == 1097
+    assert daily["date"].min() == "2023-09-24"
+    assert daily["date"].max() == "2026-09-24"
 
 
-def test_negative_binomial_mean_convergence(weather_df):
-    """Empirical mean across the 3-year period must align with expected orders."""
-    df = G.generate_daily_demand(weather_df, seed=42)
-    emp_mean = df["order_count"].mean()
-    exp_mean = df["expected_orders"].mean()
-    # Negative binomial stochastic mean should be within 2% of expected mean over 1097 days
-    assert abs(emp_mean - exp_mean) / exp_mean < 0.02
+def test_weekend_multiplier_comes_from_swiggy_fit(daily, cal):
+    assert (daily.loc[daily["is_weekend"], "mult_weekend"] == cal.volume["weekend"]["value"]).all()
+    assert (daily.loc[~daily["is_weekend"], "mult_weekend"] == 1.0).all()
 
 
-def test_compatibility_with_forecast_load_daily(weather_df, tmp_path):
-    """Daily output must load seamlessly in P1's time-series load_daily function."""
-    df = G.generate_daily_demand(weather_df, seed=42)
+def test_rain_lifts_weekdays_and_lowers_weekends(daily, cal):
+    wkday_rain = daily["is_rainy"] & ~daily["is_weekend"]
+    wkend_rain = daily["is_rainy"] & daily["is_weekend"]
+    assert (daily.loc[wkday_rain, "mult_rain"] == cal.volume["rain_weekday"]["value"]).all()
+    assert (daily.loc[wkend_rain, "mult_rain"] == cal.volume["rain_weekend"]["value"]).all()
+    assert (daily.loc[~daily["is_rainy"], "mult_rain"] == 1.0).all()
+    assert cal.volume["rain_weekday"]["value"] > 1 > cal.volume["rain_weekend"]["value"]
+
+
+def test_heat_and_festival_multipliers(daily, cal):
+    assert (daily.loc[daily["is_hot"], "mult_temp"] == cal.volume["heat"]["value"]).all()
+    assert (daily.loc[daily["is_festival"], "mult_festival"] == cal.festival).all()
+    assert (daily.loc[~daily["is_festival"], "mult_festival"] == 1.0).all()
+    assert daily["is_festival"].sum() == len(G.COIMBATORE_FESTIVALS)
+
+
+def test_regimes(daily):
+    assert set(daily["regime"]) == {"rainy", "hot", "normal"}
+    assert (daily.loc[daily["is_rainy"], "regime"] == "rainy").all()
+
+
+def test_expected_orders_scale_one_outlet_to_outlets(weather_df, cal):
+    one = G.generate_daily_demand(weather_df, cal, outlets=1)
+    many = G.generate_daily_demand(weather_df, cal, outlets=G.OUTLETS)
+    np.testing.assert_allclose(many["expected_orders"], G.OUTLETS * one["expected_orders"])
+
+
+def test_negative_binomial_mean_convergence(daily):
+    emp, exp = daily["order_count"].mean(), daily["expected_orders"].mean()
+    assert abs(emp - exp) / exp < 0.02
+
+
+def test_compatibility_with_forecast_load_daily(daily, tmp_path):
     daily_csv = tmp_path / "daily_orders.csv"
-    df.to_csv(daily_csv, index=False)
-
+    daily.to_csv(daily_csv, index=False)
     loaded = F.load_daily(WEATHER_CSV, daily_csv)
-    assert len(loaded) == len(weather_df)
-    assert "order_count" in loaded.columns
+    assert len(loaded) == len(daily)
     assert loaded["order_count"].notna().all()

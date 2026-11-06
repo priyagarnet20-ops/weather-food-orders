@@ -15,16 +15,10 @@ def eda_data():
 
 
 def test_eda_data_loading_integrity(eda_data):
-    daily = eda_data["daily"]
-    orders = eda_data["orders"]
-    menu = eda_data["menu"]
-
-    # Verify counts match documented dataset
+    daily, orders, menu = eda_data["daily"], eda_data["orders"], eda_data["menu"]
     assert len(daily) == 1097
-    assert len(orders) == 193406
-    assert len(menu) == 40
-
-    # Ensure no nulls in critical columns
+    assert len(orders) == daily["order_count"].sum()
+    assert len(menu) == 80  # 70 real Chinthamani items + 10 sourced snacks and drinks
     assert daily["order_count"].isna().sum() == 0
     assert daily["total_revenue"].isna().sum() == 0
     assert orders["order_value"].isna().sum() == 0
@@ -34,20 +28,18 @@ def test_eda_data_loading_integrity(eda_data):
 def test_order_distribution_stats(eda_data):
     stats = eda.get_order_distribution_stats(eda_data["daily"])
     assert stats["count"] == 1097
-    assert stats["mean"] == pytest.approx(176.3, abs=0.2)
-    assert stats["median"] == 170.0
-    assert stats["min"] == 61
-    assert stats["max"] == 384
-    assert stats["skewness"] > 0  # Right-skewed distribution
+    expected = eda_data["daily"]["expected_orders"].mean()
+    assert stats["mean"] == pytest.approx(expected, rel=0.02)
+    assert stats["min"] > 0
 
 
 def test_basket_and_value_stats(eda_data):
     stats = eda.get_basket_and_value_stats(eda_data["orders"])
-    assert stats["total_orders"] == 193406
-    assert stats["mean_basket_size"] == pytest.approx(2.11, abs=0.05)
-    assert stats["modal_basket_size"] == 2 if "modal_basket_size" in stats else True
-    assert stats["basket_distribution_pct"][2] == pytest.approx(42.0, abs=0.5)
-    assert stats["mean_order_value"] == pytest.approx(160.7, abs=0.5)
+    assert stats["total_orders"] == len(eda_data["orders"])
+    # Single-item orders dominate, as in the real Swiggy report (65%)
+    dist = stats["basket_distribution_pct"]
+    assert max(dist, key=dist.get) == 1
+    assert stats["mean_order_value"] > 0
 
 
 def test_weekday_stats(eda_data):
@@ -61,32 +53,32 @@ def test_weekday_stats(eda_data):
 
 def test_rain_vs_dry_stats(eda_data):
     stats = eda.get_rain_vs_dry_stats(eda_data["daily"])
-    assert stats["rainy_mean"] > stats["dry_mean"]
-    assert stats["lift_pct"] == pytest.approx(23.2, abs=1.0)
-    assert stats["t_pvalue"] < 1e-10
-    assert stats["mwu_pvalue"] < 1e-10
+    assert {"rainy_mean", "dry_mean", "lift_pct", "t_pvalue", "mwu_pvalue"} <= set(stats)
+    # Rain x weekday (Swiggy evidence): rain lifts weekdays and lowers weekends
+    d = eda_data["daily"]
+    means = d.groupby(["is_weekend", "is_rainy"])["order_count"].mean()
+    assert means[(False, True)] > means[(False, False)]
+    assert means[(True, True)] < means[(True, False)]
 
 
 def test_item_and_category_shifts(eda_data):
     item_shift, cat_regime = eda.get_item_and_category_shifts(
         eda_data["orders"], eda_data["daily"], eda_data["menu"]
     )
-    # Check that Masala Chai and Onion Pakora have positive relative lift on rainy days
-    chai_lift = item_shift[item_shift["item_name"] == "Masala Chai"]["relative_lift_pct"].values[0]
-    pakora_lift = item_shift[item_shift["item_name"] == "Onion Pakora"]["relative_lift_pct"].values[0]
-    assert chai_lift > 40.0
-    assert pakora_lift > 80.0
-
-    # Cold refreshments should plunge on rainy days
-    cold_cat_rain = cat_regime.loc["Cold Refreshments & Juices", "rainy"]
-    cold_cat_hot = cat_regime.loc["Cold Refreshments & Juices", "hot"]
-    assert cold_cat_hot > cold_cat_rain * 2.0
+    lift = item_shift.set_index("item_name")["relative_lift_pct"]
+    # Survey Q9: chai, pakora and samosa are rainy-day items
+    assert lift["Chai"] > 40.0
+    assert lift["Pakora"] > 40.0
+    assert lift["Samosa"] > 40.0
+    # Survey Q10: cold drinks and ice cream are hot-day items
+    cold = cat_regime.loc["Cold Drinks & Desserts"]
+    assert cold["hot"] > cold["rainy"] * 2.0
 
 
 def test_correlation_matrix(eda_data):
     pearson, spearman = eda.get_correlation_matrix(eda_data["daily"])
-    # Rain should be positively correlated with order count
-    assert pearson.loc["precip_mm", "order_count"] > 0.20
-    assert spearman.loc["precip_mm", "order_count"] > 0.20
-    # Revenue should be strongly positively correlated with order count
-    assert pearson.loc["total_revenue", "order_count"] > 0.95
+    assert pearson.loc["total_revenue", "order_count"] > 0.9
+    # On weekdays, rain raises orders (Swiggy evidence)
+    d = eda_data["daily"]
+    weekdays = d[~d["is_weekend"]]
+    assert weekdays["precip_mm"].corr(weekdays["order_count"], method="spearman") > 0.2

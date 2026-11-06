@@ -1,51 +1,45 @@
-"""Weather-Driven Food Order Generator for Coimbatore (P2 / T08 & T09).
+"""Evidence-based weather-driven food order generator for Coimbatore (P2 / T08 & T09, rebuilt).
 
-Generates synthetic daily demand volumes and customer order baskets conditioned
-on real Coimbatore weather, day of week, and local festivals.
+Every parameter comes from src/calibration.py, which derives it from:
+    - the real Swiggy order report of Hotel Chinthamani, Coimbatore (data/real/)
+    - the team's ordering-habits survey (data/real/survey_responses.csv)
+    - snack/drink prices listed by Coimbatore outlets (data/reference/snack_drink_prices.csv)
+The weather is real (Open-Meteo) and the festival calendar is the Tamil Nadu calendar below.
 
-Theoretical Models:
-    1. Daily Demand (T08):
-       Y_t ~ NegativeBinomial(r=25, p=r / (r + mu_t))
-       mu_t = BASE * M_weekend(t) * M_rain(t) * M_temp(t) * M_festival(t)
+Models:
+    1. Daily demand (T08)
+       Y_t ~ NegativeBinomial(r = OUTLETS * r_outlet, mean mu_t)
+       mu_t = OUTLETS * base * weekend * rain(weekday or weekend) * heat * festival
 
-    2. Basket & Item Generation (T09):
-       - Meal slots: Breakfast, Lunch, Evening Snacks, Dinner
-       - Weather affinity multipliers for hot comfort vs cold refresh categories
-       - Planted association rules (Chai -> Pakora, Juice -> Ice Cream, etc.)
-       - Order timestamps clustered into meal slot windows
+    2. Orders (T09)
+       - hour from the real Swiggy hourly profile; meal slot derived from the hour
+       - food order: a real Swiggy basket (soup baskets tilted up on rainy days),
+         plus Buttermilk after Biryani with the survey probability
+       - snack/drink order (share per weather from the survey): survey item mix and
+         basket size, with the survey's weather-dependent pairs planted
 
-Author: P2 (Order Generator & Menu Catalog)
+Author: P2 (Order Generator & Menu Catalog); rebuilt by P5 for the evidence-based validation.
 """
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Sequence
+
 import numpy as np
 import pandas as pd
 
+import calibration as C
+
 ROOT = Path(__file__).resolve().parents[1]
 
-# -----------------------------------------------------------------------------
-# 1. Project Global Parameters & Seed
-# -----------------------------------------------------------------------------
 SEED = 42
-BASE_WEEKDAY = 140.0
-WEEKEND_MULT = 1.30  # Friday, Saturday, Sunday
-RAIN_MID_MULT = 1.20  # 2.5mm <= precip < 15mm
-RAIN_HEAVY_MULT = 1.35  # precip >= 15mm
-HEAT_MULT = 1.10  # temp_max >= 33.0 C
-FESTIVAL_MULT = 1.25  # Local Coimbatore / Tamil Nadu festival days
-NB_DISPERSION = 25  # Negative Binomial parameter 'r' (variance control)
+OUTLETS = 20  # volume = one Chinthamani-like outlet scaled to 20 similar outlets
+RAIN_TRACE_MM = C.RAIN_MM
+RAIN_HEAVY_MM = 15.0  # flag only; the Swiggy window has too few heavy-rain days for its own effect
+TEMP_HOT_C = C.HOT_C
+WEEKEND_DAYS = C.WEEKEND_DAYS
+SOURCE_REAL = "Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
 
-# Meteorological thresholds matching project conventions (docs/dataset.md)
-RAIN_TRACE_MM = 2.5
-RAIN_HEAVY_MM = 15.0
-TEMP_HOT_C = 33.0
-
-# -----------------------------------------------------------------------------
-# 2. Coimbatore & Tamil Nadu Major Festivals Calendar (2023 - 2026)
-# -----------------------------------------------------------------------------
 COIMBATORE_FESTIVALS: dict[str, str] = {
     # 2023
     "2023-10-23": "Ayudha Puja",
@@ -94,474 +88,250 @@ COIMBATORE_FESTIVALS: dict[str, str] = {
     "2026-09-14": "Vinayagar Chaturthi",
 }
 
-# -----------------------------------------------------------------------------
-# 3. Meal Slot Windows and Probabilities (T09)
-# -----------------------------------------------------------------------------
-# Window defined by (start_seconds_from_midnight, duration_seconds)
-SLOT_WINDOWS: dict[str, tuple[int, int]] = {
-    "Breakfast": (7 * 3600, int(3.5 * 3600)),       # 07:00 to 10:30 (3.5h)
-    "Lunch": (12 * 3600, 3 * 3600),                  # 12:00 to 15:00 (3.0h)
-    "Evening Snacks": (16 * 3600, int(2.5 * 3600)), # 16:00 to 18:30 (2.5h)
-    "Dinner": (19 * 3600, int(3.5 * 3600)),         # 19:00 to 22:30 (3.5h)
+# Meal slot by clock hour (the real orders run 11:00-23:00, so there is no breakfast slot)
+SLOT_BY_HOUR: dict[str, range] = {
+    "Lunch": range(11, 16),
+    "Evening Snacks": range(16, 19),
+    "Dinner": range(19, 24),
 }
 
-SLOT_PROBS: dict[str, float] = {
-    "Breakfast": 0.15,
-    "Lunch": 0.35,
-    "Evening Snacks": 0.20,
-    "Dinner": 0.30,
+SNACK_CATEGORIES: dict[str, tuple[str, str]] = {
+    "Chai": ("Hot Beverages", "hot_comfort"),
+    "Coffee": ("Hot Beverages", "hot_comfort"),
+    "Samosa": ("Snacks", "hot_comfort"),
+    "Pakora": ("Snacks", "hot_comfort"),
+    "Bajji": ("Snacks", "hot_comfort"),
+    "Vada": ("Snacks", "hot_comfort"),
+    "Ice Cream": ("Cold Drinks & Desserts", "cold_refresh"),
+    "Cold Coffee": ("Cold Drinks & Desserts", "cold_refresh"),
+    "Fresh Lime Juice": ("Cold Drinks & Desserts", "cold_refresh"),
+    "Buttermilk": ("Cold Drinks & Desserts", "cold_refresh"),
 }
 
-# Basket size probability distribution: k in {1, 2, 3, 4, 5}
-BASKET_SIZE_PROBS: dict[int, float] = {
-    1: 0.30,
-    2: 0.42,
-    3: 0.18,
-    4: 0.07,
-    5: 0.03,
-}
-
-# Category affinity multipliers conditioned on weather regime
-CATEGORY_WEATHER_AFFINITY: dict[str, dict[str, float]] = {
-    "rainy": {"hot_comfort": 1.80, "cold_refresh": 0.60, "neutral": 1.00},
-    "hot": {"hot_comfort": 0.80, "cold_refresh": 1.90, "neutral": 1.00},
-    "normal": {"hot_comfort": 1.00, "cold_refresh": 1.00, "neutral": 1.00},
-}
-
-# Meal slot multiplier per menu category
-SLOT_CATEGORY_WEIGHTS: dict[str, dict[str, float]] = {
-    "Breakfast": {
-        "Beverages (Hot)": 2.5,
-        "South Indian Tiffin": 3.0,
-        "Snacks & Quick Bites": 1.0,
-        "Biryani & Mains": 0.2,
-        "Cold Refreshments & Juices": 0.8,
-        "Desserts & Ice Cream": 0.2,
-    },
-    "Lunch": {
-        "Beverages (Hot)": 0.5,
-        "South Indian Tiffin": 0.8,
-        "Snacks & Quick Bites": 0.8,
-        "Biryani & Mains": 3.5,
-        "Cold Refreshments & Juices": 2.0,
-        "Desserts & Ice Cream": 1.5,
-    },
-    "Evening Snacks": {
-        "Beverages (Hot)": 3.5,
-        "South Indian Tiffin": 0.8,
-        "Snacks & Quick Bites": 4.0,
-        "Biryani & Mains": 0.2,
-        "Cold Refreshments & Juices": 1.5,
-        "Desserts & Ice Cream": 1.0,
-    },
-    "Dinner": {
-        "Beverages (Hot)": 0.8,
-        "South Indian Tiffin": 2.5,
-        "Snacks & Quick Bites": 0.8,
-        "Biryani & Mains": 3.0,
-        "Cold Refreshments & Juices": 1.5,
-        "Desserts & Ice Cream": 2.0,
-    },
-}
-
-# Planted conditional pair rules (Trigger -> Addon -> {regime: probability})
-# Evaluated when basket size > 1 to inject ground truth associations
-PAIR_RULES: dict[str, dict[str, dict[str, float]]] = {
-    # Headline rainy rule: Chai -> Pakora
-    "Masala Chai": {
-        "Onion Pakora": {"rainy": 0.58, "normal": 0.12, "hot": 0.08},
-        "Milagai Bajji": {"rainy": 0.35, "normal": 0.10, "hot": 0.08},
-    },
-    # Secondary rainy comfort combo: Coffee -> Vada
-    "South Indian Filter Coffee": {
-        "Medu Vada": {"rainy": 0.40, "normal": 0.15, "hot": 0.10},
-    },
-    # Headline heat rule: Juice -> Ice cream
-    "Fresh Lime Juice": {
-        "Tender Coconut Ice Cream": {"rainy": 0.06, "normal": 0.15, "hot": 0.45},
-    },
-    # Secondary heat refresher: Juice -> Vanilla Ice cream
-    "Watermelon Juice": {
-        "Vanilla Ice Cream": {"rainy": 0.05, "normal": 0.12, "hot": 0.38},
-    },
-    # Heat biryani combo: Biryani -> Moru (Buttermilk)
-    "Coimbatore Chicken Biryani": {
-        "Buttermilk (Moru)": {"rainy": 0.12, "normal": 0.20, "hot": 0.45},
-    },
-    # Dinner staple combo: Parotta -> Chicken Chukka
-    "Malabar Parotta (2 pcs)": {
-        "Chicken Chukka": {"rainy": 0.35, "normal": 0.35, "hot": 0.30},
-    },
-    # Tiffin staple combo: Dosa -> Filter Coffee
-    "Ghee Podi Dosa": {
-        "South Indian Filter Coffee": {"rainy": 0.38, "normal": 0.30, "hot": 0.20},
-    },
-}
+# Food categories by keyword, checked in this order (first match wins)
+FOOD_CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Soups", ("soup", "rasam")),
+    ("Meals", ("meals",)),
+    ("Biryani & Rice", ("biryani", "rice")),
+    ("Breads & Tiffin", ("parotta", "naan", "roti", "chapati", "dosa", "dosai", "roast")),
+    ("Chinese", ("noodles", "manchurian", "schezwan", "chilli", "dragon", "lollipop", "dynamite")),
+    ("Egg", ("egg", "omelette", "kalakki", "podimas")),
+)
+DEFAULT_FOOD_CATEGORY = "Starters & Gravies"
+FOOD_TRIGGERS = {"Biryani"}
 
 
 # -----------------------------------------------------------------------------
-# 4. Daily Demand Multipliers (T08)
+# Menu
 # -----------------------------------------------------------------------------
-def get_rain_multiplier(precip_mm: float) -> float:
-    """Return rain demand multiplier based on daily precipitation in mm."""
-    if precip_mm >= RAIN_HEAVY_MM:
-        return RAIN_HEAVY_MULT
-    elif precip_mm >= RAIN_TRACE_MM:
-        return RAIN_MID_MULT
-    return 1.00
+def food_category(name: str) -> str:
+    lower = name.lower()
+    for category, keywords in FOOD_CATEGORY_RULES:
+        if any(k in lower for k in keywords):
+            return category
+    return DEFAULT_FOOD_CATEGORY
 
 
-def get_temp_multiplier(temp_max_c: float) -> float:
-    """Return temperature demand multiplier based on maximum daily temperature."""
-    return HEAT_MULT if temp_max_c >= TEMP_HOT_C else 1.00
+def build_menu(real_items: pd.DataFrame, snack_prices: dict[str, float]) -> pd.DataFrame:
+    """Real Chinthamani food items (median unit price) plus the sourced snacks and drinks."""
+    food = real_items.groupby("item_name")["unit_price"].median().round().astype(int)
+    rows = [
+        (name, food_category(name), price,
+         "hot_comfort" if C.is_soup(name) else "neutral", f"Real menu item: {SOURCE_REAL}")
+        for name, price in food.items()
+    ]
+    rows += [
+        (name, cat, int(round(snack_prices[name])), affinity,
+         "Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)")
+        for name, (cat, affinity) in SNACK_CATEGORIES.items()
+    ]
+    menu = pd.DataFrame(rows, columns=["item_name", "category", "price", "weather_affinity", "description"])
+    menu.insert(0, "item_id", [f"M{i:02d}" for i in range(1, len(menu) + 1)])
+    return menu
 
 
-def get_festival_multiplier(date_str: str) -> float:
-    """Return festival demand multiplier if the date is a recognized festival."""
-    return FESTIVAL_MULT if date_str in COIMBATORE_FESTIVALS else 1.00
-
-
-def compute_expected_orders(
-    weather_df: pd.DataFrame,
-    base_weekday: float = BASE_WEEKDAY,
-    weekend_mult: float = WEEKEND_MULT,
-) -> pd.Series:
-    """Compute deterministic expected daily order demand mu_t from multipliers."""
-    dates = pd.to_datetime(weather_df["date"])
-    is_weekend = dates.dt.dayofweek.isin([4, 5, 6])
-    weekend_m = np.where(is_weekend, weekend_mult, 1.0)
-    rain_m = weather_df["precip_mm"].apply(get_rain_multiplier).to_numpy()
-    heat_m = weather_df["temp_max_c"].apply(get_temp_multiplier).to_numpy()
-    date_strs = dates.dt.strftime("%Y-%m-%d")
-    fest_m = date_strs.apply(get_festival_multiplier).to_numpy()
-
-    return pd.Series(
-        base_weekday * weekend_m * rain_m * heat_m * fest_m,
-        index=weather_df.index,
-        name="expected_orders",
+# -----------------------------------------------------------------------------
+# Daily demand (T08)
+# -----------------------------------------------------------------------------
+def rain_multiplier(is_rainy: pd.Series, is_weekend: pd.Series, cal: C.Calibration) -> np.ndarray:
+    """Rain lifts weekday orders and lowers weekend orders (Swiggy GLM, decision option 1)."""
+    rain_effect = np.where(
+        is_weekend, cal.volume["rain_weekend"]["value"], cal.volume["rain_weekday"]["value"]
     )
-
-
-def sample_negative_binomial(
-    mu: Sequence[float] | np.ndarray | pd.Series,
-    dispersion_r: float = NB_DISPERSION,
-    seed: int = SEED,
-) -> np.ndarray:
-    """Sample order counts from Negative Binomial with mean mu and dispersion r."""
-    rng = np.random.default_rng(seed)
-    mu_arr = np.asarray(mu, dtype=float)
-    p = dispersion_r / (dispersion_r + mu_arr)
-    return rng.negative_binomial(dispersion_r, p)
+    return np.where(is_rainy, rain_effect, 1.0)
 
 
 def generate_daily_demand(
     weather_df: pd.DataFrame,
+    cal: C.Calibration,
     seed: int = SEED,
+    outlets: int = OUTLETS,
 ) -> pd.DataFrame:
-    """Produce daily order counts and regime features given historical weather."""
+    """Daily order counts and regime flags for every day of the weather table."""
     df = weather_df.copy()
     df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-    dt_series = pd.to_datetime(df["date"])
-
-    df["dow"] = dt_series.dt.dayofweek
-    df["is_weekend"] = df["dow"].isin([4, 5, 6])
+    df["dow"] = pd.to_datetime(df["date"]).dt.day_of_week
+    df["is_weekend"] = df["dow"].isin(WEEKEND_DAYS)
     df["is_rainy"] = df["precip_mm"] >= RAIN_TRACE_MM
     df["heavy_rain"] = df["precip_mm"] >= RAIN_HEAVY_MM
     df["is_hot"] = df["temp_max_c"] >= TEMP_HOT_C
-
-    # Regime hierarchy: rainy takes precedence, followed by hot, then normal
-    df["regime"] = np.select(
-        [df["is_rainy"], df["is_hot"]],
-        ["rainy", "hot"],
-        default="normal",
-    )
-
+    # Regime hierarchy: rainy takes precedence, then hot, then normal
+    df["regime"] = np.select([df["is_rainy"], df["is_hot"]], ["rainy", "hot"], default="normal")
     df["festival_name"] = df["date"].map(COIMBATORE_FESTIVALS).fillna("")
     df["is_festival"] = df["festival_name"] != ""
 
-    df["mult_weekend"] = np.where(df["is_weekend"], WEEKEND_MULT, 1.00)
-    df["mult_rain"] = df["precip_mm"].apply(get_rain_multiplier)
-    df["mult_temp"] = df["temp_max_c"].apply(get_temp_multiplier)
-    df["mult_festival"] = np.where(df["is_festival"], FESTIVAL_MULT, 1.00)
-
+    df["mult_weekend"] = np.where(df["is_weekend"], cal.volume["weekend"]["value"], 1.0)
+    df["mult_rain"] = rain_multiplier(df["is_rainy"], df["is_weekend"], cal)
+    df["mult_temp"] = np.where(df["is_hot"], cal.volume["heat"]["value"], 1.0)
+    df["mult_festival"] = np.where(df["is_festival"], cal.festival, 1.0)
     df["expected_orders"] = (
-        BASE_WEEKDAY
-        * df["mult_weekend"]
-        * df["mult_rain"]
-        * df["mult_temp"]
-        * df["mult_festival"]
+        outlets * cal.volume["base_weekday_dry"]["value"]
+        * df["mult_weekend"] * df["mult_rain"] * df["mult_temp"] * df["mult_festival"]
     )
 
-    df["order_count"] = sample_negative_binomial(
-        df["expected_orders"], dispersion_r=NB_DISPERSION, seed=seed
-    )
-
+    r = outlets * cal.dispersion_r
+    rng = np.random.default_rng(seed)
+    df["order_count"] = rng.negative_binomial(r, r / (r + df["expected_orders"].to_numpy()))
     return df
 
 
 # -----------------------------------------------------------------------------
-# 5. Basket & Meal-Slot Generator (T09)
+# Orders (T09)
 # -----------------------------------------------------------------------------
-def precompute_item_distributions(
-    menu_df: pd.DataFrame,
-) -> tuple[dict[tuple[str, str], np.ndarray], list[str], dict[str, int]]:
-    """Precompute normalized item sampling probabilities for each (slot, regime)."""
-    items = menu_df["item_name"].tolist()
-    item_idx = {name: i for i, name in enumerate(items)}
-    n_items = len(items)
+def meal_slot(hour: int) -> str:
+    for slot, hours in SLOT_BY_HOUR.items():
+        if hour in hours:
+            return slot
+    raise ValueError(f"Hour {hour} is outside the trading hours")
 
-    base_weights = np.ones(n_items, dtype=float)
-    for i, row in menu_df.iterrows():
-        name = row["item_name"]
-        if name in ["Masala Chai", "South Indian Filter Coffee"]:
-            base_weights[i] = 3.0
-        elif name in ["Coimbatore Chicken Biryani", "Ghee Podi Dosa", "Onion Pakora", "Fresh Lime Juice"]:
-            base_weights[i] = 2.0
 
-    dists = {}
-    for slot in SLOT_WINDOWS.keys():
-        for regime in ["rainy", "hot", "normal"]:
-            w = base_weights.copy()
-            for i, row in menu_df.iterrows():
-                w[i] *= SLOT_CATEGORY_WEIGHTS[slot].get(row["category"], 1.0)
-                w[i] *= CATEGORY_WEATHER_AFFINITY[regime].get(row["weather_affinity"], 1.0)
-            dists[(slot, regime)] = w / w.sum()
+def food_basket_weights(cal: C.Calibration) -> dict[str, np.ndarray]:
+    """Bootstrap weights for the real baskets; soup baskets get the rainy-day tilt."""
+    has_soup = np.array([any(C.is_soup(n) for n, _ in b) for b in cal.food_baskets])
+    flat = np.ones(len(has_soup))
+    rainy = np.where(has_soup, cal.soup_tilt, 1.0)
+    return {"rainy": rainy / rainy.sum(), "hot": flat / flat.sum(), "normal": flat / flat.sum()}
 
-    return dists, items, item_idx
+
+def triggers(item: str, trigger: str) -> bool:
+    """Snack triggers match exactly; food triggers (Biryani) match any dish that names them."""
+    return trigger in item if trigger in FOOD_TRIGGERS else item == trigger
+
+
+def set_pairs(basket: list[str], regime: str, cal: C.Calibration, rng) -> list[str]:
+    """Planted pairs: when a trigger is in the basket, its add-on is present with exactly the
+    survey probability (added or removed), so P(add-on | trigger, regime) equals the evidence."""
+    result = list(basket)
+    for (trigger, addon), probs in cal.pair_probs.items():
+        if not any(triggers(item, trigger) for item in result):
+            continue
+        wanted = rng.random() < probs[regime]
+        if wanted and addon not in result:
+            result.append(addon)
+        elif not wanted and addon in result:
+            result.remove(addon)
+    return result
+
+
+def snack_basket(regime: str, cal: C.Calibration, rng) -> list[str]:
+    names = list(cal.snack_weights[regime])
+    weights = np.array([cal.snack_weights[regime][n] for n in names])
+    sizes = list(cal.snack_basket_probs)
+    k = rng.choice(sizes, p=[cal.snack_basket_probs[s] for s in sizes])
+    drawn = rng.choice(len(names), size=k, replace=False, p=weights)
+    return set_pairs([names[i] for i in drawn], regime, cal, rng)
+
+
+def food_basket(regime: str, cal: C.Calibration, weights: dict[str, np.ndarray], rng) -> list[tuple[str, float]]:
+    lines = list(cal.food_baskets[rng.choice(len(cal.food_baskets), p=weights[regime])])
+    names = set_pairs([n for n, _ in lines], regime, cal, rng)
+    return lines + [(n, None) for n in names[len(lines):]]
 
 
 def generate_order_baskets(
     daily_df: pd.DataFrame,
+    cal: C.Calibration,
     menu_df: pd.DataFrame,
     seed: int = SEED,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Generate granular order transactions with meal slots, timestamps, and baskets.
-
-    Returns:
-        orders_df: One row per order (order_id, date, timestamp, meal_slot, items, item_count, order_value)
-        order_items_df: Long format (order_id, date, timestamp, meal_slot, item_id, item_name, category, price)
-    """
+    """One row per order (orders) and one row per item line (order_items)."""
     rng = np.random.default_rng(seed)
-    dists, items, item_idx = precompute_item_distributions(menu_df)
+    prices = dict(zip(menu_df["item_name"], menu_df["price"].astype(float)))
+    ids = dict(zip(menu_df["item_name"], menu_df["item_id"]))
+    cats = dict(zip(menu_df["item_name"], menu_df["category"]))
+    hours = list(cal.hour_profile)
+    hour_p = [cal.hour_profile[h] for h in hours]
+    basket_w = food_basket_weights(cal)
 
-    item_prices = dict(zip(menu_df["item_name"], menu_df["price"]))
-    item_ids = dict(zip(menu_df["item_name"], menu_df["item_id"]))
-    item_cats = dict(zip(menu_df["item_name"], menu_df["category"]))
-
-    slot_names = list(SLOT_PROBS.keys())
-    slot_p = [SLOT_PROBS[s] for s in slot_names]
-
-    basket_ks = list(BASKET_SIZE_PROBS.keys())
-    basket_p = [BASKET_SIZE_PROBS[k] for k in basket_ks]
-
-    orders_records = []
-    order_items_records = []
+    orders, lines = [], []
     order_id = 1
-
-    for _, day in daily_df.iterrows():
-        date_str = str(day["date"])
-        regime = day["regime"]
-        count = int(day["order_count"])
-
-        if count <= 0:
+    for day in daily_df[["date", "regime", "order_count"]].itertuples(index=False):
+        n = int(day.order_count)
+        if n <= 0:
             continue
-
-        # Draw meal slots and timestamps for the day's orders
-        slots = rng.choice(slot_names, p=slot_p, size=count)
-        k_sizes = rng.choice(basket_ks, p=basket_p, size=count)
-
-        # Pre-generate random second offsets within slot window
-        offsets = rng.random(size=count)
-        times_seconds = []
-        for i in range(count):
-            start_sec, dur_sec = SLOT_WINDOWS[slots[i]]
-            times_seconds.append(start_sec + int(offsets[i] * dur_sec))
-
-        # Sort order indices chronologically for realistic ordering
-        sort_order = np.argsort(times_seconds)
-
-        for idx in sort_order:
-            slot = slots[idx]
-            k = k_sizes[idx]
-            sec_val = times_seconds[idx]
-
-            h = sec_val // 3600
-            m = (sec_val % 3600) // 60
-            s = sec_val % 60
-            timestamp_str = f"{date_str} {h:02d}:{m:02d}:{s:02d}"
-
-            # 1. Sample primary item from distribution
-            dist = dists[(slot, regime)]
-            first_item = rng.choice(items, p=dist)
-            basket = [first_item]
-
-            # 2. Add companion items via pair rules or conditioned distribution
-            while len(basket) < k:
-                added_via_rule = False
-                for trig in list(basket):
-                    if trig in PAIR_RULES:
-                        for addon, prob_map in PAIR_RULES[trig].items():
-                            if addon not in basket and rng.random() < prob_map[regime]:
-                                basket.append(addon)
-                                added_via_rule = True
-                                break
-                    if added_via_rule or len(basket) >= k:
-                        break
-
-                if added_via_rule:
-                    continue
-
-                # Sample without replacement from remaining items
-                rem_dist = dist.copy()
-                for b in basket:
-                    rem_dist[item_idx[b]] = 0.0
-                sum_rem = rem_dist.sum()
-                if sum_rem == 0:
-                    break
-                rem_dist /= sum_rem
-                nxt = rng.choice(items, p=rem_dist)
-                basket.append(nxt)
-
-            order_val = sum(item_prices[b] for b in basket)
-            items_str = "; ".join(basket)
-
-            orders_records.append(
-                (order_id, date_str, timestamp_str, slot, items_str, len(basket), order_val)
-            )
-
-            for b in basket:
-                order_items_records.append(
-                    (order_id, date_str, timestamp_str, slot, item_ids[b], b, item_cats[b], item_prices[b])
-                )
-
+        secs = np.sort(rng.choice(hours, p=hour_p, size=n) * 3600 + rng.integers(0, 3600, size=n))
+        snack_flags = rng.random(n) < cal.snack_share[day.regime]
+        for sec, is_snack in zip(secs, snack_flags):
+            if is_snack:
+                basket = [(name, prices[name]) for name in snack_basket(day.regime, cal, rng)]
+            else:
+                basket = [
+                    (name, price if price is not None else prices[name])
+                    for name, price in food_basket(day.regime, cal, basket_w, rng)
+                ]
+            hour = int(sec // 3600)
+            ts = f"{day.date} {hour:02d}:{(sec % 3600) // 60:02d}:{sec % 60:02d}"
+            slot = meal_slot(hour)
+            names = [name for name, _ in basket]
+            orders.append((order_id, day.date, ts, slot, "; ".join(names), len(names),
+                           round(sum(p for _, p in basket), 2)))
+            lines += [(order_id, day.date, ts, slot, ids[name], name, cats[name], p) for name, p in basket]
             order_id += 1
 
-    orders_df = pd.DataFrame(
-        orders_records,
-        columns=["order_id", "date", "timestamp", "meal_slot", "items", "item_count", "order_value"],
-    )
-
-    order_items_df = pd.DataFrame(
-        order_items_records,
-        columns=["order_id", "date", "timestamp", "meal_slot", "item_id", "item_name", "category", "price"],
-    )
-
-    return orders_df, order_items_df
+    orders_df = pd.DataFrame(orders, columns=[
+        "order_id", "date", "timestamp", "meal_slot", "items", "item_count", "order_value"])
+    items_df = pd.DataFrame(lines, columns=[
+        "order_id", "date", "timestamp", "meal_slot", "item_id", "item_name", "category", "price"])
+    return orders_df, items_df
 
 
-def evaluate_planted_rules(
-    orders_df: pd.DataFrame,
-    daily_df: pd.DataFrame,
-    trigger: str = "Masala Chai",
-    addon: str = "Onion Pakora",
-) -> pd.DataFrame:
-    """Evaluate empirical support, confidence, and lift for a pair across regimes."""
-    merged = orders_df.merge(daily_df[["date", "regime"]], on="date")
-    results = []
-
-    for regime in ["rainy", "hot", "normal"]:
-        sub = merged[merged["regime"] == regime]
-        n = len(sub)
-        if n == 0:
-            continue
-        has_a = sub["items"].str.contains(trigger, regex=False)
-        has_b = sub["items"].str.contains(addon, regex=False)
-        has_ab = has_a & has_b
-
-        supp_a = has_a.mean()
-        supp_b = has_b.mean()
-        supp_ab = has_ab.mean()
-
-        conf = supp_ab / supp_a if supp_a > 0 else 0.0
-        lift = supp_ab / (supp_a * supp_b) if (supp_a * supp_b) > 0 else 0.0
-
-        results.append({
-            "regime": regime,
-            "orders": n,
-            "supp_trigger": round(supp_a, 4),
-            "supp_addon": round(supp_b, 4),
-            "support": round(supp_ab, 4),
-            "confidence": round(conf, 4),
-            "lift": round(lift, 2),
-        })
-
-    return pd.DataFrame(results)
+def is_snack_order(items: str) -> bool:
+    """A snack/drink order contains only snack/drink items (food orders always have a real dish)."""
+    return all(name in SNACK_CATEGORIES for name in items.split("; "))
 
 
 # -----------------------------------------------------------------------------
-# 6. CLI Execution
+# CLI
 # -----------------------------------------------------------------------------
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate synthetic Coimbatore orders.")
-    parser.add_argument(
-        "--weather",
-        default=str(ROOT / "data/raw/weather.csv"),
-        help="Path to input weather.csv",
-    )
-    parser.add_argument(
-        "--menu",
-        default=str(ROOT / "data/raw/menu.csv"),
-        help="Path to input menu.csv",
-    )
-    parser.add_argument(
-        "--out-daily",
-        default=str(ROOT / "data/raw/daily_orders.csv"),
-        help="Path to output daily_orders.csv",
-    )
-    parser.add_argument(
-        "--out-orders",
-        default=str(ROOT / "data/raw/orders.csv"),
-        help="Path to output orders.csv",
-    )
-    parser.add_argument(
-        "--out-items",
-        default=str(ROOT / "data/raw/order_items.csv"),
-        help="Path to output order_items.csv",
-    )
-    parser.add_argument("--seed", type=int, default=SEED, help="Random seed")
+    parser = argparse.ArgumentParser(description="Generate evidence-based Coimbatore orders.")
+    parser.add_argument("--weather", default=str(ROOT / "data/raw/weather.csv"))
+    parser.add_argument("--out-menu", default=str(ROOT / "data/raw/menu.csv"))
+    parser.add_argument("--out-daily", default=str(ROOT / "data/raw/daily_orders.csv"))
+    parser.add_argument("--out-orders", default=str(ROOT / "data/raw/orders.csv"))
+    parser.add_argument("--out-items", default=str(ROOT / "data/raw/order_items.csv"))
+    parser.add_argument("--seed", type=int, default=SEED)
     args = parser.parse_args()
 
     weather_path = Path(args.weather)
-    menu_path = Path(args.menu)
-
     if not weather_path.exists():
         raise FileNotFoundError(f"Weather dataset not found at {weather_path}")
-    if not menu_path.exists():
-        raise FileNotFoundError(f"Menu catalog not found at {menu_path}")
 
-    print("Loading input data...")
-    weather = pd.read_csv(weather_path)
-    menu = pd.read_csv(menu_path)
+    print("Calibrating from the Swiggy report, survey and outlet prices...")
+    cal = C.calibrate(weather_path)
+    _, real_items = C.real_orders.load_clean()
+    menu = build_menu(real_items, cal.snack_prices)
 
-    print("Step 1: Generating daily demand...")
-    daily = generate_daily_demand(weather, seed=args.seed)
+    print("Generating daily demand and orders...")
+    daily = generate_daily_demand(pd.read_csv(weather_path), cal, seed=args.seed)
+    orders, order_items = generate_order_baskets(daily, cal, menu, seed=args.seed)
 
-    print("Step 2: Generating order baskets and meal slot timestamps...")
-    orders, order_items = generate_order_baskets(daily, menu, seed=args.seed)
-
-    # Save outputs
-    out_daily = Path(args.out_daily)
-    out_orders = Path(args.out_orders)
-    out_items = Path(args.out_items)
-
-    out_daily.parent.mkdir(parents=True, exist_ok=True)
-    daily.to_csv(out_daily, index=False)
-    orders.to_csv(out_orders, index=False)
-    order_items.to_csv(out_items, index=False)
-
-    print(f"\nWrote daily orders ({len(daily)} days) -> {out_daily}")
-    print(f"Wrote orders ({len(orders):,} transactions) -> {out_orders}")
-    print(f"Wrote order items ({len(order_items):,} line items) -> {out_items}")
-
-    print("\nPlanted Association Rule Validation:")
-    print("--- {Masala Chai} -> {Onion Pakora} (Rain Affinity) ---")
-    print(evaluate_planted_rules(orders, daily, "Masala Chai", "Onion Pakora").to_string(index=False))
-
-    print("\n--- {Fresh Lime Juice} -> {Tender Coconut Ice Cream} (Heat Affinity) ---")
-    print(evaluate_planted_rules(orders, daily, "Fresh Lime Juice", "Tender Coconut Ice Cream").to_string(index=False))
-
-    print("\n--- {South Indian Filter Coffee} -> {Medu Vada} (Rain Affinity) ---")
-    print(evaluate_planted_rules(orders, daily, "South Indian Filter Coffee", "Medu Vada").to_string(index=False))
+    for frame, path in ((menu, args.out_menu), (daily, args.out_daily),
+                        (orders, args.out_orders), (order_items, args.out_items)):
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        frame.to_csv(path, index=False)
+    print(f"Menu {len(menu)} items, {len(daily)} days, {len(orders):,} orders, "
+          f"{len(order_items):,} item lines")
 
 
 if __name__ == "__main__":
