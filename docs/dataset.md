@@ -51,11 +51,19 @@ documented synthetic-data generator, which the course rubric permits provided th
 
 ### 3.2 Order generation (summary)
 
-Orders are synthetic. Daily volume is negative-binomial (r = 25, seed 42) around a base of 140 orders with multipliers for weekend days
-(Fri–Sun, 1.30), rain (1.20 for ≥ 2.5 mm, 1.35 for ≥ 15 mm), heat (1.10 for max temperature ≥ 33 °C) and 41 festival days (1.25). Multipliers
-apply independently, so a rainy and hot day gets both. Item baskets are drawn with weather-dependent category weights and planted item pairs
-(for example chai and pakora are more likely to be ordered together on rainy days). The full parameter list, festival calendar and seed are in
-`docs/generator.md`, written by P2. Because the rules are known, the notebooks can check whether each method recovers them.
+Orders are synthetic, but every generator parameter comes from evidence (rebuilt 2026-11-06):
+
+| Evidence | Used for | File |
+|---|---|---|
+| Swiggy order report, Hotel Chinthamani, Coimbatore (464 orders, Aug-Sep 2026) | food menu, prices, baskets, order hours, weekend and rain effects | `data/real/chinthamani_*.csv` |
+| Team survey, 27 adult Coimbatore respondents | festival effect, snack/drink share and mix, weather-linked pairs | `data/real/survey_responses.csv` |
+| Coimbatore outlet menus (Zomato, Swiggy, magicpin) | snack and drink prices | `data/reference/snack_drink_prices.csv` |
+
+Daily volume is negative-binomial (seed 42). The multipliers come from a GLM on the real Swiggy days: weekend (Fri–Sun) x2.47, rain x1.56
+on weekdays and x0.54 on weekends, heat x1.07. The festival multiplier (x0.89) comes from the survey. Food baskets are resampled real Swiggy
+baskets. Snack and drink orders follow the survey's weather mix, with planted pairs (chai with pakora or samosa and coffee with vada are more
+likely on rainy days; ice cream with cold coffee on hot days). Full parameters: `docs/generator.md`. Validation against the evidence (25 of
+26 checks pass): `docs/validation.md`.
 
 ## 4. Data files
 
