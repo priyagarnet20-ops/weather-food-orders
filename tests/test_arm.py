@@ -182,7 +182,8 @@ def test_visualization_functions(arm_data, tmp_path):
     eval_result = ARM.evaluate_rainy_vs_dry_rules(r_rain, r_dry, menu)
 
     fig1_path = tmp_path / "fig_arm_rain_vs_dry.png"
-    fig1 = ARM.plot_rainy_vs_dry_evaluation(eval_result["common"], eval_result["rainy_only"], save_path=fig1_path)
+    planted = ARM.extract_planted_pairs_table(eval_result["common"])
+    fig1 = ARM.plot_rainy_vs_dry_evaluation(planted, save_path=fig1_path)
     assert fig1_path.exists()
     assert fig1_path.stat().st_size > 0
 

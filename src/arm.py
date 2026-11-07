@@ -383,97 +383,59 @@ def evaluate_threshold_sensitivity(
 # =============================================================================
 
 def plot_rainy_vs_dry_evaluation(
-    common_df: pd.DataFrame,
-    rainy_only_df: pd.DataFrame,
+    planted_df: pd.DataFrame,
     save_path: Optional[Path] = None,
 ) -> plt.Figure:
-    """Generate 2-panel presentation figure for T11 rainy vs dry evaluation."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), gridspec_kw={"width_ratios": [1.1, 1]})
+    """Fig 14: the five planted pairs on rainy vs dry days (T11).
 
-    # Panel A: Scatter plot of Confidence vs Lift on common rules with Planted Pair Shift Vectors
-    if not common_df.empty:
-        # Display core rules (lift <= 10) to clearly resolve planted pairs and avoid extreme outlier distortion
-        vis_df = common_df[common_df["lift_rain"] <= 10.0].copy()
-        if vis_df.empty:
-            vis_df = common_df.copy()
+    Panel A compares mined confidence with the planted probability; panel B shows support
+    (share of multi-item orders holding the pair). Lift is left out on purpose: it falls in
+    the rain because the add-on gets more popular overall (see the notebook, section 3.2).
+    """
+    if planted_df.empty:
+        raise ValueError("planted_df is empty: no planted pair was found in the common rules")
 
-        ax1.scatter(
-            vis_df["confidence_dry"],
-            vis_df["lift_dry"],
-            color=PALETTE["gray"],
-            alpha=0.55,
-            s=45,
-            label="Dry Days",
-            edgecolors=PALETTE["ink2"],
-        )
-        ax1.scatter(
-            vis_df["confidence_rain"],
-            vis_df["lift_rain"],
-            color=PALETTE["blue"],
-            alpha=0.75,
-            s=65,
-            label="Rainy Days",
-            edgecolors=PALETTE["ink"],
-        )
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5), gridspec_kw={"width_ratios": [1.2, 1]})
+    pos = np.arange(len(planted_df))
+    labels = planted_df["rule"].tolist()
 
-        # Draw shift arrows specifically for the 5 planted benchmark pairs (T11 ground truth)
-        target_planted = [
-            ("Chai -> Pakora", (12, 12)),
-            ("Chai -> Samosa", (12, -18)),
-            ("Coffee -> Vada", (-75, 14)),
-            ("Ice Cream -> Cold Coffee", (12, -8)),
-            ("Plain Biryani -> Buttermilk", (-70, -18)),
-        ]
+    # Panel A: confidence, rainy vs dry, with the planted value as a hollow marker
+    for i, r in enumerate(planted_df.itertuples()):
+        ax1.plot([r.conf_dry, r.conf_rain], [i, i], color=PALETTE["gray"], lw=2, zorder=1)
+    ax1.scatter(planted_df["conf_dry"], pos, s=90, color=PALETTE["orange"], label="Dry days (mined)", zorder=3)
+    ax1.scatter(planted_df["conf_rain"], pos, s=90, color=PALETTE["blue"], label="Rainy days (mined)", zorder=3)
+    ax1.scatter(planted_df["planted_dry"], pos - 0.22, s=60, facecolors="none", edgecolors=PALETTE["orange"],
+                lw=1.5, label="Dry days (planted)", zorder=3)
+    ax1.scatter(planted_df["planted_rain"], pos - 0.22, s=60, facecolors="none", edgecolors=PALETTE["blue"],
+                lw=1.5, label="Rainy days (planted)", zorder=3)
+    ax1.set_yticks(pos)
+    ax1.set_yticklabels(labels, fontsize=9)
+    ax1.invert_yaxis()
+    ax1.set_xlim(0.15, 0.45)
+    ax1.set_xlabel("Confidence: share of orders with the first item that also hold the second")
+    ax1.set_title("Mined confidence follows the planted pairs", fontweight="bold", fontsize=11)
+    ax1.legend(loc="lower right", fontsize=8, frameon=True)
+    ax1.grid(True, axis="x", linestyle=":", alpha=0.5)
 
-        for rule_name, text_offset in target_planted:
-            m = common_df[common_df["rule_str"] == rule_name]
-            if m.empty and "Biryani" in rule_name:
-                m = common_df[common_df["rule_str"].str.contains("Biryani") & common_df["rule_str"].str.contains("Buttermilk")]
-            if not m.empty:
-                row = m.iloc[0]
-                ax1.annotate(
-                    "",
-                    xy=(row["confidence_rain"], row["lift_rain"]),
-                    xytext=(row["confidence_dry"], row["lift_dry"]),
-                    arrowprops=dict(arrowstyle="->", color=PALETTE["orange"], lw=2.2),
-                )
-                ax1.annotate(
-                    row["rule_str"],
-                    xy=(row["confidence_rain"], row["lift_rain"]),
-                    xytext=text_offset,
-                    textcoords="offset points",
-                    fontsize=8.5,
-                    fontweight="bold",
-                    color=PALETTE["ink"],
-                    bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.9, edgecolor=PALETTE["orange"], lw=0.9),
-                )
+    # Panel B: support, rainy vs dry
+    w = 0.38
+    ax2.barh(pos - w / 2, planted_df["support_rain"] * 100, w, color=PALETTE["blue"], label="Rainy days")
+    ax2.barh(pos + w / 2, planted_df["support_dry"] * 100, w, color=PALETTE["orange"], label="Dry days")
+    for i, r in enumerate(planted_df.itertuples()):
+        ax2.text(r.support_rain * 100 + 0.15, i - w / 2, f"{r.support_rain * 100:.1f}%", va="center", fontsize=8,
+                 color=PALETTE["ink"])
+        ax2.text(r.support_dry * 100 + 0.15, i + w / 2, f"{r.support_dry * 100:.1f}%", va="center", fontsize=8,
+                 color=PALETTE["ink"])
+    ax2.set_yticks(pos)
+    ax2.set_yticklabels(labels, fontsize=9)
+    ax2.invert_yaxis()
+    ax2.set_xlabel("Support: % of multi-item orders holding the pair")
+    ax2.set_title("How often the combo is ordered", fontweight="bold", fontsize=11)
+    ax2.legend(loc="lower right", fontsize=8, frameon=True)
+    ax2.grid(True, axis="x", linestyle=":", alpha=0.5)
 
-        ax1.axhline(1.0, color=PALETTE["ink2"], linestyle="--", alpha=0.5, label="Baseline Lift = 1.0")
-        ax1.set_xlabel("Rule Confidence")
-        ax1.set_ylabel("Rule Lift")
-        ax1.set_ylim(0.5, 7.5)
-        ax1.set_title("Planted Pair Shift Vectors: Dry Days → Rainy Days (T11)", fontweight="bold", fontsize=11)
-        ax1.legend(loc="upper left", frameon=True)
-        ax1.grid(True, linestyle=":", alpha=0.5)
-
-    # Panel B: Top Rainy-Only Rules by Lift
-    if not rainy_only_df.empty:
-        top_rainy = rainy_only_df.head(8).copy()
-        y_pos = np.arange(len(top_rainy))
-        bar_colors = [PALETTE["blue"] if "hot_comfort" in aff else PALETTE["aqua"] for aff in top_rainy["affinity_type"]]
-        ax2.barh(y_pos, top_rainy["lift"], color=bar_colors, alpha=0.85, edgecolor=PALETTE["ink"])
-        ax2.set_yticks(y_pos)
-        ax2.set_yticklabels(top_rainy["rule_str"], fontsize=9)
-        ax2.invert_yaxis()
-        ax2.set_xlabel("Lift on Rainy Days")
-        ax2.set_title("Top Weather-Specific Combos (Rainy Days Only)", fontweight="bold", fontsize=11)
-        ax2.grid(True, axis="x", linestyle=":", alpha=0.5)
-
-        # Annotate lift values
-        for i, val in enumerate(top_rainy["lift"]):
-            ax2.text(val + 0.05, i, f"{val:.2f}", va="center", fontsize=8.5, fontweight="bold", color=PALETTE["ink"])
-
-    plt.suptitle("Method 1 (ARM): Rainy vs. Dry Day Rule Evaluation (Coimbatore Orders)", fontsize=13, fontweight="bold", y=0.98)
+    plt.suptitle("Method 1 (ARM): planted pairs on rainy vs dry days (Coimbatore orders)", fontsize=13,
+                 fontweight="bold", y=0.99)
     plt.tight_layout()
 
     if save_path:

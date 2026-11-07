@@ -260,8 +260,11 @@ if not rainy_only_df.empty:
 md("""
 ### 3.3 Visualizing Weather-Driven Rule Shifts (Fig 14)
 We generate presentation figure **Fig 14** (`results/fig14_arm_rain_vs_dry.png`), comprising:
-1. **Panel A (Scatter Plot):** Confidence vs. Lift shift on common rules from dry days to rainy days, with vector shift arrows for headline pairs.
-2. **Panel B (Horizontal Bar Chart):** Top emergent rainy-only combos ranked by lift.
+1. **Panel A:** confidence of the five planted pairs on rainy and dry days, next to the planted probability (hollow markers).
+2. **Panel B:** support, the share of multi-item orders that hold each pair, on rainy and dry days.
+
+Lift is not plotted, for the reason given in 3.2. The rainy-only rule list above is kept as a table only: many of those rules
+are three-item combinations that just miss the thresholds on dry days, so they are not weather findings on their own.
 """)
 
 code(r"""
@@ -269,7 +272,7 @@ results_dir = ROOT / "results"
 results_dir.mkdir(parents=True, exist_ok=True)
 
 fig14_path = results_dir / "fig14_arm_rain_vs_dry.png"
-fig14 = ARM.plot_rainy_vs_dry_evaluation(common_df, rainy_only_df, save_path=fig14_path)
+fig14 = ARM.plot_rainy_vs_dry_evaluation(planted_summary, save_path=fig14_path)
 plt.show()
 print(f"Presentation figure saved to: {fig14_path}")
 """)
