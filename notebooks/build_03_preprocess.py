@@ -42,8 +42,8 @@ analysis and Variance Inflation Factor (VIF).
 | File | Rows | Owner |
 |------|------|-------|
 | `data/raw/weather.csv` | 1 097 days | P1 |
-| `data/raw/orders.csv` | ≈ 193 000 orders | P2 |
-| `data/raw/menu.csv` | 40 items | P2 |
+| `data/raw/orders.csv` | ≈ 183 000 orders | P2 |
+| `data/raw/menu.csv` | 80 items | P2 |
 
 > The orders are *synthetic* (generated from documented rules in `docs/generator.md`),
 > while the weather is *real* Coimbatore data from Open-Meteo.
@@ -157,7 +157,7 @@ The festival flag (`is_festival`) is then added from the generator's calendar.
 code("""
 merged = pd.merge(daily_agg, weather, on="date", how="inner")
 
-# Festival days are a documented demand driver (about +21%) and are known in advance.
+# Festival days are a documented demand driver (about -11%, survey) and are known in advance.
 # The flag comes from P2's generator calendar; add_festival_flag fails loudly if any date has none.
 from features import add_festival_flag
 merged = add_festival_flag(merged)
@@ -305,7 +305,7 @@ new_cols = [
     "order_count_lag1", "order_count_lag7", "order_count_roll7",
     "is_rainy", "heavy_rain", "rain_intensity",
     "is_hot", "temp_band",
-    "dow", "is_weekend", "is_festival",
+    "dow", "is_weekend", "rain_x_weekend", "is_festival",
     "monsoon_phase",
 ]
 for col in new_cols:
@@ -402,7 +402,7 @@ numeric_cols = [
     "order_count", "precip_mm", "rain_mm", "temp_max_c", "temp_min_c",
     "temp_mean_c", "humidity_mean_pct", "wind_max_kmh",
     "order_count_lag1", "order_count_lag7", "order_count_roll7",
-    "is_rainy", "heavy_rain", "is_hot", "is_weekend", "is_festival",
+    "is_rainy", "heavy_rain", "is_hot", "is_weekend", "rain_x_weekend", "is_festival",
 ]
 # Keep only columns that exist
 numeric_cols = [c for c in numeric_cols if c in features.columns]
@@ -452,7 +452,8 @@ selected_features = [
     "is_weekend",           # Fri-Sun flag, the strongest single signal
     "is_hot",               # binary hot flag
     "is_rainy",             # binary rain flag
-    "is_festival",          # festival days lift demand by about 21%
+    "rain_x_weekend",       # rain lifts weekday orders but lowers weekend orders
+    "is_festival",          # festival days lower demand by about 11% (survey)
 ]
 
 vif_data = sm.add_constant(features[selected_features].dropna())
@@ -508,14 +509,15 @@ md("""
 
 ### Key findings
 
-1. **Weekend** (Fri-Sun) has the strongest link with order count (r about +0.51), followed by
-   **rain** (`is_rainy` r about +0.35).
-2. **Rain** boosts orders (Coimbatore comfort food culture: hot tea, bajjis, pakoras).
-3. **Festival days** lift demand by about 21%, so `is_festival` is kept as a predictor.
-4. **Lagged orders are weak predictors here.** Lag-1 has r of only about +0.17, because the synthetic
-   generator has no day-to-day memory. This should not be generalised to real restaurant data.
-5. **Monsoon phase** captures seasonal demand shifts across SW and NE monsoon.
-6. **No severe multicollinearity** — PCA is not required. We drop `temp_min_c`,
+1. **Weekend** (Fri-Sun) has the strongest link with order count: dry weekends carry roughly 2.5x a dry weekday's orders.
+2. **Rain works in two directions.** It raises orders on Mon-Thu and lowers them on Fri-Sun (real Swiggy evidence), so on its
+   own `is_rainy` correlates only weakly with order count. The engineered `rain_x_weekend` feature captures the switch and is
+   kept as a predictor.
+3. **Festival days lower demand** by about 11% (survey: people eat at home), so `is_festival` is kept as a predictor.
+4. **Lagged orders are weak predictors here.** The synthetic generator has no day-to-day memory, so lag-1 carries little
+   beyond the weekly pattern. This should not be generalised to real restaurant data.
+5. **Monsoon phase** captures seasonal shifts across the SW and NE monsoon.
+6. **No severe multicollinearity** (all VIF well below 10), so PCA is not required. We drop `temp_min_c`,
    `precip_mm`, and `temp_mean_c` as they are redundant with retained features.
 """)
 
