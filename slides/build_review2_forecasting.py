@@ -1,6 +1,6 @@
 """Build the Review 2 forecasting slides (P1 / T04-T06).
 
-Writes slides/review2/review2_forecasting_deck.pptx (2 slides, same style as the ARM deck).
+Writes slides/review2/review2_forecasting_deck.pptx (4 slides, same style as the ARM deck).
 Run from the project root:  python slides/build_review2_forecasting.py
 """
 from __future__ import annotations
@@ -89,6 +89,34 @@ bullets(b, [
 ], Inches(0.4), Inches(1.4), Inches(6.2), Inches(5.6), 15)
 pic(b, "fig06_mae_by_model.png", Inches(6.9), Inches(1.35), Inches(6.0))
 pic(b, "fig07_error_rain_dry.png", Inches(6.9), Inches(4.0), Inches(5.9))
+
+c = frame(prs, "Forecasting daily orders: forecast vs actual",
+          "Rolling 7-day forecasts follow the weekly pattern and the weather-driven swings")
+pic(c, "fig05_forecast_vs_actual.png", Inches(1.4), Inches(1.3), Inches(10.5))
+bullets(c, [
+    "Static hold-out (last 56 days): SARIMAX with weather MAE 14.6 vs 41.0 for the weekday mean.",
+    "Error is larger on Fri-Sun (MAE 18.9) than Mon-Thu (13.4), because those days carry more orders.",
+    "Residuals show no leftover autocorrelation (Ljung-Box p 0.68 and 0.88).",
+], Inches(0.6), Inches(5.55), Inches(12.2), Inches(1.5), 15)
+
+d = frame(prs, "Forecasting daily orders: planning and limits",
+          "How many extra orders to prepare for, and what the result does not show")
+bullets(d, [
+    "Buffer = the 90% quantile of how far actual orders exceed the forecast, so preparing forecast + buffer covers 9 days in 10.",
+    "Buffer is about the same on rainy and dry days, because the model already knows the weather.",
+    "SARIMAX on log orders, SARIMAX and Prophet (all with weather) are not statistically separable; the choice among them is tentative.",
+    "Weather is given as observed. A real deployment would use a weather forecast, so the error would be higher.",
+    "Orders are synthetic: this shows the method recovers the generator's rules, not real customer behaviour.",
+], Inches(0.4), Inches(1.4), Inches(6.4), Inches(5.6), 15)
+rows = [("Day type", "Buffer (orders)", "% of forecast"),
+        ("All days", "25", "17.0%"), ("Rainy days", "27", "17.7%"), ("Dry days", "24", "16.4%")]
+tbl = d.shapes.add_table(4, 3, Inches(7.2), Inches(1.7), Inches(5.6), Inches(2.0)).table
+for i, row in enumerate(rows):
+    for j, v in enumerate(row):
+        cell = tbl.cell(i, j); cell.text = v
+        para = cell.text_frame.paragraphs[0]
+        para.runs[0].font.size = Pt(16); para.runs[0].font.bold = (i == 0)
+text(d, "Planning buffer, 90% coverage (planning_buffer.csv)", Inches(7.2), Inches(3.8), Inches(5.6), Inches(0.4), 11, INK2)
 
 OUT.parent.mkdir(parents=True, exist_ok=True)
 prs.save(OUT)
