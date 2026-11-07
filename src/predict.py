@@ -35,6 +35,8 @@ SW_MONSOON = range(6, 10)   # Jun-Sep
 NE_MONSOON = range(10, 13)  # Oct-Dec
 
 WEATHER_FEATURES = ["precip_mm", "temp_max_c", "humidity_mean_pct", "is_rainy", "heavy_rain", "is_hot"]
+# every column that uses weather, including derived ones; the "without weather" model drops all of them
+WEATHER_INPUTS = WEATHER_FEATURES + ["rain_x_weekend"]
 
 
 def load_model_frame(weather_csv: str | Path, orders_csv: str | Path) -> pd.DataFrame:
@@ -61,6 +63,7 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
     for col in WEATHER_FEATURES:
         X[col] = df[col].astype(float)
     X["is_fri_sun"] = df.index.dayofweek.isin([4, 5, 6]).astype(int)
+    X["rain_x_weekend"] = (X["is_rainy"] * X["is_fri_sun"]).astype(float)  # rain lifts weekdays, lowers weekends
     X["is_festival"] = df["is_festival"].astype(float)
     dow = pd.get_dummies(df.index.dayofweek, prefix="dow").astype(float)
     dow.index = df.index

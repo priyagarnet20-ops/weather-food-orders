@@ -94,3 +94,11 @@ def test_processed_table_has_festival_flag_matching_the_generator():
     merged = f.merge(raw[["date", "is_festival"]], on="date", suffixes=("", "_raw"))
     assert (merged["is_festival"].astype(int) == merged["is_festival_raw"].astype(int)).all()
     assert f["is_festival"].sum() == 41
+
+
+def test_rain_weekend_interaction_is_one_only_on_rainy_weekends():
+    # 2024-01-01 is a Monday, so rows 4-6 are Fri-Sun
+    df = _frame([5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 5.0], [30.0] * 7)
+    out = features.add_rain_weekend_interaction(
+        features.add_calendar_flags(features.add_rain_bins(df)))
+    assert out["rain_x_weekend"].tolist() == [0, 0, 0, 0, 1, 0, 1]

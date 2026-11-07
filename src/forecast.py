@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RAIN_MM = 2.5     # meaningful rain (team regime definition)
 HEAVY_MM = 15.0   # heavy rain
 HOT_C = 33.0      # hot day (temp_max)
-WEATHER_COLS = ["is_rainy", "heavy_rain", "is_hot"]
+WEATHER_COLS = ["is_rainy", "heavy_rain", "is_hot", "rain_x_weekend"]  # rain lifts weekdays, lowers weekends
 CALENDAR_COLS = ["is_festival"]   # known in advance; used by every model that takes regressors
 
 logging.getLogger("cmdstanpy").setLevel(logging.CRITICAL)
@@ -71,6 +71,7 @@ def load_daily(weather_csv: str | Path, orders_csv: str | Path) -> pd.DataFrame:
     df["heavy_rain"] = (df["precip_mm"] >= HEAVY_MM).astype(int)
     df["is_hot"] = (df["temp_max_c"] >= HOT_C).astype(int)
     df["dow"] = df.index.dayofweek
+    df["rain_x_weekend"] = df["is_rainy"] * df["dow"].isin([4, 5, 6]).astype(int)
     df["regime"] = np.select([df["is_rainy"] == 1, df["is_hot"] == 1], ["rainy", "hot"], "normal")
     return df
 

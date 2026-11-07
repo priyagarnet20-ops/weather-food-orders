@@ -71,3 +71,16 @@ def test_fit_models_returns_all_four_predictions(daily):
     fitted, preds = predict.fit_and_predict(Xtr, ytr, Xte, quick=True)
     assert set(preds) == {"Seasonal naive", "Ridge", "Random Forest", "XGBoost"}
     assert all(len(p) == len(Xte) for p in preds.values())
+
+
+def test_rain_weekend_interaction_feature(daily):
+    X = predict.make_features(daily)
+    expected = (X["is_rainy"] * X["is_fri_sun"]).astype(float)
+    pd.testing.assert_series_equal(X["rain_x_weekend"], expected, check_names=False)
+
+
+def test_weather_inputs_cover_every_weather_derived_column(daily):
+    X = predict.make_features(daily)
+    no_weather = [c for c in X.columns if c not in predict.WEATHER_INPUTS and not c.startswith("phase_")]
+    assert "rain_x_weekend" not in no_weather
+    assert not set(predict.WEATHER_FEATURES) & set(no_weather)

@@ -94,10 +94,18 @@ def add_calendar_flags(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_rain_weekend_interaction(df: pd.DataFrame) -> pd.DataFrame:
+    """`rain_x_weekend` = 1 on rainy Fri-Sun. Rain lifts weekday orders but lowers weekend orders
+    (Swiggy evidence, docs/generator.md), so a single rain flag averages the two to almost nothing."""
+    df = df.copy()
+    df["rain_x_weekend"] = (df["is_rainy"] * df["is_weekend"]).astype(int)
+    return df
+
+
 def add_festival_flag(df: pd.DataFrame, daily_orders_csv: str | Path | None = None) -> pd.DataFrame:
     """Add `is_festival` (0/1) from the generator's festival calendar in data/raw/daily_orders.csv.
 
-    Festival days lift demand by about 21%, so the flag is a real driver of order volume. The date is
+    Festival days lower demand by about 11% (survey Q19), so the flag is a real driver of order volume. The date is
     known in advance, so it is safe to use as a predictor. Fails loudly if any date has no flag.
     """
     path = Path(daily_orders_csv) if daily_orders_csv else ROOT / "data" / "raw" / "daily_orders.csv"
@@ -156,6 +164,7 @@ def build_features(
     df = add_rain_bins(df)
     df = add_temp_bands(df)
     df = add_calendar_flags(df)
+    df = add_rain_weekend_interaction(df)
     df = add_monsoon_phase(df)
 
     Path(output_csv).parent.mkdir(parents=True, exist_ok=True)
