@@ -161,21 +161,26 @@ def slide_01_t11_rainy_vs_dry(prs: Presentation):
         "  • Rainy segment: 23,926 orders (precip >= 2.5 mm).",
         "  • Dry segment: 59,064 orders (precip < 2.5 mm).",
         "",
-        "EMPIRICAL WEATHER RECOVERY (T11):",
-        "  1. Chai -> Pakora (Monsoon Comfort):",
-        "     Rainy Lift = 4.02 vs Normal = 1.68 (Delta Lift = +2.34).",
-        "     Confidence surges 2.6x during tropical showers.",
+        "RECOVERING THE GENERATOR'S PLANTED PAIRS (T11):",
+        "  • Chai -> Pakora: Conf 0.37 rainy vs 0.24 dry | Supp 6.3% vs 1.8%",
+        "    Lift: 2.56 rainy vs 4.75 dry (both > 1, proving genuine affinity).",
+        "  • Chai -> Samosa: Conf 0.39 rainy vs 0.27 dry | Supp 6.6% vs 2.1%",
+        "    Lift: 1.87 rainy vs 5.05 dry (strong monsoon snacking pull).",
+        "  • Coffee -> Vada: Conf 0.37 rainy vs 0.33 dry | Supp 7.5% vs 2.2%",
+        "    Lift: 2.85 rainy vs 3.58 dry (classic afternoon tiffin pairing).",
+        "  • Ice Cream -> Cold Coffee: Conf 0.28 rainy vs 0.39 dry",
+        "    (Opposite shift: stronger in heat / dry weather, as planted).",
+        "  • Biryani -> Buttermilk: Conf ~0.30 on both rainy and dry days",
+        "    (Controls validate model: stable across weather regimes).",
         "",
-        "  2. Coffee -> Medu Vada (Tiffin Classic):",
-        "     Rainy Lift = 4.61 vs Dry Lift = 1.82 (Delta Lift = +2.79).",
-        "     Strongest afternoon cross-purchase surge in downpours.",
-        "",
-        "  3. Ice Cream -> Cold Coffee (Heatwave Pair):",
-        "     Hot days Lift = 6.01 vs Rainy Lift = 1.70.",
-        "     Confirms organic temperature-conditioned inverse cravings.",
+        "WHY LIFT DROPS IN RAIN (FACULTY FAQ):",
+        "  Lift = Conf / P(B). On rainy days, Pakora popularity surges overall",
+        "  (14% of rainy orders vs 5% dry). Dividing by that larger base rate",
+        "  lowers Lift, even though Chai buyers take Pakora 1.5x more often.",
+        "  Confidence & Support are the true indicators of weather affinity.",
     ]
-    bullet_block(sld, bullets, Inches(7.75), Inches(1.25), Inches(5.25), Inches(5.7),
-                 font_size=11, title="Key Findings & Weather Lift Shifts", title_color=ORANGE)
+    bullet_block(sld, bullets, Inches(7.75), Inches(1.25), Inches(5.25), Inches(5.8),
+                 font_size=10, title="Key Findings: Confidence, Support & Lift", title_color=ORANGE)
 
 
 def slide_02_t12_threshold_sensitivity(prs: Presentation):
@@ -212,7 +217,7 @@ def slide_02_t12_threshold_sensitivity(prs: Presentation):
         "     Sweet spot: min_support = 0.004 to 0.006 with",
         "     min_confidence = 0.05 to 0.10.",
         "     Balances statistical reliability (n >= 330–500 orders)",
-        "     while capturing high-lift pairs (Lift up to 70.2).",
+        "     while capturing high-affinity weather pairs robustly.",
     ]
     bullet_block(sld, findings, Inches(7.75), Inches(1.25), Inches(5.25), Inches(5.7),
                  font_size=11, title="Sensitivity Grid & Parameter Selection", title_color=BLUE)
@@ -222,21 +227,21 @@ def slide_03_recommendations(prs: Presentation):
     """Slide 3: Strategic Business Recommendations from Method 1."""
     sld = blank_slide(prs)
     header_bar(sld, "P3  ·  Review 2: Strategic Business Recommendations (ARM)",
-               "Translating association rules & weather lift into kitchen and delivery revenue strategies",
-               "P3  ·  T18", DARK)
+               "Translating association rules & weather confidence into kitchen and delivery revenue strategies",
+               "P3  ·  Method 1 (ARM)", DARK)
     footer_bar(sld, "Review 2 Deliverable · Coimbatore Operations")
 
     col1 = [
         "RECOMMENDATION 1 — RAINY-DAY BUNDLE PROMOTIONS:",
         "  Automatically trigger dynamic delivery bundles when rainfall >= 2.5mm:",
-        "  • 'Monsoon Comfort Combo': Masala Chai + Onion Pakora @ ₹75 (Lift 4.02)",
-        "  • 'Afternoon Tiffin Special': Filter Coffee + Medu Vada @ ₹65 (Lift 4.61)",
-        "  • 'Rainy Evening Snacks': Masala Chai + Samosa @ ₹70 (Lift 2.70)",
+        "  • 'Monsoon Comfort Combo': Chai + Pakora @ ₹75 (Conf 0.37, Supp 6.3%)",
+        "  • 'Afternoon Tiffin Special': Coffee + Vada @ ₹65 (Conf 0.37, Supp 7.5%)",
+        "  • 'Rainy Evening Snacks': Chai + Samosa @ ₹70 (Conf 0.39, Supp 6.6%)",
         "  Provides 10–14% combo discounts to lift Average Order Value (AOV).",
         "",
         "RECOMMENDATION 2 — KITCHEN PRE-BATCHING & INVENTORY:",
         "  Hot comfort snack orders spike sharply during monsoon afternoons.",
-        "  Cloud kitchens should pre-fry base batches of Medu Vada and Bajjis",
+        "  Cloud kitchens should pre-fry base batches of Vada and Bajjis",
         "  between 15:30 and 16:30 on wet days, cutting prep time from 18 to 6 mins.",
     ]
     bullet_block(sld, col1, Inches(0.35), Inches(1.25), Inches(6.1), Inches(5.7),
