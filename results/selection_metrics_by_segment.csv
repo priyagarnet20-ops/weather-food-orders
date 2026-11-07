@@ -1,0 +1,13 @@
+,MAE hot Fri-Sun,MAE hot Mon-Thu,MAE normal Fri-Sun,MAE normal Mon-Thu,MAE rainy Fri-Sun,MAE rainy Mon-Thu
+Generator expected value,20.28,11.42,20.14,11.29,11.81,16.27
+SARIMAX,20.92,11.78,20.74,11.2,11.28,16.84
+Negative Binomial,20.7,11.57,20.72,11.22,11.5,16.96
+Poisson,20.75,11.69,20.77,11.14,11.61,17.04
+Extra Trees,21.32,11.29,20.66,11.23,11.32,17.6
+Ridge,21.14,11.97,20.76,11.21,11.31,17.03
+ElasticNet,21.17,12.04,20.79,11.14,11.4,17.08
+Random Forest,21.47,11.17,21.05,11.39,12.55,19.05
+XGBoost,21.72,11.98,22.89,11.28,12.78,18.76
+Weekday mean,55.38,14.94,37.22,18.04,82.51,44.81
+Seasonal naive,42.33,24.92,64.48,31.3,75.82,44.68
+Rolling mean,103.26,62.95,92.03,57.48,27.5,20.63
