@@ -223,12 +223,17 @@ print(f"Rainy day rules discovered: {len(rules_rain)} (from {len(fi_rain)} frequ
 print(f"Dry day rules discovered:   {len(rules_dry)} (from {len(fi_dry)} frequent itemsets)")
 """)
 
-md("""
-### 3.2 Rainy vs. Dry Comparative Evaluation (T11 Metrics)
-We compare the rule sets to evaluate:
-1. **Common Rules:** Rules active in both regimes, comparing confidence shift and lift ratio ($\text{Lift}_{\text{rain}} / \text{Lift}_{\text{dry}}$).
-2. **Rainy-Only Rules:** Emergent rules that cross discovery thresholds exclusively during rainfall.
-3. **Weather Affinity Classification:** Classifying itemsets into `hot_comfort_pair`, `cold_refresh_pair`, `hot_cold_hybrid`, and `neutral_staple`.
+md(r"""
+### 3.2 Recovery of Generator Planted Pairs & Rainy vs. Dry Evaluation (T11 Evidence)
+To rigorously validate Method 1 (ARM), we assess whether the mined rules recover the five ground-truth pairs planted by the data generator (`docs/generator.md`):
+- **Chai -> Pakora**: Planted confidence 0.30 rainy vs. 0.22 dry (Q12)
+- **Chai -> Samosa**: Planted confidence 0.32 rainy vs. 0.25 dry (Q13)
+- **Coffee -> Vada**: Planted confidence 0.31 rainy vs. 0.27 dry (Q14)
+- **Ice Cream -> Cold Coffee**: Planted confidence 0.23 rainy vs. 0.28 dry / 0.31 hot (Q16)
+- **Biryani -> Buttermilk**: Planted confidence 0.30 rainy vs. 0.30 dry (Q15 control, no weather effect)
+
+**Why Confidence and Support are the Primary Metrics:**
+Lift equals $\text{Confidence} / P(\text{consequent})$. When monsoon rains arrive, comfort snacks like Pakora surge in base popularity across *all* customer orders ($14\%$ in rain vs. $5\%$ dry). Dividing by that much larger denominator pulls Lift down ($4.75 \to 2.56$) even though Chai buyers purchase Pakora 1.5x more often ($36.5\%$ vs. $24.3\%$). Therefore, Confidence and Support directly measure the rain-induced surge, while Lift confirms genuine association ($\text{Lift} > 1.0$).
 """)
 
 code(r"""
@@ -242,12 +247,13 @@ print(f"Common rules evaluated across both weather states: {len(common_df)}")
 print(f"Emergent rules unique to rainy days:               {len(rainy_only_df)}")
 print(f"Emergent rules unique to dry days:                 {len(dry_only_df)}")
 
-if not common_df.empty:
-    print("\nTop 5 Common Rules with Greatest Lift Surge in Rain:")
-    display(common_df[["rule_str", "confidence_rain", "confidence_dry", "lift_rain", "lift_dry", "lift_diff", "affinity_type"]].head(5))
+# Extract the 5 planted benchmark pairs (Primary T11 Deliverable)
+planted_summary = ARM.extract_planted_pairs_table(common_df)
+print("\n=== T11 Key Evidence: Generator Planted Pair Recovery ===")
+display(planted_summary)
 
 if not rainy_only_df.empty:
-    print("\nTop 5 Emergent Rainy-Only Rules:")
+    print("\nTop 5 Emergent Rainy-Only Rules (Crossing Threshold Exclusively in Rain):")
     display(rainy_only_df[["rule_str", "support", "confidence", "lift", "affinity_type"]].head(5))
 """)
 

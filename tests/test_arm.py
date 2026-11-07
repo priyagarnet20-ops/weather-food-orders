@@ -126,6 +126,12 @@ def test_evaluate_rainy_vs_dry_rules(arm_data):
         assert "lift_diff" in common.columns
         assert "lift_ratio" in common.columns
         assert "affinity_type" in common.columns
+        # Verify planted pairs table extraction
+        planted_tbl = ARM.extract_planted_pairs_table(common)
+        assert not planted_tbl.empty
+        assert "planted_rain" in planted_tbl.columns
+        assert "conf_rain" in planted_tbl.columns
+        assert len(planted_tbl) >= 3
 
     rainy_only = eval_result["rainy_only"]
     if not rainy_only.empty:

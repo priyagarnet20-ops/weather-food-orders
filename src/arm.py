@@ -265,6 +265,46 @@ def evaluate_rainy_vs_dry_rules(
     }
 
 
+PLANTED_PAIRS_GROUND_TRUTH: List[Dict[str, Any]] = [
+    {"rule_str": "Chai -> Pakora", "planted_conf_rain": 0.30, "planted_conf_dry": 0.22, "category": "Rain comfort"},
+    {"rule_str": "Chai -> Samosa", "planted_conf_rain": 0.32, "planted_conf_dry": 0.25, "category": "Rain comfort"},
+    {"rule_str": "Coffee -> Vada", "planted_conf_rain": 0.31, "planted_conf_dry": 0.27, "category": "Tiffin classic"},
+    {"rule_str": "Ice Cream -> Cold Coffee", "planted_conf_rain": 0.23, "planted_conf_dry": 0.28, "category": "Cold refresh (heat)"},
+    {"rule_str": "Plain Biryani -> Buttermilk", "planted_conf_rain": 0.30, "planted_conf_dry": 0.30, "category": "Control (no weather effect)"},
+]
+
+
+def extract_planted_pairs_table(common_df: pd.DataFrame) -> pd.DataFrame:
+    """Extract and evaluate the generator's 5 planted benchmark pairs (T11 evidence).
+
+    Compares empirical confidence and support between rainy and dry days directly
+    against the ground-truth probabilities planted by the generator (docs/generator.md).
+    """
+    rows = []
+    for item in PLANTED_PAIRS_GROUND_TRUTH:
+        r_str = item["rule_str"]
+        m = common_df[common_df["rule_str"] == r_str]
+        if m.empty:
+            # Fallback for biryani pairing variant
+            if "Biryani" in r_str and "Buttermilk" in r_str:
+                m = common_df[common_df["rule_str"].str.contains("Biryani") & common_df["rule_str"].str.contains("Buttermilk")]
+        if not m.empty:
+            r = m.iloc[0]
+            rows.append({
+                "rule": r["rule_str"],
+                "category": item["category"],
+                "planted_rain": item["planted_conf_rain"],
+                "planted_dry": item["planted_conf_dry"],
+                "conf_rain": round(float(r["confidence_rain"]), 3),
+                "conf_dry": round(float(r["confidence_dry"]), 3),
+                "support_rain": round(float(r["support_rain"]), 3),
+                "support_dry": round(float(r["support_dry"]), 3),
+                "lift_rain": round(float(r["lift_rain"]), 2),
+                "lift_dry": round(float(r["lift_dry"]), 2),
+            })
+    return pd.DataFrame(rows)
+
+
 # =============================================================================
 # 4. T12: Rule Threshold Sensitivity Grid
 # =============================================================================
@@ -350,48 +390,69 @@ def plot_rainy_vs_dry_evaluation(
     """Generate 2-panel presentation figure for T11 rainy vs dry evaluation."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), gridspec_kw={"width_ratios": [1.1, 1]})
 
-    # Panel A: Scatter plot of Confidence vs Lift on common rules
+    # Panel A: Scatter plot of Confidence vs Lift on common rules with Planted Pair Shift Vectors
     if not common_df.empty:
+        # Display core rules (lift <= 10) to clearly resolve planted pairs and avoid extreme outlier distortion
+        vis_df = common_df[common_df["lift_rain"] <= 10.0].copy()
+        if vis_df.empty:
+            vis_df = common_df.copy()
+
         ax1.scatter(
-            common_df["confidence_dry"],
-            common_df["lift_dry"],
+            vis_df["confidence_dry"],
+            vis_df["lift_dry"],
             color=PALETTE["gray"],
-            alpha=0.6,
-            s=60,
+            alpha=0.55,
+            s=45,
             label="Dry Days",
             edgecolors=PALETTE["ink2"],
         )
         ax1.scatter(
-            common_df["confidence_rain"],
-            common_df["lift_rain"],
+            vis_df["confidence_rain"],
+            vis_df["lift_rain"],
             color=PALETTE["blue"],
-            alpha=0.8,
-            s=80,
+            alpha=0.75,
+            s=65,
             label="Rainy Days",
             edgecolors=PALETTE["ink"],
         )
 
-        # Draw shift arrows for top 3 rules
-        for idx in range(min(4, len(common_df))):
-            row = common_df.iloc[idx]
-            ax1.annotate(
-                "",
-                xy=(row["confidence_rain"], row["lift_rain"]),
-                xytext=(row["confidence_dry"], row["lift_dry"]),
-                arrowprops=dict(arrowstyle="->", color=PALETTE["orange"], lw=1.5),
-            )
-            ax1.text(
-                row["confidence_rain"] + 0.001,
-                row["lift_rain"],
-                row["rule_str"][:28] + "...",
-                fontsize=8,
-                color=PALETTE["ink"],
-            )
+        # Draw shift arrows specifically for the 5 planted benchmark pairs (T11 ground truth)
+        target_planted = [
+            ("Chai -> Pakora", (12, 12)),
+            ("Chai -> Samosa", (12, -18)),
+            ("Coffee -> Vada", (-75, 14)),
+            ("Ice Cream -> Cold Coffee", (12, -8)),
+            ("Plain Biryani -> Buttermilk", (-70, -18)),
+        ]
+
+        for rule_name, text_offset in target_planted:
+            m = common_df[common_df["rule_str"] == rule_name]
+            if m.empty and "Biryani" in rule_name:
+                m = common_df[common_df["rule_str"].str.contains("Biryani") & common_df["rule_str"].str.contains("Buttermilk")]
+            if not m.empty:
+                row = m.iloc[0]
+                ax1.annotate(
+                    "",
+                    xy=(row["confidence_rain"], row["lift_rain"]),
+                    xytext=(row["confidence_dry"], row["lift_dry"]),
+                    arrowprops=dict(arrowstyle="->", color=PALETTE["orange"], lw=2.2),
+                )
+                ax1.annotate(
+                    row["rule_str"],
+                    xy=(row["confidence_rain"], row["lift_rain"]),
+                    xytext=text_offset,
+                    textcoords="offset points",
+                    fontsize=8.5,
+                    fontweight="bold",
+                    color=PALETTE["ink"],
+                    bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.9, edgecolor=PALETTE["orange"], lw=0.9),
+                )
 
         ax1.axhline(1.0, color=PALETTE["ink2"], linestyle="--", alpha=0.5, label="Baseline Lift = 1.0")
         ax1.set_xlabel("Rule Confidence")
         ax1.set_ylabel("Rule Lift")
-        ax1.set_title("Support & Lift Shift: Rainy vs. Dry Day Rules", fontweight="bold", fontsize=11)
+        ax1.set_ylim(0.5, 7.5)
+        ax1.set_title("Planted Pair Shift Vectors: Dry Days → Rainy Days (T11)", fontweight="bold", fontsize=11)
         ax1.legend(loc="upper left", frameon=True)
         ax1.grid(True, linestyle=":", alpha=0.5)
 
