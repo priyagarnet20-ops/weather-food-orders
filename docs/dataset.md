@@ -51,7 +51,7 @@ documented synthetic-data generator, which the course rubric permits provided th
 
 ### 3.2 Order generation (summary)
 
-Orders are synthetic, but every generator parameter comes from evidence (rebuilt 2026-11-06):
+Orders are synthetic, but every generator parameter comes from evidence:
 
 | Evidence | Used for | File |
 |---|---|---|

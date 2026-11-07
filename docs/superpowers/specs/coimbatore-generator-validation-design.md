@@ -1,6 +1,6 @@
 # Design: evidence-based Coimbatore order generator and its validation
 
-Date: 2026-11-06 · Branch: `coimbatore/review1-validation` (from `db44213`, the Review 1 state before the Surabaya migration)
+Branch: `coimbatore/review1-validation` (from `db44213`, the Review 1 state before the Surabaya migration)
 Owner: P5 (Deepak)
 
 ## Why

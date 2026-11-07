@@ -2,7 +2,7 @@
 
 **Project:** Weather-Driven Food Order Patterns (Coimbatore) · BA Capstone, Team of 5
 **Rubric line:** *Problem statement, business objective, and dataset description*
-**Tasks:** T07 (menu), T08 (daily demand), T09 (baskets), T10 (documentation). Rebuilt on 2026-11-06 so that every
+**Tasks:** T07 (menu), T08 (daily demand), T09 (baskets), T10 (documentation). Rebuilt so that every
 parameter traces back to evidence. Validation: `docs/validation.md`.
 
 ---
