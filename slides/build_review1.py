@@ -169,7 +169,7 @@ def slide_01_title(prs: Presentation):
     add_text(sld, "REVIEW 1  ·  Business Analytics Capstone",
              Inches(0.5), Inches(2.88), Inches(12.3), Inches(0.55),
              font_size=22, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    add_text(sld, "Real Open-Meteo Weather Data  |  Documented Synthetic Orders  |  Reproducible Pipeline",
+    add_text(sld, "Real Open-Meteo Weather  |  Evidence-Based Synthetic Orders (Swiggy + Survey)  |  Reproducible Pipeline",
              Inches(0.5), Inches(3.38), Inches(12.3), Inches(0.55),
              font_size=14, color=RGBColor(0xFF, 0xFF, 0xDD), align=PP_ALIGN.CENTER)
 
@@ -191,10 +191,10 @@ def slide_02_agenda(prs: Presentation):
 
     sections = [
         (DARK,   "1",  "P1  ·  Weather Data & Dataset Documentation",      "Real Open-Meteo weather collection, data quality validation, 1,097-day dataset profile", "~90 sec"),
-        (BLUE,   "2",  "P2  ·  Menu Catalog & Synthetic Order Generator",   "40-item Coimbatore menu, NegBin demand model, basket generator, planted association rules", "~90 sec"),
+        (BLUE,   "2",  "P2  ·  Menu Catalog & Synthetic Order Generator",   "Generator built from real Swiggy orders + team survey, validated: 25 of 26 checks pass", "~90 sec"),
         (ORANGE, "3",  "P3  ·  Data Cleaning, Feature Engineering & ARM",   "Weather-orders merge, lag/rolling features, rain/heat flags, monsoon phase encoding", "~90 sec"),
         (AQUA,   "4",  "P4  ·  Exploratory Data Analysis  [THIS SECTION]",  "Distribution analysis, weekday & hourly patterns, rain vs dry, correlations, 10 charts", "~90 sec"),
-        (GRAY,   "5",  "P5  ·  Predictive Modeling & Evaluation",           "Ridge, Random Forest, XGBoost on order volume, MAE/RMSE/R² comparison, feature importance", "~90 sec"),
+        (GRAY,   "5",  "P5  ·  Predictive Modeling & Evaluation",           "Ridge, Random Forest, XGBoost: R² 0.90, weather cuts error by 60%", "~90 sec"),
     ]
 
     y_start = Inches(1.72)
@@ -245,25 +245,24 @@ def slide_03_p1_dataset(prs: Presentation):
                  font_size=12, title="Weather Data (REAL — Open-Meteo API)")
 
     right_bullets = [
-        "Orders are SYNTHETIC (no real restaurant data available)",
-        "Generator: src/generator.py (P2) — seed=42, reproducible",
+        "Orders are SYNTHETIC, every rule taken from evidence:",
+        "  Swiggy report, Hotel Chinthamani (464 real orders)",
+        "  Team survey (27 adult Coimbatore respondents)",
+        "  Snack/drink prices from Coimbatore outlet menus",
         "",
-        "DAILY DEMAND MODEL:",
-        "  Y_t ~ NegativeBinomial(r=25) around mu_t",
-        "  mu_t = 140 x M_weekend x M_rain x M_temp x M_festival",
-        "  Weekend Multiplier: 1.30x (Fri-Sat-Sun)",
-        "  Rain Multipliers: 1.20x moderate, 1.35x heavy",
-        "  Temperature Multiplier: 1.10x (T_max >= 33°C)",
-        "  Festival Multiplier: 1.25x",
+        "DAILY DEMAND MODEL (fitted on real Swiggy days):",
+        "  Y_t ~ NegativeBinomial around mu_t, seed 42",
+        "  Weekend (Fri-Sun): x2.47",
+        "  Rain: x1.56 on weekdays, x0.54 on weekends",
+        "  Heat (T_max >= 33°C): x1.07 · Festival: x0.89 (survey)",
         "",
         "DATASET SUMMARY:",
-        "  193,406 total orders across 1,097 days",
-        "  Mean: 176.3 orders/day | Range: 61–384",
-        "  Rainy Mean: 203.1 | Hot: 171.7 | Normal: 161.2",
-        "  10 weather columns match weather.csv exactly",
+        "  182,696 orders across 1,097 days, 80-item menu",
+        "  Mean: 166.5 orders/day | Range: 73–354",
+        "  Validated vs Swiggy + survey: 25 of 26 checks pass",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.85),
-                 font_size=12, title="Synthetic Orders (P2 Generator)", title_color=ORANGE)
+                 font_size=12, title="Evidence-Based Synthetic Orders (P2 Generator)", title_color=ORANGE)
 
 
 def slide_04_p1_forecast(prs: Presentation):
@@ -295,19 +294,19 @@ def slide_04_p1_forecast(prs: Presentation):
 
     right_bullets = [
         "BEST MODEL: SARIMAX with Weather Regressors",
-        "  MAE: 30.7 orders/day (MAPE: 18.6%)",
-        "  Weekday-mean baseline: MAE = 34.2",
-        "  Seasonal naive: MAE = 48.0",
+        "  MAE: 15.8 orders/day (MAPE: 10.1%)",
+        "  Weekday-mean baseline: MAE = 39.0",
+        "  Seasonal naive: MAE = 48.2",
         "",
         "WEATHER KNOWLEDGE EFFECT:",
-        "  Adding weather lowers SARIMAX error by ~2.7 orders/day (-8%)",
-        "  Statistically distinguishable, but modest",
-        "  Rain/dry error: 34.0 vs 29.3 (rainy days harder to plan)",
+        "  Adding weather (incl. rain x weekend) lowers SARIMAX",
+        "  error by 23.5 orders/day (-60%), 95% CI 21.5-25.5",
+        "  Rain/dry error: 15.4 vs 15.9 once weather is known",
         "",
         "OPERATIONAL PLANNING BUFFER:",
-        "  Add 49 orders (29%) above forecast to cover 90% of days",
-        "  Use 52 orders buffer on rainy days, 47 on dry days",
-        "  Forecast is within 0.3 MAE of theoretical best possible",
+        "  Add 25 orders (17%) above forecast to cover 90% of days",
+        "  Use 27 orders buffer on rainy days, 24 on dry days",
+        "  Forecast is within 0.2 MAE of theoretical best possible",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.5),
                  font_size=12, title="Results & Business Interpretation (T06)", title_color=BLUE)
@@ -322,26 +321,25 @@ def slide_05_p2_generator(prs: Presentation):
     """Slide 5: P2 — Menu Catalog & Order Generator."""
     sld = blank_slide(prs)
     header_bar(sld, "P2  ·  Menu Catalog & Weather-Driven Order Generator",
-               "40-item Coimbatore menu · NegBin basket engine · planted association rules", "P2  ·  T07, T08, T09, T10", ORANGE)
+               "Real Chinthamani menu · survey-backed weather combos · validated against real orders", "P2  ·  T07, T08, T09, T10", ORANGE)
     footer_bar(sld, "Slide 5 / 14")
 
     left_bullets = [
-        "40 authentic Coimbatore/Kongu dishes across 6 categories:",
-        "  Beverages (Hot)       — Filter Coffee, Masala Chai, Sukku Tea",
-        "  Snacks & Quick Bites  — Pakora, Bajji, Medu Vada, Bonda",
-        "  South Indian Tiffin   — Dosa, Idli, Pongal, Parotta",
-        "  Biryani & Mains       — Chicken/Mutton/Veg Biryani, Curd Rice",
-        "  Cold Refreshments     — Jigarthanda, Juices, Buttermilk",
-        "  Desserts & Ice Cream  — Coconut/Vanilla/Butterscotch Ice Cream",
+        "80 items:",
+        "  70 real Hotel Chinthamani dishes (Swiggy, Aug-Sep 2026)",
+        "    Meals, soups, biryani, Chinese, starters, breads",
+        "  10 snacks & drinks named in the survey",
+        "    Chai, Coffee, Samosa, Pakora, Bajji, Vada,",
+        "    Ice Cream, Cold Coffee, Lime Juice, Buttermilk",
+        "    prices: median of Coimbatore outlet listings",
         "",
-        "Price range: Rs.25 (Tea) to Rs.280 (Mutton Biryani)",
-        "Weather affinity tag: hot_comfort | cold_refresh | neutral",
+        "ORDERS:",
+        "  Food orders = resampled real Swiggy baskets",
+        "  Snack/drink share by weather (survey):",
+        "    hot 54% · rainy 35% · normal 18%",
         "",
-        "MEAL SLOT STRUCTURE:",
-        "  Breakfast  07:00-10:30  (15% of orders)",
-        "  Lunch      12:00-15:00  (35% of orders)",
-        "  Eve Snacks 16:00-18:30  (20% of orders)",
-        "  Dinner     19:00-22:30  (30% of orders)",
+        "HOURS (real Swiggy profile, 11:00-23:00):",
+        "  Lunch 74% · Evening snacks 10% · Dinner 17%",
     ]
     bullet_block(sld, left_bullets, Inches(0.35), Inches(1.22), Inches(6.0), Inches(5.8),
                  font_size=12, title="Menu Architecture (T07)")
@@ -349,21 +347,21 @@ def slide_05_p2_generator(prs: Presentation):
     right_bullets = [
         "PLANTED ASSOCIATION RULES (Ground Truth for ARM):",
         "",
-        "  RAINY DAY COMBOS (hot_comfort spike):",
-        "    Masala Chai -> Onion Pakora     P(rain)=0.58 vs P(dry)=0.12",
-        "    Masala Chai -> Milagai Bajji    P(rain)=0.35 vs P(dry)=0.10",
-        "    Filter Coffee -> Medu Vada      P(rain)=0.40 vs P(dry)=0.15",
+        "  Strengths = survey frequency score / 4 (Q12-Q16)",
         "",
-        "  HOT DAY COMBOS (cold_refresh surge):",
-        "    Fresh Lime -> Coconut Ice Cream P(hot)=0.45 vs P(rain)=0.06",
-        "    Watermelon Juice -> Vanilla IC  P(hot)=0.38 vs P(rain)=0.05",
-        "    Chicken Biryani -> Buttermilk   P(hot)=0.45 vs P(dry)=0.20",
+        "  RAINY DAY COMBOS:",
+        "    Chai -> Pakora        P(rain)=0.30 vs P(dry)=0.22",
+        "    Chai -> Samosa        P(rain)=0.32 vs P(dry)=0.25",
+        "    Coffee -> Vada        P(rain)=0.31 vs P(dry)=0.27",
         "",
-        "  ALL-WEATHER STAPLE PAIRS:",
-        "    Malabar Parotta -> Chicken Chukka  (stable across regimes)",
-        "    Ghee Podi Dosa -> Filter Coffee    (all-weather tiffin)",
+        "  HOT DAY COMBO:",
+        "    Ice Cream -> Cold Coffee  hot 0.31 · normal 0.28 · rain 0.23",
         "",
-        "ARM methods (P3/P5) aim to recover these exact planted rules.",
+        "  ALL-WEATHER PAIR (survey shows no weather effect):",
+        "    Any Biryani -> Buttermilk  0.30 in all weather",
+        "",
+        "VALIDATION (docs/validation.md): all 5 pairs recovered",
+        "  by association rules at the planted strength.",
     ]
     bullet_block(sld, right_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(5.8),
                  font_size=11.5, title="Planted Item Associations & Ground Truth (T09, T10)", title_color=ORANGE)
@@ -390,11 +388,13 @@ def slide_06_p3_features(prs: Presentation):
         "  Rain bins: none / trace / moderate / heavy",
         "  Temperature bands: cool / warm / hot / extreme",
         "  Weekend flag (Fri-Sat-Sun) + festival flag",
+        "  Rain x weekend interaction (rain lifts weekdays,",
+        "    lowers weekends)",
         "  Monsoon phase: SW Monsoon (Jun-Sep), NE Monsoon (Oct-Dec)",
         "",
         "FEATURE SELECTION (T15):",
         "  Correlation matrix + Variance Inflation Factor (VIF)",
-        "  Multicollinearity checked; PCA not required",
+        "  All VIF < 4; PCA not required",
     ]
     bullet_block(sld, left_bullets, Inches(0.35), Inches(1.22), Inches(6.0), Inches(5.8),
                  font_size=12, title="Preprocessing & Feature Engineering")
@@ -416,7 +416,7 @@ def slide_07_p4_intro(prs: Presentation):
     """Slide 7: P4 EDA Section Introduction."""
     sld = blank_slide(prs)
     header_bar(sld, "P4  ·  Exploratory Data Analysis — Overview & Method",
-               "1,097 days · 193,406 transactions · 40 menu items · Coimbatore weather", "P4  ·  T19, T20", BLUE)
+               "1,097 days · 182,696 transactions · 80 menu items · Coimbatore weather", "P4  ·  T19, T20", BLUE)
     footer_bar(sld, "Slide 7 / 14")
 
     add_text(sld, "Five analytical dimensions explored in this EDA:",
@@ -426,7 +426,7 @@ def slide_07_p4_intro(prs: Presentation):
     dims = [
         (BLUE,   "01", "Distribution Analysis",        "Daily order volumes, basket sizes, order values across the full 3-year sample"),
         (AQUA,   "02", "Temporal Patterns",            "Weekday-of-week demand profiles and hourly meal slot clustering"),
-        (ORANGE, "03", "Rain vs. Dry Comparison",      "Quantitative lift analysis, statistical significance testing, intensity gradient"),
+        (ORANGE, "03", "Rain vs. Dry Comparison",      "Rain effect by day type, significance testing, intensity gradient"),
         (DARK,   "04", "Item & Category Substitution", "Weather-driven menu preference shifts — hot comfort vs cold refresh substitution"),
         (GRAY,   "05", "Correlation Heatmap",          "Multi-variable Pearson correlation between weather features and order metrics"),
     ]
@@ -448,7 +448,7 @@ def slide_08_p4_distributions(prs: Presentation):
     """Slide 8: P4 — Order Distribution & Basket Analysis."""
     sld = blank_slide(prs)
     header_bar(sld, "P4  ·  Daily Order Distributions: Volume, Baskets & Spend",
-               "Right-skewed demand, 2-item modal basket, Rs.121 median order value", "P4  ·  T19 — Fig 01, 02", BLUE)
+               "Two-humped demand (weekday vs weekend) · single-item orders dominate · Rs.255 median order", "P4  ·  T19 — Fig 01, 02", BLUE)
     footer_bar(sld, "Slide 8 / 14")
 
     # Left: Fig 01
@@ -460,9 +460,9 @@ def slide_08_p4_distributions(prs: Presentation):
     add_image(sld, fig02, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     key_bullets = [
-        "Mean: 176.3 orders/day  |  Median: 170.0  |  StdDev: 50.5  |  IQR: 66.0  |  Skewness: +0.80",
-        "Rainy days average 203.1 orders (+23.2% over dry mean of 164.8)",
-        "Modal basket: 2 items (42.0%)  |  Mean basket: 2.11 items  |  Avg spend: Rs.160.7",
+        "Mean: 166.5 orders/day  |  Median: 139  |  StdDev: 69.0  |  IQR: 122  |  weekday hump ~110-170, weekend hump ~220-300",
+        "Rainy days: 153.5 orders/day with a narrow spread (SD 24 vs 80 on dry days) — rain flattens the week",
+        "Modal basket: 1 item (54.6%, real Swiggy: 65%)  |  Mean basket: 1.73 items  |  Avg spend: Rs.320",
     ]
     y_note = H - Inches(1.35)
     for b in key_bullets:
@@ -476,7 +476,7 @@ def slide_09_p4_temporal(prs: Presentation):
     """Slide 9: P4 — Weekday & Hourly Patterns."""
     sld = blank_slide(prs)
     header_bar(sld, "P4  ·  Temporal Demand Patterns: Weekday & Hourly",
-               "+33.6% weekend surge · 100% of orders in 4 meal windows", "P4  ·  T19 — Fig 03, 04", BLUE)
+               "~+80% weekend surge on dry days · lunch carries 74% of orders", "P4  ·  T19 — Fig 03, 04", BLUE)
     footer_bar(sld, "Slide 9 / 14")
 
     fig03 = FIGS_DIR / "eda_03_weekday_patterns.png"
@@ -486,9 +486,9 @@ def slide_09_p4_temporal(prs: Presentation):
     add_image(sld, fig04, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     obs = [
-        "Mon-Thu baseline: 154.2 orders/day · Fri-Sun surge: 205.9 orders/day (+33.6%) — Sunday peaks at 209.9",
-        "Lunch accounts for 35.0% of all transactions (67,614 orders). Dinner: 30.1%. Snacks: 19.9%. Breakfast: 15.0%.",
-        "Zero orders between 22:30-07:00, 10:30-12:00, 15:00-16:00 — kitchen prep & restocking windows.",
+        "Mon-Thu: ~124 orders/day · Fri-Sun: ~224 orders/day (+80%) — weekend size taken from real Swiggy orders (x2.47)",
+        "Lunch (11:00-16:00) carries 73.6% of orders, peaking at 12:00-13:00. Dinner 16.8% (spike at 20:00). Evening snacks 9.7%.",
+        "All orders between 11:00 and 23:00 (real trading hours) — before 11:00 and 15:00-16:00 are prep windows.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -501,8 +501,8 @@ def slide_09_p4_temporal(prs: Presentation):
 def slide_10_p4_rain_dry(prs: Presentation):
     """Slide 10: P4 — Rain vs Dry Comparison & Weekday Interaction."""
     sld = blank_slide(prs)
-    header_bar(sld, "P4  ·  Rainy Days Bring 23.2% More Orders",
-               "Dry: 164.8 · Moderate Rain: 196.7 · Heavy Rain: 228.1 orders/day · Welch t = 11.24, p = 2.23×10⁻²⁶", "P4  ·  T19 — Fig 05, 06", BLUE)
+    header_bar(sld, "P4  ·  Rain Lifts Weekdays +54% but Cuts Weekends -47%",
+               "Pooled: rainy 153.5 vs dry 172.1/day (-10.9%, p = 6×10⁻⁹) hides two opposite effects", "P4  ·  T19 — Fig 05, 06", BLUE)
     footer_bar(sld, "Slide 10 / 14")
 
     fig05 = FIGS_DIR / "eda_05_rain_vs_dry_comparison.png"
@@ -512,9 +512,9 @@ def slide_10_p4_rain_dry(prs: Presentation):
     add_image(sld, fig06, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     obs = [
-        "Heavy rain (>=15mm) lifts demand by +38.4% to 228.1 orders/day — compared to 164.8 on dry days.",
-        "Rainy-day lift varies +14.7% (Tue) to +33.4% (Mon); rainy Tue avg 174.5 vs dry Sat/Sun avg 194.4.",
-        "Welch's t = 11.24, p = 2.23×10⁻²⁶ · Mann-Whitney U p = 9.98×10⁻²⁸; both reject equal distributions.",
+        "Mon-Thu: rain lifts orders 107.9 -> 165.9 (+54%) — people stay in and order (real Swiggy: x1.56).",
+        "Fri-Sun: rain cuts orders 265.5 -> 139.6 (-47%) — weekend outings cancelled (real Swiggy: x0.54; survey agrees).",
+        "Pooled test: Welch t = -5.87, p = 6.0×10⁻⁹; Mann-Whitney p = 4.0×10⁻⁴. Models need a rain x weekend term.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -528,7 +528,7 @@ def slide_11_p4_menu_shifts(prs: Presentation):
     """Slide 11: P4 — Menu Item & Category Substitution."""
     sld = blank_slide(prs)
     header_bar(sld, "P4  ·  Monsoon Menu Effect: Hot Comfort vs Cold Refresh Substitution",
-               "Pakora +106% · Vada +118% · Chai +53% on rainy days vs Ice Cream -64% · Juice -56%", "P4  ·  T19 — Fig 07, 08", BLUE)
+               "Samosa +335% · Pakora +200% · Chai +155% on rainy days vs Lime Juice -77% · Ice Cream -42%", "P4  ·  T19 — Fig 07, 08", BLUE)
     footer_bar(sld, "Slide 11 / 14")
 
     fig07 = FIGS_DIR / "eda_07_item_rain_spikers.png"
@@ -538,9 +538,9 @@ def slide_11_p4_menu_shifts(prs: Presentation):
     add_image(sld, fig08, Inches(6.85), Inches(1.22), width=Inches(6.3))
 
     obs = [
-        "Hot-comfort items (Chai, Pakora, Vada, Bajji) surge by 52–118% during rainy conditions — matching planted item affinities.",
-        "Cold-refresh items (Juices, Ice Creams) collapse by 55–64% in rain — Snacks share doubles from 10.9% to 24.5%.",
-        "Beverages (Hot) expand from 12.1% in hot weather to 22.3% in rainy weather. Neutral staples (Biryani, Tiffin) remain stable.",
+        "Rainy days: Samosa, Coffee, Pakora, Bajji, Chai triple their share of items — the snacks the survey names for rain (Q9).",
+        "Hot days: cold drinks & ice cream reach 47% of items (vs ~11% otherwise) — survey Q10: ice cream, lime juice, cold coffee.",
+        "Soups rise on rainy days (15.6% vs 10.2% hot), matching the real Swiggy soup tilt. Restaurant food baskets stay real.",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -554,7 +554,7 @@ def slide_12_p4_heatmap(prs: Presentation):
     """Slide 12: P4 — Correlation Heatmap + Timeline."""
     sld = blank_slide(prs)
     header_bar(sld, "P4  ·  Weather-Orders Correlation Heatmap & Three-Year Timeline",
-               "Precip r=+0.29 · Rain Hours r=+0.25 · Revenue r=+0.98 · Wind r≈0.00", "P4  ·  T19 — Fig 09, 10", BLUE)
+               "Pooled rain r≈-0.10 hides the weekday/weekend split · Revenue r=+0.94 · Wind r≈0.00", "P4  ·  T19 — Fig 09, 10", BLUE)
     footer_bar(sld, "Slide 12 / 14")
 
     fig09 = FIGS_DIR / "eda_09_weather_orders_heatmap.png"
@@ -564,9 +564,9 @@ def slide_12_p4_heatmap(prs: Presentation):
     add_image(sld, fig10, Inches(6.35), Inches(1.22), width=Inches(6.75))
 
     obs = [
-        "Precipitation is the primary driver of order volume (r=+0.29, Spearman rho=+0.25). Rain duration adds further signal (r=+0.25).",
-        "Daily revenue tracks orders in near-perfect synchrony (r=+0.98). Average order value slightly contracts on rainy days (r=-0.12).",
-        "Wind speed and daylight duration are operationally irrelevant (r approx 0.00 and +0.06 respectively).",
+        "Pooled correlation of rain with orders is weak (r=-0.10) because the weekday lift and the weekend drop cancel out.",
+        "A correlation matrix cannot show an interaction — Fig 06 and models with rain x weekend can. Revenue tracks orders (r=+0.94).",
+        "Wind speed and daylight duration are operationally irrelevant (r approx 0.01).",
     ]
     y_note = H - Inches(1.35)
     for b in obs:
@@ -592,6 +592,7 @@ def slide_13_p5_model(prs: Presentation):
         "  Weather: rain flag, heavy_rain, is_hot,",
         "    precip_mm, temp_max_c, humidity_mean_pct",
         "  Calendar: dow (0-6), is_weekend, is_festival",
+        "  Interaction: rain x weekend",
         "  Monsoon phase: SW / NE / other",
         "",
         "TIME-BASED SPLIT:",
@@ -609,17 +610,16 @@ def slide_13_p5_model(prs: Presentation):
     metrics_bullets = [
         "MODEL PERFORMANCE (56-day test set):",
         "  Model           MAE    RMSE   R2     MAPE",
-        "  Seasonal Naive  45.5   60.4  -0.54  27.9%",
-        "  Ridge           29.7   37.3  +0.41  17.4%  BEST MAE",
-        "  Random Forest   31.4   40.0  +0.33  18.3%",
-        "  XGBoost         30.5   37.6  +0.41  17.9%",
+        "  Seasonal Naive  58.2   71.4  -0.56  36.1%",
+        "  Ridge           14.9   18.6  +0.89   8.7%",
+        "  Random Forest   14.6   18.3  +0.90   8.6%  BEST MAE",
+        "  XGBoost         14.7   18.1  +0.90   8.8%",
         "",
         "KEY FINDINGS (T26):",
-        "  Ridge & XGBoost: R2=0.41; residuals near zero",
-        "  Importance: rain, Fri–Sun, heavy rain; lag-7 ~0",
-        "  Weather-only gains: ~3–7%; full model vs naive: 34%",
-        "",
-        "  SHAP: Fri–Sun, rain, temperature; festival ~5th",
+        "  Weather inputs cut MAE by 60-64% in every model",
+        "  Importance: Fri–Sun, precipitation, rain flag, rain x weekend",
+        "  RMSE 18.3 is at the noise floor (~19.9): no room left to tune",
+        "  90% of days within ±28 orders (16% of volume)",
     ]
     bullet_block(sld, metrics_bullets, Inches(6.45), Inches(1.22), Inches(6.55), Inches(3.55),
                  font_size=11, title="Evaluation & First Business Findings (T26)", title_color=GRAY)
@@ -637,21 +637,22 @@ def slide_14_summary(prs: Presentation):
     footer_bar(sld, "Slide 14 / 14")
 
     findings_bullets = [
-        "FINDING 1 — RAIN IS THE PRIMARY DEMAND DRIVER",
-        "  Rainy days surge +23.2% over dry baseline (203 vs 165 orders/day)",
-        "  Rain vs dry is significant (Welch p=2.23×10⁻²⁶; MW p=9.98×10⁻²⁸); heavy rain lifts volume +38.4%",
+        "FINDING 1 — RAIN WORKS DIFFERENTLY BY DAY TYPE",
+        "  Rainy weekdays +54%, rainy weekends -47% (real Swiggy evidence)",
+        "  Rain flattens the weekly cycle; pooled, rainy days are 10.9% lower",
         "",
-        "FINDING 2 — COMPOUNDING WEEKEND + RAIN EFFECT",
-        "  Weekend + rain represents the operational stress peak (~237 orders on rainy Sundays)",
-        "  Rainy Tuesday avg: 174.5; dry Saturday/Sunday avg: 194.4 orders/day",
+        "FINDING 2 — WEEKEND IS THE BIGGEST CALENDAR DRIVER",
+        "  ~124 orders/day Mon–Thu vs ~224 Fri–Sun on dry days (+80%)",
         "",
         "FINDING 3 — MENU SUBSTITUTION IS DRAMATIC",
-        "  Rain doubles Snacks share (10.9% -> 24.5%) and surges Hot Beverages to 22.3%",
-        "  Cold Refresh drops from 26.0% (hot weather) to 9.1% (rain); avg ticket stays ~Rs.157–165 across regimes",
+        "  Rain triples samosa, pakora, chai shares; heat: cold drinks 47%",
+        "  Combos: chai+samosa/pakora (rain), ice cream+cold coffee (heat)",
         "",
-        "FINDING 4 — PREDICTIVE MODELS BEAT THE NAIVE BASELINE",
-        "  Best MAE: 29.7 orders/day (Ridge, R2=0.41) vs naive 45.5 — rain is the top feature",
-        "  SARIMAX + weather lowers SARIMAX error by 8% vs no-weather version",
+        "FINDING 4 — WEATHER MAKES FORECASTS ~60% MORE ACCURATE",
+        "  Best MAE 14.6/day (R2=0.90) vs naive 58.2; weather: -60% error",
+        "  SARIMAX forecast: weather lowers error by 23.5 orders/day (-60%)",
+        "",
+        "DATA: generator validated vs Swiggy + survey (25/26 checks)",
     ]
     bullet_block(sld, findings_bullets, Inches(0.35), Inches(1.25), Inches(6.5), Inches(5.6),
                  font_size=11.5, title="Consolidated Key Findings (R1)")
