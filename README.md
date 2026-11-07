@@ -46,3 +46,5 @@ streamlit run dashboard/app.py
 ```
 
 The forecast view supports upcoming dates and a chronological holdout evaluation. Upcoming predictions use Open-Meteo's current 16-day weather forecast and recursively extend demand from the latest available order date. The current data ends on 2026-09-24, so projections bridge a gap and are illustrative only; update the order data before using them for staffing or inventory. The holdout view uses observed same-day weather, so it is an optimistic upper bound for live forecasting.
+
+The **Rain rules & monsoon timeline** view compares two-item basket rules mined separately for rainy and dry days. Adjust the minimum support and lift sliders, then select a rule to chart its rolling 14-day lift across the SW monsoon (Jun-Sep), NE monsoon (Oct-Dec), and dry season (Jan-May).

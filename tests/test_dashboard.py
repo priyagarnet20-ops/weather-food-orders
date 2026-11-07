@@ -2,8 +2,28 @@
 import pandas as pd
 import pytest
 
+from dashboard.analytics import mine_pair_rules, rolling_pair_lift
 from dashboard.forecasting import _future_feature_row, forecast_future_orders
 from dashboard.weather import local_today
+
+
+@pytest.fixture
+def sample_orders():
+    return pd.DataFrame({
+        "date": pd.to_datetime([
+            "2025-01-02", "2025-01-02", "2025-01-02",
+            "2025-01-03", "2025-01-03", "2025-01-03",
+        ]),
+        "items": ["A; B", "A; B", "A; C", "A; B", "A; C", "C"],
+    })
+
+
+@pytest.fixture
+def sample_weather():
+    return pd.DataFrame({
+        "date": pd.to_datetime(["2025-01-02", "2025-01-03"]),
+        "is_rainy": [True, False],
+    })
 
 
 def test_local_today_uses_project_timezone():
@@ -34,6 +54,58 @@ def test_future_features_match_the_project_model():
     assert ne_monsoon["phase_ne_monsoon"] == 1
     assert friday["is_fri_sun"] == 1
     assert friday["rain_x_weekend"] == 1
+
+
+def test_pair_rules_are_mined_separately_by_weather(sample_orders, sample_weather):
+    rules = mine_pair_rules(sample_orders, sample_weather, min_support=0)
+    rainy_ab = rules.loc[
+        (rules["segment"] == "Rainy")
+        & (rules["antecedent"] == "A")
+        & (rules["consequent"] == "B")
+    ].iloc[0]
+    dry_ab = rules.loc[
+        (rules["segment"] == "Dry")
+        & (rules["antecedent"] == "A")
+        & (rules["consequent"] == "B")
+    ].iloc[0]
+
+    assert rainy_ab["support"] == pytest.approx(2 / 3)
+    assert rainy_ab["confidence"] == pytest.approx(2 / 3)
+    assert rainy_ab["lift"] == pytest.approx(1.0)
+    assert dry_ab["support"] == pytest.approx(1 / 3)
+    assert dry_ab["transactions"] == 3
+
+
+def test_pair_rules_apply_minimum_support(sample_orders, sample_weather):
+    rules = mine_pair_rules(sample_orders, sample_weather, min_support=0.5)
+    assert (rules["support"] >= 0.5).all()
+
+
+def test_invalid_rule_threshold_is_rejected(sample_orders, sample_weather):
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        mine_pair_rules(sample_orders, sample_weather, min_support=1.1)
+
+
+def test_rolling_lift_uses_full_calendar_windows_and_weather_segment():
+    dates = pd.date_range("2025-01-01", periods=14, freq="D")
+    orders = pd.DataFrame({
+        "date": dates.repeat(2),
+        "items": ["A; B", "A; C"] * len(dates),
+    })
+    weather = pd.DataFrame({"date": dates, "is_rainy": True})
+    lift = rolling_pair_lift(
+        orders,
+        weather,
+        antecedent="A",
+        consequent="B",
+        segment="Rainy",
+        min_transactions=20,
+    )
+
+    assert lift["lift"].iloc[:-1].isna().all()
+    assert lift["lift"].iloc[-1] == pytest.approx(1.0)
+    assert lift["transactions"].iloc[-1] == 28
+    assert lift["monsoon_phase"].iloc[-1] == "Dry season (Jan-May)"
 
 
 def test_future_forecast_recursively_covers_weather_dates():
