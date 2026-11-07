@@ -1,20 +1,17 @@
 """Model selection and validation for daily order volume (P5).
 
-Used by notebooks/06_model_selection.ipynb. Answers "why these models, and how do we know the winner is best?"
+Used by notebooks/05b_model_selection.ipynb. Answers "why these models, and how do we know the winner is best?"
 
-Design choices (documented in the notebook):
-  * Only real POS days are ever scored. Synthetic days are independent draws with no day-to-day memory, so a score
-    on them says nothing about real demand.
-  * Rolling-origin backtest: every forecast uses only earlier days. Models are refitted and re-tuned every 7 days.
-  * Version A trains on real days only and decides the winner. Version B also trains on a synthetic prefix whose
-    generator is calibrated only on days before the first forecast, so no test-period information can reach it.
+Design choices (documented in the notebook and docs/p5_model_selection.md):
+  * Rolling-origin backtest over the last year (`TEST_DAYS`): every forecast uses only earlier days. Models are
+    refitted and re-tuned every 7 days.
+  * The generator's own expected value is scored as a reference ("best possible"). It is not a candidate.
   * The decision rule is fixed in advance: see `decide`.
 """
 from __future__ import annotations
 
 import itertools
 import warnings
-from pathlib import Path
 from typing import Callable
 
 import numpy as np
@@ -34,18 +31,19 @@ import predict
 
 SEED = predict.SEED
 INITIAL_TRAIN_DAYS = 120
+TEST_DAYS = 365  # last year: both monsoons and both hot seasons
 REFIT_EVERY = 7
 WEEK = 7
 BOOTSTRAP_DRAWS = 5000
 ALPHA = 0.05
 INCUMBENT = "Ridge"
-MIN_DAYS_FOR_MULTIPLIER = 5  # a condition seen on fewer days cannot support an estimate
+REFERENCE = "Generator expected value"  # best possible score, never a candidate
 MIN_NB_ALPHA = 1e-4
 OVERDISPERSED_ABOVE = 1.5
 WEEKLY_ACF_ABOVE = 0.2
 SMALL_DATA_DAYS_PER_FEATURE = 10
 COLLINEAR_COLUMNS = ("is_fri_sun", "dow_0")  # dummies + intercept would otherwise be rank deficient
-SARIMAX_EXOG = ("is_rainy", "heavy_rain", "is_hot", "is_festival")
+SARIMAX_EXOG = ("is_rainy", "heavy_rain", "is_hot", "rain_x_weekend", "is_festival")
 SARIMAX_ORDERS = ((1, 0, 0), (1, 0, 1), (0, 1, 1), (1, 1, 1))
 SARIMAX_SEASONAL = ((0, 0, 0, WEEK), (1, 0, 0, WEEK), (0, 1, 1, WEEK))
 
@@ -56,15 +54,6 @@ ModelFactory = Callable[[pd.DataFrame, pd.Series], Predictor]
 # =============================================================================
 # Data
 # =============================================================================
-def load_real_frame(weather_csv: str | Path, orders_csv: str | Path) -> pd.DataFrame:
-    """Daily model frame restricted to real POS days (is_synthetic == 0)."""
-    flags = pd.read_csv(orders_csv, parse_dates=["date"]).set_index("date")
-    if "is_synthetic" not in flags:
-        raise ValueError(f"{orders_csv} has no is_synthetic column, so real days cannot be identified")
-    df = predict.load_model_frame(weather_csv, orders_csv)
-    return df[flags["is_synthetic"].reindex(df.index) == 0]
-
-
 def first_test_day(X: pd.DataFrame, initial: int = INITIAL_TRAIN_DAYS) -> pd.Timestamp:
     """The first forecast day, leaving `initial` rows of X for the first training window."""
     if not 0 < initial < len(X):
@@ -73,8 +62,14 @@ def first_test_day(X: pd.DataFrame, initial: int = INITIAL_TRAIN_DAYS) -> pd.Tim
 
 
 def no_weather_columns(X: pd.DataFrame) -> list[str]:
-    """Feature columns left after removing same-day weather and monsoon phase."""
-    return [c for c in X.columns if c not in predict.WEATHER_FEATURES and not c.startswith("phase_")]
+    """Feature columns left after removing same-day weather (including rain x weekend) and monsoon phase."""
+    return [c for c in X.columns if c not in predict.WEATHER_INPUTS and not c.startswith("phase_")]
+
+
+def generator_expected(orders_csv, index: pd.DatetimeIndex) -> pd.Series:
+    """The generator's expected orders for each day: the best any model could do on average."""
+    daily = pd.read_csv(orders_csv, parse_dates=["date"]).set_index("date")
+    return daily["expected_orders"].reindex(index).rename(REFERENCE)
 
 
 # =============================================================================
@@ -86,13 +81,27 @@ def _design_matrix(X: pd.DataFrame) -> pd.DataFrame:
     return kept.loc[:, kept.std() > 0]
 
 
-def profile_data(X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
-    """One row per data trait: measured value, what it means, and the model family it points to."""
-    tests = forecast.stationarity_tests(y).set_index("test")["p_value"]
+def _reset_p(X: pd.DataFrame, y: pd.Series) -> float:
+    """Ramsey RESET p-value of a linear fit: small means the linear form misses something."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         ols = sm.OLS(y, sm.add_constant(_design_matrix(X))).fit()
-        reset_p = float(linear_reset(ols, power=2, use_f=True).pvalue)
+        return float(linear_reset(ols, power=2, use_f=True).pvalue)
+
+
+def _interaction_f_p(X: pd.DataFrame, y: pd.Series, column: str) -> float:
+    """F-test p-value for adding `column` to a linear model that has every other feature."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        full = sm.OLS(y, sm.add_constant(_design_matrix(X))).fit()
+        reduced = sm.OLS(y, sm.add_constant(_design_matrix(X.drop(columns=[column])))).fit()
+        return float(full.compare_f_test(reduced)[1])
+
+
+def profile_data(X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
+    """One row per data trait: measured value, what it means, and the model family it points to."""
+    tests = forecast.stationarity_tests(y).set_index("test")["p_value"]
+    reset_p = _reset_p(X, y)
     per_feature = len(y) / X.shape[1]
     dispersion = float(y.var() / y.mean())
     acf1, acf7 = float(y.autocorr(1)), float(y.autocorr(WEEK))
@@ -115,6 +124,12 @@ def profile_data(X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
          "Linear form is missing something" if reset_p < ALPHA else "No evidence against a linear form",
          "Tree models: RF, XGBoost, Extra Trees" if reset_p < ALPHA else "Linear models; trees as a check"),
     ]
+    if "rain_x_weekend" in X:
+        f_p = _interaction_f_p(X, y, "rain_x_weekend")
+        rows.append(("Rain x weekend F-test p-value", f_p,
+                     "Rain works differently on weekdays and weekends" if f_p < ALPHA else "No evidence of an interaction",
+                     "Linear models need the interaction term; trees can find it alone" if f_p < ALPHA
+                     else "Interaction optional"))
     return pd.DataFrame(rows, columns=["trait", "value", "reading", "points_to"])
 
 
@@ -252,51 +267,6 @@ def rolling_backtest(X: pd.DataFrame, y: pd.Series, models: dict[str, ModelFacto
 
 
 # =============================================================================
-# Synthetic prefix for version B
-# =============================================================================
-def _generator_flags(df: pd.DataFrame) -> pd.DataFrame:
-    """Same conditions as src/generator.py."""
-    return pd.DataFrame({
-        "weekend": df.index.day_of_week.isin([4, 5, 6]).astype(float),
-        "rain_mid": ((df["is_rainy"] == 1) & (df["heavy_rain"] == 0)).astype(float),
-        "rain_heavy": (df["heavy_rain"] == 1).astype(float),
-        "hot": (df["is_hot"] == 1).astype(float),
-        "festival": (df["is_festival"] == 1).astype(float),
-    }, index=df.index)
-
-
-def calibrate_generator(real: pd.DataFrame, cutoff: pd.Timestamp) -> dict:
-    """Fit the generator's Negative Binomial form on days before `cutoff` only."""
-    past = real[real.index < cutoff]
-    flags = _generator_flags(past)
-    supported = flags.loc[:, flags.sum() >= MIN_DAYS_FOR_MULTIPLIER]
-    fit, alpha = _fit_negative_binomial(supported, past["order_count"])
-    multipliers = {name: 1.0 for name in flags.columns}
-    multipliers.update({name: float(np.exp(fit.params[name])) for name in supported.columns})
-    return {"base": float(np.exp(fit.params["const"])), "r": 1.0 / alpha, "multipliers": multipliers}
-
-
-def simulate_orders(df: pd.DataFrame, params: dict, seed: int = SEED) -> pd.Series:
-    """Independent Negative Binomial draws, the same process as generator.generate_daily_demand."""
-    flags = _generator_flags(df)
-    log_mu = sum(flags[name] * np.log(mult) for name, mult in params["multipliers"].items())
-    mu = params["base"] * np.exp(log_mu)
-    r = params["r"]
-    draws = np.random.default_rng(seed).negative_binomial(r, r / (r + mu.to_numpy()))
-    return pd.Series(draws.astype(float), index=df.index, name="order_count")
-
-
-def build_hybrid_frame(full: pd.DataFrame, real: pd.DataFrame, cutoff: pd.Timestamp, seed: int = SEED) -> pd.DataFrame:
-    """Synthetic days before the real period, regenerated from pre-cutoff parameters, followed by the real days.
-
-    Synthetic days after the real period are dropped: they are future data for every test day.
-    """
-    earlier = full[full.index < real.index.min()]
-    orders = simulate_orders(earlier, calibrate_generator(real, cutoff), seed)
-    return pd.concat([earlier.assign(order_count=orders), real])
-
-
-# =============================================================================
 # Statistics
 # =============================================================================
 def diebold_mariano(errors_a: np.ndarray, errors_b: np.ndarray) -> tuple[float, float]:
@@ -347,12 +317,17 @@ def compare_to_incumbent(y: pd.Series, preds: pd.DataFrame, train_y: pd.Series,
                          incumbent: str = INCUMBENT) -> pd.DataFrame:
     """Accuracy per model and the evidence for its difference from the incumbent, best MAE first."""
     errors = preds.rsub(y, axis=0)
-    challengers = [m for m in preds.columns if m != incumbent]
+    challengers = [m for m in preds.columns if m not in (incumbent, REFERENCE)]
     dm = {m: diebold_mariano(errors[m], errors[incumbent]) for m in challengers}
     adjusted = dict(zip(challengers, holm([dm[m][1] for m in challengers])))
     rows = {}
     for model in preds.columns:
         is_incumbent = model == incumbent
+        if model == REFERENCE:
+            rows[model] = {**predict.score(y, preds[model]), "MASE": mase(y, preds[model], train_y),
+                           "delta_MAE": float((errors[model].abs() - errors[incumbent].abs()).mean()),
+                           "dm_stat": np.nan, "dm_p": np.nan, "dm_p_holm": np.nan, "ci_low": np.nan, "ci_high": np.nan}
+            continue
         low, high = (np.nan, np.nan) if is_incumbent else block_bootstrap_ci(
             errors[model].abs() - errors[incumbent].abs())
         rows[model] = {
@@ -370,7 +345,7 @@ def compare_to_incumbent(y: pd.Series, preds: pd.DataFrame, train_y: pd.Series,
 
 def decide(table: pd.DataFrame, incumbent: str = INCUMBENT) -> dict:
     """The rule fixed in advance: replace the incumbent only with lower MAE, Holm p < 0.05 and a CI below zero."""
-    challengers = table.drop(index=incumbent)
+    challengers = table.drop(index=[incumbent, REFERENCE], errors="ignore")
     qualified = challengers[(challengers["MAE"] < table.loc[incumbent, "MAE"])
                             & (challengers["dm_p_holm"] < ALPHA)
                             & (challengers["ci_high"] < 0)]

@@ -1,0 +1,18 @@
+item_name,price,listed_item,outlet,area,platform,url,checked_on,note
+Chai,40,Classic Tea,Coimbatore Coffee House,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/coimbatore-coffee-house-gandhipuram/order,2026-11-06,
+Chai,36,Tea (serves 2) at 72,Shree Anandhaas,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/shree-anandhaas-gandhipuram/order,2026-11-06,serves-2 price halved
+Coffee,50,CCH Filter Coffee,Coimbatore Coffee House,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/coimbatore-coffee-house-gandhipuram/order,2026-11-06,
+Coffee,35,Coffee,Vetri Velan Kaappi,Peelamedu,Swiggy,https://swiggy.com/city/coimbatore/vetri-velan-kaappi-lakshmi-mills-peelamedu-rest908989,2026-11-06,price from search listing
+Cold Coffee,75,Cold Coffee,Coimbatore Coffee House,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/coimbatore-coffee-house-gandhipuram/order,2026-11-06,
+Samosa,30,Samosa,Vetri Velan Kaappi,Peelamedu,Swiggy,https://swiggy.com/city/coimbatore/vetri-velan-kaappi-lakshmi-mills-peelamedu-rest908989,2026-11-06,price from search listing
+Samosa,40,Samosa [1 Pc],Tapriwala - The Contemporary Tea Cafe,Saibaba Colony,magicpin,https://magicpin.in/Coimbatore/Saibaba-Colony/Restaurant/Tapriwala-The-Contemporary-Tea-Cafe/store/154a81c/menu,2026-11-06,price from search listing
+Vada,41,Medhu Vadai Single,Shree Anandhaas,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/shree-anandhaas-gandhipuram/order,2026-11-06,
+Vada,15,Ulundhu Vadai (Medu Vada),Vetri Velan Kaappi,Peelamedu,Swiggy,https://swiggy.com/city/coimbatore/vetri-velan-kaappi-lakshmi-mills-peelamedu-rest908989,2026-11-06,price from search listing
+Vada,15,Uzhunnu Vada [1 Piece],Ayyappa Tiffins,Gandhipuram,magicpin,https://magicpin.in/Coimbatore/Gandhipuram/Restaurant/Ayyappa-Tiffins/store/600727/menu,2026-11-06,
+Bajji,38,Milagai Bajji 2pcs,Shree Anandhaas,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/shree-anandhaas-gandhipuram/order,2026-11-06,
+Bajji,20,Pazham Bajji [1 Piece],Ayyappa Tiffins,Gandhipuram,magicpin,https://magicpin.in/Coimbatore/Gandhipuram/Restaurant/Ayyappa-Tiffins/store/600727/menu,2026-11-06,
+Pakora,36,Onion Bajji 2pcs,Shree Anandhaas,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/shree-anandhaas-gandhipuram/order,2026-11-06,STAND-IN: no pakoda listing found; nearest fried onion snack on a real menu
+Ice Cream,79,Vanilla Ice Cream,Sree Annapoorna,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/sree-annapoorna-gandhipuram/order,2026-11-06,
+Fresh Lime Juice,56,Fresh Lime Juice,Shree Anandhaas,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/shree-anandhaas-gandhipuram/order,2026-11-06,
+Fresh Lime Juice,145,Fresh Lime Juice,Sree Annapoorna,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/sree-annapoorna-gandhipuram/order,2026-11-06,
+Buttermilk,48,Salted Lassi,Sree Annapoorna,Gandhipuram,Zomato,https://www.zomato.com/coimbatore/sree-annapoorna-gandhipuram/order,2026-11-06,STAND-IN: no buttermilk listing found; nearest salted curd drink on a real menu

@@ -1,10 +1,10 @@
 {
   "source": "Open-Meteo Historical Weather API",
-  "grid_latitude": -7.2759223,
-  "grid_longitude": 112.785774,
-  "elevation_m": 8.0,
-  "timezone": "Asia/Jakarta",
-  "utc_offset_seconds": 25200,
+  "grid_latitude": 11.001758,
+  "grid_longitude": 76.99468,
+  "elevation_m": 409.0,
+  "timezone": "Asia/Kolkata",
+  "utc_offset_seconds": 19800,
   "daily_units": {
     "time": "iso8601",
     "precipitation_sum": "mm",
@@ -23,10 +23,10 @@
     "precipitation": "mm"
   },
   "days_with_incomplete_hourly_data": [],
-  "request_url": "https://archive-api.open-meteo.com/v1/archive?latitude=-7.2575&longitude=112.7521&start_date=2023-09-24&end_date=2026-09-24&daily=precipitation_sum,rain_sum,temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max,weather_code,daylight_duration&hourly=relative_humidity_2m,temperature_2m,precipitation&timezone=Asia%2FJakarta",
+  "request_url": "https://archive-api.open-meteo.com/v1/archive?latitude=11.0&longitude=76.99&start_date=2023-09-24&end_date=2026-09-24&daily=precipitation_sum,rain_sum,temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max,weather_code,daylight_duration&hourly=relative_humidity_2m,temperature_2m,precipitation&timezone=Asia%2FKolkata",
   "start_date": "2023-09-24",
   "end_date": "2026-09-24",
-  "retrieved_at_utc": "2026-10-20T04:03:45+00:00",
+  "retrieved_at_utc": "2026-09-30T04:45:04+00:00",
   "rows_daily": 1097,
   "rows_hourly": 26328,
   "validation_problems": []

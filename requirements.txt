@@ -12,5 +12,5 @@ pytest>=8.0
 scikit-learn>=1.5
 xgboost>=2.0
 shap>=0.45
-mlxtend>=0.23
-seaborn>=0.13
+openpyxl>=3.1
+python-pptx>=1.0

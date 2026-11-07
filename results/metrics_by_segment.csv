@@ -1,29 +1,25 @@
 ,model,,n,MAE,RMSE,MAPE_%,bias,cover80_%
-rain,Seasonal naive,rainy,28,26.286,32.277,13.158,-1.714,
-rain,Weekday mean,rainy,28,27.415,34.419,13.696,3.794,
-rain,7-day mean,rainy,28,20.505,29.323,10.274,0.332,
-rain,SARIMAX (no weather),rainy,28,20.257,30.506,10.144,1.83,89.286
-rain,SARIMAX (weather),rainy,28,19.591,29.708,9.826,1.622,85.714
-rain,Prophet (no weather),rainy,28,32.797,44.048,16.278,16.254,57.143
-rain,Prophet (weather),rainy,28,31.307,41.402,15.459,16.863,57.143
-rain,Seasonal naive,dry,117,21.496,28.26,10.165,1.12,
-rain,Weekday mean,dry,117,30.027,37.63,13.398,16.212,
-rain,7-day mean,dry,117,16.349,21.319,7.768,0.305,
-rain,SARIMAX (no weather),dry,117,17.934,23.002,8.326,5.353,87.179
-rain,SARIMAX (weather),dry,117,18.751,23.706,8.728,5.16,82.051
-rain,Prophet (no weather),dry,117,30.147,36.577,14.332,-10.169,57.265
-rain,Prophet (weather),dry,117,31.873,37.703,15.253,-7.931,54.701
-day_type,Seasonal naive,Fri-Sun,63,25.508,32.09,12.133,0.27,
-day_type,Seasonal naive,Mon-Thu,82,20.049,26.534,9.675,0.805,
-day_type,Weekday mean,Fri-Sun,63,29.78,37.679,13.447,15.294,
-day_type,Weekday mean,Mon-Thu,82,29.326,36.527,13.461,12.677,
-day_type,7-day mean,Fri-Sun,63,17.095,22.522,8.02,2.274,
-day_type,7-day mean,Mon-Thu,82,17.195,23.503,8.43,-1.199,
-day_type,SARIMAX (no weather),Fri-Sun,63,16.455,22.785,7.706,4.458,88.889
-day_type,SARIMAX (no weather),Mon-Thu,82,19.863,25.959,9.424,4.838,86.585
-day_type,SARIMAX (weather),Fri-Sun,63,16.767,23.39,7.859,4.771,85.714
-day_type,SARIMAX (weather),Mon-Thu,82,20.562,26.131,9.77,4.251,80.488
-day_type,Prophet (no weather),Fri-Sun,63,27.539,35.049,12.907,-2.478,65.079
-day_type,Prophet (no weather),Mon-Thu,82,33.055,40.344,16.091,-7.055,51.22
-day_type,Prophet (weather),Fri-Sun,63,29.093,35.985,13.77,-0.322,61.905
-day_type,Prophet (weather),Mon-Thu,82,33.815,40.233,16.463,-5.311,50.0
+rain,Seasonal naive,dry,633,41.664,59.098,25.348,7.487,
+rain,Weekday mean,dry,633,27.523,35.736,16.803,7.488,
+rain,SARIMAX (no weather),dry,633,28.286,36.683,17.11,8.052,89.1
+rain,SARIMAX (weather),dry,633,15.963,21.004,10.109,0.246,82.78
+rain,SARIMAX log (weather),dry,633,15.9,20.829,10.055,0.234,79.147
+rain,Prophet (weather),dry,633,16.083,21.165,10.147,0.755,82.306
+rain,Seasonal naive,rainy,284,62.775,79.143,42.39,-17.366,
+rain,Weekday mean,rainy,284,64.558,70.897,44.002,-18.668,
+rain,SARIMAX (no weather),rainy,284,63.897,70.459,43.564,-18.823,45.423
+rain,SARIMAX (weather),rainy,284,15.422,19.304,10.205,0.583,80.634
+rain,SARIMAX log (weather),rainy,284,15.426,19.196,10.197,0.818,77.465
+rain,Prophet (weather),rainy,284,15.469,19.325,10.19,1.112,81.338
+day_type,Seasonal naive,Fri-Sun,393,69.239,87.721,36.056,-0.644,
+day_type,Seasonal naive,Mon-Thu,524,32.424,42.927,26.553,0.115,
+day_type,Weekday mean,Fri-Sun,393,57.598,65.921,32.175,-3.721,
+day_type,Weekday mean,Mon-Thu,524,25.04,31.745,20.017,1.718,
+day_type,SARIMAX (no weather),Fri-Sun,393,58.478,66.528,32.423,-2.55,51.908
+day_type,SARIMAX (no weather),Mon-Thu,524,24.943,31.571,19.963,1.438,93.321
+day_type,SARIMAX (weather),Fri-Sun,393,18.946,24.553,8.798,0.106,73.537
+day_type,SARIMAX (weather),Mon-Thu,524,13.432,16.815,11.144,0.533,88.55
+day_type,SARIMAX log (weather),Fri-Sun,393,18.88,24.363,8.775,-0.161,85.496
+day_type,SARIMAX log (weather),Mon-Thu,524,13.407,16.692,11.092,0.847,73.473
+day_type,Prophet (weather),Fri-Sun,393,18.939,24.667,8.748,0.472,72.519
+day_type,Prophet (weather),Mon-Thu,524,13.609,16.947,11.219,1.161,89.122

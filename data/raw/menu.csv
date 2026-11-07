@@ -1,97 +1,81 @@
 item_id,item_name,category,price,weather_affinity,description
-P01,Add on Aren,Add on,0,neutral,"Tambahan sirup gula aren murni, memberikan rasa manis karamel alami khas Indonesia"
-P02,Add on Simple Syrup,Add on,0,neutral,Tambahan sirup gula sederhana (air dan gula) sebagai pemanis dasar untuk semua minuman
-P03,Air Mineral,Other,5000,neutral,Air minum murni dalam kemasan
-P04,Americano (Hot Houseblend),Coffee,20000,hot_comfort,"Minuman kopi hitam yang dibuat dengan menambahkan air panas ke shot espresso, menggunakan pilihan biji Houseblend (perpaduan robusta dan arabica)"
-P05,Americano (Ice Houesblend),Coffee,20000,cold_refresh,"Minuman kopi hitam yang dibuat dengan menambahkan air dingin dan es batu ke shot espresso, menggunakan pilihan biji Houseblend (perpaduan robusta dan arabica)"
-P06,Americano (Hot Arabica),Coffee,20000,hot_comfort,"Minuman kopi hitam yang dibuat dengan menambahkan air panas ke shot espresso, menggunakan pilihan biji Arabica 100%"
-P07,Americano (Ice Arabica),Coffee,20000,cold_refresh,"Minuman kopi hitam yang dibuat dengan menambahkan air dingin dan es batu ke shot espresso, menggunakan pilihan biji Arabica 100%"
-P08,Apple Pie Latte,Coffee,24000,cold_refresh,"Minuman latte dengan perpaduan espresso, susu, dan sirup rasa apel pie yang manis, memberikan sensasi seperti memakan pie apel dalam bentuk minuman"
-P09,Apple Pie Latte (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar dari latte dengan perpaduan espresso, susu, dan sirup rasa apel pie yang manis, memberikan sensasi seperti memakan pie apel dalam bentuk minuman"
-P10,BLACK,Menu Gedhe,20000,cold_refresh,"Minuman kopi hitam murni dalam ukuran besar, diseduh dengan metode pour-over atau french press untuk mengekstrak rasa lengkap dari biji kopi blend yang seimbang"
-P11,BLACK (Houseblend),Menu Gedhe,20000,cold_refresh,"Minuman kopi hitam murni dalam ukuran besar, diseduh dengan metode pour-over atau french press untuk mengekstrak rasa lengkap dari karakteristik biji Houseblend yang balanced dan nutty"
-P12,BLACK (Arabica),Menu Gedhe,20000,cold_refresh,"Minuman kopi hitam murni dalam ukuran besar, diseduh dengan metode pour-over atau french press untuk mengekstrak rasa lengkap dari karakteristik biji Arabica yang acidic, fruity, dan kompleks"
-P13,Banana Bread (Chocolate),Snacks,12000,hot_comfort,"Kue pisang lembut yang terbuat dari pisang asli, tepung, telur, dan mentega, dengan taburan cokelat chips"
-P14,Banana Bread (Original),Snacks,12000,hot_comfort,"Kue pisang lembut yang terbuat dari pisang asli, tepung, telur, dan mentega, dengan rasa original"
-P15,Basic Latte (Hot Arabica),Coffee,23000,hot_comfort,"Minuman klasik dengan 1 shot espresso dari biji kopi Arabica, susu steamed, dan lapisan microfoam yang tipis"
-P16,Basic Latte (Ice Houseblend),Coffee,23000,cold_refresh,"Minuman klasik dengan 1 shot espresso dari biji kopi Houseblend, susu dingin, dan es batu"
-P17,Basic Latte (Hot Houseblend),Coffee,23000,hot_comfort,"Minuman klasik dengan 1 shot espresso dari biji kopi Houseblend, susu steamed, dan lapisan microfoam yang tipis"
-P18,Basic Latte (Ice Arabica),Coffee,23000,cold_refresh,"Minuman klasik dengan 1 shot espresso dari biji kopi Arabica, susu dingin, dan es batu"
-P19,Berry Cake,Other,24000,hot_comfort,Minuman manis asam segar terinspirasi dari kue lembut dengan lapisan krim dan campuran berry
-P20,Biru,Coffee,24000,cold_refresh,"Minuman menyegarkan berwarna biru cerah dengan perpaduan lemon dan sedikit soda, memberikan sensasi segar seperti langit musim panas"
-P21,Biru (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar menyegarkan berwarna biru cerah dengan perpaduan lemon dan sedikit soda, memberikan sensasi segar seperti langit musim panas"
-P22,Black Rice (Ice),Other,23000,cold_refresh,"Minuman manis gurih terinspirasi dari ketan hitam tradisional, disajikan dengan es yang memiliki tekstur lembut dan sedikit creamy"
-P23,Black Rice (Hot),Other,23000,hot_comfort,"Minuman manis gurih terinspirasi dari ketan hitam tradisional, disajikan secara panas dengan tekstur lembut dan sedikit creamy"
-P24,Burnt Sugar,Snacks,12000,hot_comfort,"Kue donat klasik dengan lapisan gula yang dibakar di atasnya (creme brulee style), memberikan tekstur renyah dan rasa manis pahit"
-P25,Butterscotch,Coffee,23000,cold_refresh,Minuman perpaduan espresso dan susu dengan sentuhan manis lembut dari sirup butterscotch yang menghadirkan sensasi karamel hangat
-P26,Butterscotch Latte (Gedhe),Menu Gedhe,30000,cold_refresh,Minuman ukuran besar dari perpaduan espresso dan susu dengan sentuhan manis lembut dari sirup butterscotch yang menghadirkan sensasi karamel hangat
-P27,Candy Latte,Coffee,23000,cold_refresh,"Minuman latte dengan sentuhan manis seperti permen, memadukan espresso dan susu dengan rasa permen nostalgia masa kecil"
-P28,Candy Latte (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar dari latte dengan sentuhan manis seperti permen, memadukan espresso dan susu dengan rasa permen nostalgia masa kecil"
-P29,Cappuccino (Hot Houseblend),Coffee,22000,hot_comfort,"Minuman dengan komposisi 1:1:1 antara espresso dari biji kopi Houseblend, susu steamed, dan busa susu (foam) yang tebal di atasnya"
-P30,Cappuccino (Hot Arabica),Coffee,22000,hot_comfort,"Minuman dengan komposisi 1:1:1 antara espresso dari biji kopi Arabica, susu steamed, dan busa susu (foam) yang tebal di atasnya"
-P31,Cappuccino (Ice Houseblend),Coffee,22000,cold_refresh,"Minuman dengan komposisi 1:1:1 antara espresso dari biji kopi Housebland, susu dingin dengan es batu, dan busa susu (foam) yang tebal di atasnya"
-P32,Cappuccino (Ice Arabica),Coffee,22000,cold_refresh,"Minuman dengan komposisi 1:1:1 antara espresso dari biji kopi Arabica, susu dingin dengan es batu, dan busa susu (foam) yang tebal di atasnya"
-P33,Chamomile,Tea,20000,hot_comfort,Minuman panas teh herbal dari bunga chamomile kering yang memberikan efek menenangkan dengan aroma lembut dan rasa ringan
-P34,Chocolate (Hot),Other,25000,hot_comfort,Minuman cokelat klasik dengan campuran kakao berkualitas dan susu steamed yang creamy
-P35,Chocolate (Ice),Other,25000,cold_refresh,"Minuman cokelat klasik dengan campuran kakao berkualitas, susu dingin dan es batu yang creamy"
-P36,Cold Brew,Coffee,24000,cold_refresh,"Kopi hasil seduhan dingin selama beberapa jam untuk rasa lebih halus, rendah asam, dan segar"
-P37,Chocolate (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar dari cokelat klasik dengan campuran kakao berkualitas, susu dingin dan es batu yang creamy"
-P38,Creamy Klepon,Other,24000,cold_refresh,"Minuman manis terinspirasi dari rasa klepon khas Indonesia, memadukan pandan, gula merah, dan susu lembut"
-P39,Donat Polos,Snacks,10000,hot_comfort,Kue donat klasik tanpa topping yang memberikan tekstur empuk dan ringan
-P40,Espresso Arabica (On The Rock),Coffee,12000,cold_refresh,"Espresso dengan 100% biji Arabica yang dituangkan di atas es batu di dalam gelas, menghasilkan ekstraksi kopi dengan cita rasa lebih halus dan aromatik"
-P41,Espresso Arabica (Basic Espresso),Coffee,12000,cold_refresh,Espresso dengan 100% biji Arabica yang menghasilkan ekstraksi kopi dengan cita rasa lebih halus dan aromatik
-P42,Espresso Houseblend (On The Rock),Coffee,12000,cold_refresh,"Espresso dengan pilihan biji Houseblend yang dituangkan di atas es batu di dalam gelas, menghasilkan ekstraksi kopi dengan cita rasa nutty dan aromatik"
-P43,Espresso Houseblend (Basic Espresso),Coffee,12000,cold_refresh,Espresso dengan pilihan biji Houseblend yang menghasilkan ekstraksi kopi dengan cita rasa nutty dan aromatik
-P44,Extra Shot (Houseblend),Add on,6000,neutral,Tambahan 1 shot espresso dari pilihan biji Houseblend untuk cita rasa kopi yang lebih kuat di minuman
-P45,Extra Shot (Arabica),Add on,7000,neutral,Tambahan 1 shot espresso dari pilihan biji 100% Arabica untuk cita rasa kopi yang lebih kuat di minuman
-P46,Forbidden Berry,Other,24000,cold_refresh,Minuman manis segar dengan perpaduan rahasia antara susu dingin dan berbagai buah beri yang menghasilkan sensasi manis-asam yang intens
-P47,Friendly Coffee (Hot double shot),Coffee,23000,hot_comfort,"Minuman kopi susu dengan perpaduan double shot espresso, susu steamed dan gula aren dengan cita rasa kopi yang lebih kuat"
-P48,Friendly Coffee (Ice double shot),Coffee,23000,cold_refresh,"Minuman kopi susu dengan perpaduan double shot espresso, susu dingin, es batu dan gula aren dengan cita rasa kopi yang lebih kuat"
-P49,Friendly Coffee (Hot),Coffee,23000,hot_comfort,"Minuman kopi susu dengan perpaduan single shot espresso, susu steamed dan gula aren yang cocok untuk semua penikmat kopi"
-P50,Friendly Coffee (Ice),Coffee,23000,cold_refresh,"Minuman kopi susu dengan perpaduan single shot espresso, susu dingin, es batu dan gula aren yang cocok untuk semua penikmat kopi"
-P51,Friendly Coffee (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar dari kopi susu dengan perpaduan double shot espresso, susu dingin, es batu dan gula aren yang cocok untuk semua penikmat kopi"
-P52,Green Apple,Tea,21000,cold_refresh,Minuman dingin bersoda yang menyegarkan dengan rasa apel hijau asam-manis yang berasal dari sirup green apple
-P53,Green Thai Tea,Tea,21000,cold_refresh,"Minuman teh hijau ala Thailand yang dipadukan dengan susu dingin, es batu, dan susu kental manis yang menghadirkan rasa lembut dan sedikit rempah"
-P54,Green Thai Tea (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar teh hijau ala Thailand yang dipadukan dengan susu dingin, es batu, dan susu kental manis yang menghadirkan rasa lembut dan sedikit rempah"
-P55,Gula Gula,Snacks,12000,hot_comfort,"Kue donat klasik dengan topping gula putih yang memberikan tekstur lembut, empuk dan ringan"
-P56,Happy Moca (Hot),Coffee,30000,hot_comfort,"Minuman campuran espresso, coklat bubuk, dan susu steamed yang memberi rasa creamy, manis dan sedikit rasa pahit"
-P57,Happy Moca (Ice),Coffee,30000,cold_refresh,"Minuman campuran espresso, coklat bubuk, susu dingin dan es batu yang memberi rasa creamy, manis dan sedikit rasa pahit"
-P58,Hazelnut Latte,Coffee,23000,cold_refresh,"Minuman latte dari perpaduan lembut susu dingin, espresso, dan sirup hazelnut yang memberikan aroma kacang hazelnut yang manis"
-P59,Hazelnut Latte (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar latte dari perpaduan lembut susu dingin, espresso, dan sirup hazelnut yang memberikan aroma kacang hazelnut yang manis"
-P60,Jasmine (Ice),Tea,21000,cold_refresh,Minuman dingin teh herbal dari bunga jasmine kering yang memberikan aroma lembut dan rasa relaks
-P61,Jasmine (Hot),Tea,21000,hot_comfort,Minuman panas teh herbal dari bunga jasmine kering yang memberikan aroma lembut dan rasa relaks
-P62,Jus Semangka,Other,22000,cold_refresh,Minuman jus segar dari potongan semangka asli tanpa tambahan pemanis buatan yang dibuat dengan proses cold pressed
-P63,Lemon Tea (Hot),Tea,21000,hot_comfort,Minuman panas teh hitam dengan perasan buah lemon yang menyegarkan dan sedikit asam
-P64,Lemon Tea (Ice),Tea,21000,cold_refresh,Minuman dingin teh hitam dengan perasan buah lemon yang menyegarkan dan sedikit asam
-P65,Lemons,Other,20000,cold_refresh,Minuman dingin soda lemon segar dengan rasa masam ringan dan aroma citrus yang kuat
-P66,Matcha Espresso,Coffee,25000,cold_refresh,"Minuman perpaduan antara matcha, espresso, susu dingin dan es batu yang memberi keseimbangan rasa teh hijau dan pahit yang unik"
-P67,Matcha Latte (Ice),Other,24000,cold_refresh,"Minuman latte perpaduan matcha Jepang dengan susu dingin, dan es batu yang menghasilkan rasa earthy dan creamy"
-P68,Matcha Latte (Hot),Other,24000,hot_comfort,Minuman latte perpaduan matcha Jepang dengan susu steamed yang menghasilkan rasa earthy dan creamy
-P69,Matcha Latte (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman latte ukuran besar dari perpaduan matcha Jepang dengan susu dingin, dan es batu yang menghasilkan rasa earthy dan creamy"
-P70,Matchapresso,Coffee,25000,cold_refresh,"Minuman perpaduan antara matcha, espresso, susu dingin dan es batu yang memberi keseimbangan rasa teh hijau dan pahit yang unik"
-P71,Matchapresso (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar dari perpaduan antara matcha, espresso, susu dingin dan es batu yang memberi keseimbangan rasa teh hijau dan pahit yang unik"
-P72,Moody,Tea,23000,cold_refresh,"Minuman dingin dari perpaduan teh hitam, jus citrus, dan es batu yang memberikan efek segar dan ceria"
-P73,Nostaltea,Tea,15000,cold_refresh,Minuman dingin teh hitam yang dipadukan dengan gula aren yang membangkitkan kenangan masa lalu
-P74,Not Tiramisu Latte,Coffee,24000,cold_refresh,"Minuman latte perpaduan espresso, susu dingin, es batu dan sirup tiramisu tanpa alkohol yang menghadirkan kesan kue dessert tiramisu"
-P75,Not Tiramisu Latte (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman latte ukuran besar dari perpaduan espresso, susu dingin, es batu dan sirup tiramisu tanpa alkohol yang menghadirkan kesan kue dessert tiramisu"
-P76,Nutella Meses,Snacks,12000,hot_comfort,Minuman cokelat dengan campuran Nutella dan taburan meses yang menciptakan rasa manis khas.
-P77,Red Apple,Tea,21000,cold_refresh,Minuman dingin bersoda yang menyegarkan dengan rasa apel merah asam-manis yang berasal dari sirup red apple
-P78,Red Liquid,Other,23000,cold_refresh,"Minuman dingin perpaduan sirup strawbery dan delima, susu dingin, es batu dengan rasa asam segar"
-P79,Shakencano,Coffee,21000,cold_refresh,"Minuman dingin perpaduan espresso dan gula aren yang dikocok dengan es batu, menghasilkan kopi dingin berbuih dengan rasa pahit, manis dan segar"
-P80,Sitrus Cafe,Coffee,24000,cold_refresh,"Minuman dingin unik perpaduan antara espresso dan jus citrus, memberikan keseimbangan rasa segar asam dan pahit"
-P81,Soft Tea,Tea,18000,cold_refresh,Minuman dingin teh manis ringan dengan aroma lembut yang menyegarkan
-P82,Summer,Tea,23000,cold_refresh,Minuman dingin bersoda dengan perpaduan sirup buah tropis segar yang menghadirkan rasa manis dan sedikit asam
-P83,Sunset,Other,23000,cold_refresh,"Minuman dingin dari perpaduan teh hitam, sirup strawberry, jus citrus, dan es batu yang menyegarkan"
-P84,Susu Oat,Add on,10000,neutral,Tambahan susu alternatif berbahan dasar oat dengan rasa lembut dan sedikit gurih
-P85,Thai Tea,Tea,21000,cold_refresh,"Minuman teh hitam ala Thailand yang dipadukan dengan susu dingin, es batu, dan susu kental manis yang menghadirkan rasa lembut dan sedikit rempah"
-P86,Thai Tea (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar dari teh hitam ala Thailand yang dipadukan dengan susu dingin, es batu, dan susu kental manis yang menghadirkan rasa lembut dan sedikit rempah"
-P87,Upgrade Beans (Arabica),Add on,4000,neutral,"Tambahan pilihan untuk mengganti biji kopi Houseblend menjadi 100% Arabika yang lebih halus, sedikit asam dan aromatik"
-P88,Vanilla Latte,Coffee,23000,cold_refresh,"Minuman latte dari perpaduan lembut susu dingin, espresso, dan sirup vanilla yang memberikan aroma manis"
-P89,Vanilla Latte (Gedhe),Menu Gedhe,30000,cold_refresh,"Minuman ukuran besar latte dari perpaduan lembut susu dingin, espresso, dan sirup vanilla yang memberikan aroma manis"
-P90,WHITE,Menu Gedhe,30000,cold_refresh,Minuman dingin kopi susu ringan dengan perpaduan espresso lembut dan susu dingin creamy khas signature kafe
-P91,WHITE (Houseblend),Menu Gedhe,30000,cold_refresh,Minuman dingin kopi susu ringan dengan perpaduan espresso dari biji kopi Housblend yang nutty dan susu dingin creamy khas signature kafe
-P92,WHITE (Arabica),Menu Gedhe,30000,cold_refresh,Minuman dingin kopi susu ringan dengan perpaduan espresso dari biji kopi 100% Arabica yang aromatik dan susu dingin creamy khas signature kafe
-P93,Croffle,Snacks,28000,hot_comfort,"Kue croissant dipanggang di waffle iron, renyah di luar, lembut di dalam"
-P94,Creamy Chocolate Cake,Other,30000,hot_comfort,Kue cokelat lembut bertekstur krim (mousse-style) dengan lapisan ganache yang manis dan lembut
-P95,Waffle,Snacks,25000,hot_comfort,"Kue waffle panas, tekstur renyah di luar dan empuk di dalam, dapat diberi topping gula putih ataupun susu kental manis coklat"
-P96,Pisang Coklat,Snacks,22000,hot_comfort,Kue pisang yang dilapisi kulit renyah yang goreng dengan isi topping cokelat yang mirip dengan pisang karamel (1 porsi isi 2)
+M01,Boiled Egg,Egg,51,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M02,Butter Chicken,Starters & Gravies,382,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M03,Butter Naan,Breads & Tiffin,94,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M04,Butter Roti,Breads & Tiffin,90,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M05,Chapati 1 pce,Breads & Tiffin,57,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M06,Chicken Chinthamani Special Soup,Soups,152,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M07,Chicken Dum Biryani,Biryani & Rice,351,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M08,Chicken Dynamite,Chinese,363,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M09,Chicken Fried Rice,Biryani & Rice,363,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M10,Chicken Hot Pepper,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M11,Chicken Kozhi Malli Soup,Soups,149,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M12,Chicken Kozhi Milagu Soup,Soups,148,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M13,Chicken Kozhi Rasam,Soups,148,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M14,Chicken Lollipop (4 Pcs ),Chinese,369,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M15,Chicken Podi Varuval,Starters & Gravies,360,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M16,Chicken Schezwan Fried Rice,Biryani & Rice,376,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M17,Chilli Fish ( 65),Chinese,337,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M18,Chineese Chilli Chicken,Chinese,369,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M19,Chinese Chilli Paneer,Chinese,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M20,Chinthamani Special Kothu Kozhi,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M21,Dragon Chicken,Chinese,376,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M22,Egg Biryani,Biryani & Rice,286,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M23,Egg Fried Rice,Biryani & Rice,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M24,Egg Kothu Parotta,Breads & Tiffin,260,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M25,Egg Masala,Egg,174,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M26,Egg Podimas,Egg,91,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M27,Egg Roast (DOSAI),Breads & Tiffin,100,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M28,Garlic Naan,Breads & Tiffin,105,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M29,Ghee Rice,Biryani & Rice,265,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M30,Ghee Roast,Breads & Tiffin,164,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M31,Ginger Chicken,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M32,Gobi Manchurian,Chinese,246,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M33,Gobi Pepper Salt,Starters & Gravies,239,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M34,Gundur Kozhi Mirapa,Starters & Gravies,350,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M35,Hot And Sour Chicken Soup,Soups,155,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M36,Hot And Sour Veg Soup,Soups,135,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M37,Kadai Paneer,Starters & Gravies,233,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M38,Kal Dosa,Breads & Tiffin,51,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M39,Kozhi 65,Starters & Gravies,343,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M40,Kozhi Masala,Starters & Gravies,436,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M41,Kozhi Milagu Perattu,Starters & Gravies,350,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M42,Masala Kalakki,Egg,62,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M43,Mixed Non-Veg Fried Rice,Biryani & Rice,408,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M44,Mixed Veg Gravy,Starters & Gravies,233,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M45,Mushroom Fried Rice,Biryani & Rice,285,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M46,Mushroom Masala,Starters & Gravies,246,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M47,Mushroom Pepper Fry,Starters & Gravies,246,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M48,Mutton Chukka,Starters & Gravies,454,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M49,Mutton Dum Biryani,Biryani & Rice,488,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M50,Mutton Fry,Starters & Gravies,449,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M51,Mutton Kudal Fry,Starters & Gravies,317,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M52,Mutton Schezwan Noodles,Chinese,428,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M53,Naan,Breads & Tiffin,90,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M54,Nethili Fry,Starters & Gravies,350,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M55,Non Veg Meals,Meals,286,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M56,Omelette,Egg,61,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M57,Pallipalayam Chicken Varuval,Starters & Gravies,356,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M58,Paneer Butter Masala,Starters & Gravies,249,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M59,Paneer Fried Rice,Biryani & Rice,291,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M60,Paneer Pepper Fry,Starters & Gravies,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M61,Parotta 1 Pcs,Breads & Tiffin,57,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M62,Plain Biryani,Biryani & Rice,286,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M63,Podi Roast,Breads & Tiffin,148,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M64,Prawns Fry,Starters & Gravies,376,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M65,Prawns Masala,Starters & Gravies,377,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M66,Roti,Breads & Tiffin,85,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M67,Veg Clear Soup,Soups,108,hot_comfort,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M68,Veg Fried Rice,Biryani & Rice,252,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M69,Veg Meals,Meals,234,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M70,Veg Schezwan Fried Rice,Biryani & Rice,259,neutral,"Real menu item: Hotel Chinthamani, Coimbatore (Swiggy, Aug-Sep 2026)"
+M71,Chai,Hot Beverages,38,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M72,Coffee,Hot Beverages,42,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M73,Samosa,Snacks,35,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M74,Pakora,Snacks,36,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M75,Bajji,Snacks,29,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M76,Vada,Snacks,15,hot_comfort,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M77,Ice Cream,Cold Drinks & Desserts,79,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M78,Cold Coffee,Cold Drinks & Desserts,75,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M79,Fresh Lime Juice,Cold Drinks & Desserts,100,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)
+M80,Buttermilk,Cold Drinks & Desserts,48,cold_refresh,Price: median of Coimbatore outlet listings (data/reference/snack_drink_prices.csv)

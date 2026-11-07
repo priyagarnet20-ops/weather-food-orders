@@ -5,4 +5,3 @@ __pycache__/
 .DS_Store
 .venv/
 data/raw/order_items.csv
-data/raw/*_real.csv

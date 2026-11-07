@@ -1,0 +1,728 @@
+order_no,item_name,quantity,line_price,unit_price
+1,Omelette,1,61.0,61.0
+1,Chicken Kozhi Malli Soup,1,149.0,149.0
+2,Gobi Manchurian,1,246.0,246.0
+3,Non Veg Meals,2,572.0,286.0
+4,Chicken Kozhi Milagu Soup,1,143.0,143.0
+5,Mutton Dum Biryani,1,488.0,488.0
+5,Non Veg Meals,1,286.0,286.0
+6,Prawns Fry,1,376.0,376.0
+6,Non Veg Meals,1,286.0,286.0
+7,Non Veg Meals,1,286.0,286.0
+8,Non Veg Meals,1,286.0,286.0
+9,Chicken Fried Rice,1,363.0,363.0
+10,Chicken Kozhi Milagu Soup,2,296.0,148.0
+11,Paneer Pepper Fry,1,254.0,254.0
+12,Gobi Manchurian,1,246.0,246.0
+12,Veg Fried Rice,1,252.0,252.0
+13,Chicken Kozhi Milagu Soup,1,148.0,148.0
+13,Non Veg Meals,2,572.0,286.0
+14,Gobi Manchurian,1,246.0,246.0
+15,Veg Meals,1,234.0,234.0
+15,Gobi Manchurian,1,246.0,246.0
+16,Paneer Pepper Fry,1,259.0,259.0
+17,Non Veg Meals,1,286.0,286.0
+18,Gobi Manchurian,1,246.0,246.0
+18,Non Veg Meals,1,286.0,286.0
+19,Non Veg Meals,1,286.0,286.0
+20,Non Veg Meals,1,286.0,286.0
+21,Non Veg Meals,1,286.0,286.0
+22,Veg Meals,1,234.0,234.0
+23,Parotta 1 Pcs,1,57.0,57.0
+23,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+23,Chicken Dynamite,1,363.0,363.0
+24,Hot And Sour Chicken Soup,1,155.0,155.0
+24,Kadai Paneer,1,233.0,233.0
+25,Gundur Kozhi Mirapa,1,350.0,350.0
+26,Hot And Sour Chicken Soup,1,155.0,155.0
+27,Kadai Paneer,1,233.0,233.0
+28,Gobi Manchurian,1,246.0,246.0
+29,Chicken Kozhi Milagu Soup,1,148.0,148.0
+29,Hot And Sour Chicken Soup,1,155.0,155.0
+30,Hot And Sour Chicken Soup,1,155.0,155.0
+30,Chicken Kozhi Milagu Soup,1,148.0,148.0
+31,Veg Clear Soup,1,108.0,108.0
+31,Prawns Fry,1,376.0,376.0
+31,Chilli Fish ( 65),1,337.0,337.0
+31,Nethili Fry,1,350.0,350.0
+31,Non Veg Meals,2,572.0,286.0
+32,Non Veg Meals,1,286.0,286.0
+33,Gobi Manchurian,1,246.0,246.0
+33,Veg Fried Rice,1,252.0,252.0
+34,Non Veg Meals,1,286.0,286.0
+35,Veg Meals,1,234.0,234.0
+36,Gobi Manchurian,2,492.0,246.0
+37,Mutton Chukka,1,454.0,454.0
+38,Hot And Sour Chicken Soup,2,310.0,155.0
+39,Ghee Rice,1,265.0,265.0
+39,Egg Masala,1,174.0,174.0
+40,Gobi Manchurian,1,246.0,246.0
+41,Non Veg Meals,2,572.0,286.0
+42,Gobi Manchurian,1,246.0,246.0
+43,Non Veg Meals,2,572.0,286.0
+43,Chicken Kozhi Rasam,1,148.0,148.0
+44,Ghee Rice,1,265.0,265.0
+45,Non Veg Meals,1,286.0,286.0
+46,Gobi Manchurian,2,492.0,246.0
+47,Omelette,1,61.0,61.0
+47,Hot And Sour Veg Soup,1,135.0,135.0
+48,Hot And Sour Chicken Soup,1,155.0,155.0
+48,Veg Fried Rice,1,252.0,252.0
+48,Gobi Manchurian,1,246.0,246.0
+49,Chicken Kozhi Milagu Soup,1,148.0,148.0
+50,Non Veg Meals,1,286.0,286.0
+51,Mutton Chukka,1,454.0,454.0
+51,Plain Biryani,1,286.0,286.0
+52,Veg Clear Soup,1,108.0,108.0
+52,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+52,Plain Biryani,2,572.0,286.0
+52,Pallipalayam Chicken Varuval,1,356.0,356.0
+53,Gobi Manchurian,1,246.0,246.0
+53,Veg Fried Rice,1,252.0,252.0
+54,Chicken Dum Biryani,1,351.0,351.0
+54,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+55,Non Veg Meals,1,286.0,286.0
+55,Dragon Chicken,1,376.0,376.0
+55,Veg Clear Soup,1,108.0,108.0
+55,Gobi Manchurian,1,246.0,246.0
+56,Mutton Chukka,1,454.0,454.0
+56,Chicken Kozhi Rasam,1,148.0,148.0
+57,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+57,Egg Masala,1,174.0,174.0
+58,Gobi Manchurian,1,246.0,246.0
+59,Non Veg Meals,1,286.0,286.0
+59,Boiled Egg,1,51.0,51.0
+59,Prawns Masala,1,377.0,377.0
+60,Non Veg Meals,1,286.0,286.0
+61,Non Veg Meals,1,286.0,286.0
+62,Veg Meals,1,234.0,234.0
+63,Non Veg Meals,2,572.0,286.0
+64,Non Veg Meals,1,286.0,286.0
+64,Chicken Kozhi Milagu Soup,1,148.0,148.0
+64,Chicken Hot Pepper,1,356.0,356.0
+65,Non Veg Meals,1,286.0,286.0
+66,Chicken Dum Biryani,1,351.0,351.0
+66,Omelette,1,61.0,61.0
+67,Veg Meals,1,234.0,234.0
+68,Pallipalayam Chicken Varuval,1,356.0,356.0
+69,Chicken Dum Biryani,1,351.0,351.0
+69,Chineese Chilli Chicken,1,369.0,369.0
+70,Butter Naan,1,94.0,94.0
+70,Hot And Sour Chicken Soup,1,155.0,155.0
+70,Mixed Veg Gravy,1,233.0,233.0
+70,Chapati 1 pce,2,114.0,57.0
+71,Veg Fried Rice,1,247.0,247.0
+72,Non Veg Meals,1,286.0,286.0
+73,Chicken Kozhi Rasam,1,148.0,148.0
+74,Non Veg Meals,1,286.0,286.0
+75,Hot And Sour Chicken Soup,1,155.0,155.0
+76,Prawns Masala,1,377.0,377.0
+76,Non Veg Meals,1,286.0,286.0
+77,Mutton Chukka,1,454.0,454.0
+77,Veg Clear Soup,1,108.0,108.0
+77,Egg Biryani,1,286.0,286.0
+77,Mutton Dum Biryani,1,488.0,488.0
+77,Prawns Masala,1,377.0,377.0
+78,Mutton Dum Biryani,1,488.0,488.0
+79,Veg Clear Soup,1,108.0,108.0
+79,Chicken Fried Rice,1,363.0,363.0
+79,Plain Biryani,1,286.0,286.0
+79,Chicken Lollipop (4 Pcs ),1,369.0,369.0
+80,Veg Clear Soup,1,108.0,108.0
+80,Prawns Fry,1,376.0,376.0
+80,Non Veg Meals,1,286.0,286.0
+80,Gundur Kozhi Mirapa,1,350.0,350.0
+80,Egg Podimas,1,91.0,91.0
+81,Non Veg Meals,2,572.0,286.0
+82,Garlic Naan,1,105.0,105.0
+83,Chapati 1 pce,9,513.0,57.0
+83,Veg Clear Soup,1,108.0,108.0
+83,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+83,Mushroom Masala,1,246.0,246.0
+84,Non Veg Meals,1,286.0,286.0
+85,Non Veg Meals,2,572.0,286.0
+86,Gobi Manchurian,1,246.0,246.0
+87,Omelette,1,61.0,61.0
+87,Egg Fried Rice,1,259.0,259.0
+88,Non Veg Meals,1,286.0,286.0
+89,Non Veg Meals,1,286.0,286.0
+90,Chicken Kozhi Rasam,1,148.0,148.0
+91,Non Veg Meals,3,858.0,286.0
+92,Non Veg Meals,1,286.0,286.0
+93,Non Veg Meals,1,286.0,286.0
+94,Paneer Pepper Fry,1,259.0,259.0
+95,Chicken Kozhi Rasam,1,148.0,148.0
+96,Non Veg Meals,1,286.0,286.0
+97,Chicken Kozhi Milagu Soup,1,148.0,148.0
+97,Gobi Manchurian,1,246.0,246.0
+98,Gobi Manchurian,1,246.0,246.0
+99,Gundur Kozhi Mirapa,1,350.0,350.0
+99,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+100,Veg Schezwan Fried Rice,1,259.0,259.0
+101,Kadai Paneer,1,393.0,393.0
+102,Mutton Chukka,1,454.0,454.0
+102,Non Veg Meals,1,286.0,286.0
+103,Non Veg Meals,1,286.0,286.0
+104,Chicken Kozhi Milagu Soup,1,148.0,148.0
+105,Parotta 1 Pcs,2,114.0,57.0
+105,Chicken Kozhi Milagu Soup,1,148.0,148.0
+105,Mutton Chukka,1,454.0,454.0
+105,Veg Clear Soup,1,108.0,108.0
+106,Gobi Manchurian,1,246.0,246.0
+106,Veg Clear Soup,1,108.0,108.0
+106,Kadai Paneer,1,393.0,393.0
+107,Chicken Kozhi Milagu Soup,1,148.0,148.0
+108,Kadai Paneer,1,233.0,233.0
+108,Chinthamani Special Kothu Kozhi,1,431.0,431.0
+108,Veg Clear Soup,1,108.0,108.0
+108,Chicken Hot Pepper,1,356.0,356.0
+109,Chicken Kozhi Rasam,1,148.0,148.0
+109,Chicken Kozhi Milagu Soup,1,148.0,148.0
+110,Non Veg Meals,1,286.0,286.0
+111,Non Veg Meals,1,286.0,286.0
+112,Non Veg Meals,1,286.0,286.0
+113,Prawns Fry,1,376.0,376.0
+113,Masala Kalakki,1,62.0,62.0
+113,Non Veg Meals,1,286.0,286.0
+113,Gundur Kozhi Mirapa,1,350.0,350.0
+113,Veg Clear Soup,1,108.0,108.0
+114,Non Veg Meals,1,286.0,286.0
+115,Veg Clear Soup,1,108.0,108.0
+115,Gundur Kozhi Mirapa,1,350.0,350.0
+115,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+116,Non Veg Meals,1,286.0,286.0
+117,Non Veg Meals,1,286.0,286.0
+118,Parotta 1 Pcs,2,114.0,57.0
+118,Non Veg Meals,1,286.0,286.0
+119,Non Veg Meals,1,286.0,286.0
+120,Non Veg Meals,1,286.0,286.0
+121,Non Veg Meals,1,286.0,286.0
+122,Non Veg Meals,1,286.0,286.0
+123,Prawns Fry,1,376.0,376.0
+123,Veg Clear Soup,1,108.0,108.0
+123,Non Veg Meals,1,286.0,286.0
+124,Veg Clear Soup,1,108.0,108.0
+124,Chicken Dum Biryani,5,1755.0,351.0
+124,Ginger Chicken,2,712.0,356.0
+125,Non Veg Meals,1,286.0,286.0
+126,Chicken Kozhi Milagu Soup,2,296.0,148.0
+127,Non Veg Meals,1,286.0,286.0
+128,Chicken Kozhi Milagu Soup,1,148.0,148.0
+128,Non Veg Meals,1,286.0,286.0
+129,Non Veg Meals,1,286.0,286.0
+130,Non Veg Meals,1,286.0,286.0
+131,Non Veg Meals,1,286.0,286.0
+132,Non Veg Meals,1,286.0,286.0
+133,Non Veg Meals,1,286.0,286.0
+134,Paneer Pepper Fry,1,259.0,259.0
+135,Veg Fried Rice,1,252.0,252.0
+136,Non Veg Meals,1,286.0,286.0
+137,Mixed Non-Veg Fried Rice,1,403.0,403.0
+138,Chicken Schezwan Fried Rice,1,376.0,376.0
+139,Veg Clear Soup,1,108.0,108.0
+139,Plain Biryani,1,286.0,286.0
+139,Non Veg Meals,1,286.0,286.0
+140,Chicken Kozhi Milagu Soup,1,143.0,143.0
+141,Chicken Kozhi Milagu Soup,1,148.0,148.0
+142,Non Veg Meals,1,286.0,286.0
+143,Non Veg Meals,1,286.0,286.0
+144,Chicken Kozhi Milagu Soup,1,148.0,148.0
+144,Chicken Kozhi Rasam,1,148.0,148.0
+145,Non Veg Meals,1,286.0,286.0
+146,Veg Clear Soup,1,113.0,113.0
+147,Chicken Kozhi Milagu Soup,1,148.0,148.0
+148,Chicken Kozhi Milagu Soup,1,148.0,148.0
+149,Veg Clear Soup,1,108.0,108.0
+149,Plain Biryani,1,286.0,286.0
+149,Gobi Manchurian,1,246.0,246.0
+150,Non Veg Meals,1,286.0,286.0
+151,Non Veg Meals,1,286.0,286.0
+152,Non Veg Meals,1,286.0,286.0
+152,Chicken Kozhi Milagu Soup,1,148.0,148.0
+153,Non Veg Meals,1,286.0,286.0
+154,Non Veg Meals,1,286.0,286.0
+155,Non Veg Meals,1,286.0,286.0
+156,Chicken Kozhi Milagu Soup,2,296.0,148.0
+157,Chicken Kozhi Milagu Soup,1,148.0,148.0
+157,Omelette,1,61.0,61.0
+158,Butter Chicken,1,377.0,377.0
+158,Chicken Kozhi Milagu Soup,1,143.0,143.0
+159,Non Veg Meals,1,286.0,286.0
+160,Kadai Paneer,1,228.0,228.0
+161,Non Veg Meals,1,286.0,286.0
+162,Plain Biryani,1,286.0,286.0
+162,Prawns Fry,1,376.0,376.0
+162,Veg Clear Soup,1,108.0,108.0
+162,Chicken Kozhi Rasam,1,148.0,148.0
+163,Non Veg Meals,1,286.0,286.0
+164,Non Veg Meals,1,286.0,286.0
+165,Non Veg Meals,1,286.0,286.0
+166,Chicken Kozhi Milagu Soup,1,148.0,148.0
+166,Chicken Kozhi Rasam,1,148.0,148.0
+167,Non Veg Meals,2,572.0,286.0
+167,Veg Clear Soup,1,108.0,108.0
+167,Chicken Kozhi Milagu Soup,1,148.0,148.0
+168,Veg Schezwan Fried Rice,1,259.0,259.0
+168,Boiled Egg,1,51.0,51.0
+168,Veg Clear Soup,1,108.0,108.0
+168,Gobi Manchurian,1,246.0,246.0
+169,Chinese Chilli Paneer,1,259.0,259.0
+170,Chicken Kozhi Milagu Soup,1,143.0,143.0
+171,Chicken Kozhi Milagu Soup,1,148.0,148.0
+172,Egg Kothu Parotta,1,260.0,260.0
+173,Mushroom Pepper Fry,1,246.0,246.0
+174,Non Veg Meals,1,286.0,286.0
+174,Plain Biryani,1,286.0,286.0
+174,Veg Clear Soup,1,108.0,108.0
+175,Veg Clear Soup,1,108.0,108.0
+175,Non Veg Meals,3,858.0,286.0
+176,Veg Meals,1,234.0,234.0
+177,Veg Clear Soup,1,108.0,108.0
+177,Non Veg Meals,2,572.0,286.0
+177,Chicken Kozhi Rasam,2,296.0,148.0
+177,Ghee Rice,1,265.0,265.0
+178,Kozhi Masala,1,436.0,436.0
+179,Chineese Chilli Chicken,1,369.0,369.0
+179,Chicken Kozhi Milagu Soup,2,296.0,148.0
+180,Gobi Manchurian,1,246.0,246.0
+181,Roti,5,425.0,85.0
+181,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+181,Kozhi Milagu Perattu,1,350.0,350.0
+181,Garlic Naan,2,210.0,105.0
+182,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+182,Chicken Podi Varuval,1,363.0,363.0
+182,Naan,1,90.0,90.0
+182,Butter Naan,1,94.0,94.0
+183,Veg Meals,1,234.0,234.0
+183,Non Veg Meals,1,286.0,286.0
+184,Non Veg Meals,1,286.0,286.0
+185,Non Veg Meals,1,286.0,286.0
+186,Non Veg Meals,1,286.0,286.0
+187,Non Veg Meals,1,286.0,286.0
+188,Non Veg Meals,1,286.0,286.0
+189,Non Veg Meals,1,286.0,286.0
+190,Non Veg Meals,1,286.0,286.0
+191,Veg Clear Soup,1,113.0,113.0
+192,Chicken Kozhi Milagu Soup,1,143.0,143.0
+193,Veg Clear Soup,1,113.0,113.0
+194,Veg Clear Soup,1,108.0,108.0
+194,Non Veg Meals,2,572.0,286.0
+195,Non Veg Meals,1,286.0,286.0
+196,Veg Meals,1,234.0,234.0
+197,Veg Fried Rice,1,252.0,252.0
+198,Non Veg Meals,1,286.0,286.0
+199,Non Veg Meals,1,286.0,286.0
+200,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+200,Non Veg Meals,3,858.0,286.0
+200,Veg Clear Soup,1,108.0,108.0
+200,Chicken Dum Biryani,1,351.0,351.0
+201,Gobi Manchurian,1,246.0,246.0
+201,Parotta 1 Pcs,3,171.0,57.0
+202,Non Veg Meals,1,286.0,286.0
+203,Boiled Egg,1,51.0,51.0
+203,Chicken Kozhi Milagu Soup,1,148.0,148.0
+204,Veg Clear Soup,1,108.0,108.0
+204,Mushroom Fried Rice,1,285.0,285.0
+204,Gobi Manchurian,1,246.0,246.0
+205,Non Veg Meals,1,286.0,286.0
+206,Veg Clear Soup,1,113.0,113.0
+207,Non Veg Meals,1,286.0,286.0
+208,Non Veg Meals,1,286.0,286.0
+209,Chicken Kozhi Milagu Soup,1,148.0,148.0
+210,Veg Clear Soup,1,108.0,108.0
+210,Paneer Pepper Fry,2,518.0,259.0
+211,Butter Chicken,1,382.0,382.0
+212,Chicken Kozhi Milagu Soup,1,148.0,148.0
+213,Mixed Non-Veg Fried Rice,1,408.0,408.0
+214,Veg Clear Soup,1,108.0,108.0
+214,Ginger Chicken,1,356.0,356.0
+214,Non Veg Meals,1,286.0,286.0
+215,Non Veg Meals,1,286.0,286.0
+216,Gobi Manchurian,1,246.0,246.0
+217,Non Veg Meals,1,286.0,286.0
+218,Non Veg Meals,1,286.0,286.0
+219,Chicken Kozhi Milagu Soup,1,148.0,148.0
+219,Veg Clear Soup,1,113.0,113.0
+220,Veg Clear Soup,1,108.0,108.0
+221,Chicken Kozhi Malli Soup,1,149.0,149.0
+221,Chicken Kozhi Milagu Soup,1,148.0,148.0
+222,Veg Clear Soup,1,108.0,108.0
+222,Non Veg Meals,1,286.0,286.0
+222,Nethili Fry,1,350.0,350.0
+223,Veg Clear Soup,1,108.0,108.0
+223,Non Veg Meals,2,572.0,286.0
+224,Non Veg Meals,1,286.0,286.0
+225,Non Veg Meals,1,286.0,286.0
+226,Non Veg Meals,1,286.0,286.0
+227,Kozhi Milagu Perattu,1,350.0,350.0
+227,Chicken Hot Pepper,1,356.0,356.0
+227,Naan,1,90.0,90.0
+227,Hot And Sour Chicken Soup,1,155.0,155.0
+227,Non Veg Meals,1,286.0,286.0
+228,Chicken Kozhi Milagu Soup,1,143.0,143.0
+229,Non Veg Meals,1,286.0,286.0
+230,Gobi Manchurian,1,246.0,246.0
+230,Mushroom Pepper Fry,1,246.0,246.0
+231,Gobi Manchurian,1,246.0,246.0
+232,Non Veg Meals,1,286.0,286.0
+233,Non Veg Meals,1,286.0,286.0
+234,Non Veg Meals,1,286.0,286.0
+235,Non Veg Meals,1,286.0,286.0
+236,Non Veg Meals,1,286.0,286.0
+237,Non Veg Meals,1,286.0,286.0
+237,Masala Kalakki,1,59.0,59.0
+237,Boiled Egg,1,46.0,46.0
+238,Non Veg Meals,1,286.0,286.0
+238,Chicken Lollipop (4 Pcs ),1,369.0,369.0
+239,Paneer Pepper Fry,1,254.0,254.0
+239,Ghee Rice,1,260.0,260.0
+240,Gobi Manchurian,1,246.0,246.0
+240,Non Veg Meals,1,286.0,286.0
+241,Omelette,1,61.0,61.0
+241,Non Veg Meals,1,286.0,286.0
+242,Non Veg Meals,1,286.0,286.0
+243,Non Veg Meals,1,286.0,286.0
+244,Mutton Chukka,1,454.0,454.0
+244,Chilli Fish ( 65),1,337.0,337.0
+244,Chicken Dum Biryani,2,702.0,351.0
+244,Chicken Fried Rice,1,363.0,363.0
+245,Non Veg Meals,1,286.0,286.0
+246,Non Veg Meals,3,858.0,286.0
+247,Non Veg Meals,1,286.0,286.0
+248,Veg Meals,1,234.0,234.0
+249,Non Veg Meals,1,286.0,286.0
+249,Kozhi Milagu Perattu,1,350.0,350.0
+249,Chilli Fish ( 65),1,337.0,337.0
+250,Pallipalayam Chicken Varuval,1,356.0,356.0
+250,Prawns Fry,1,376.0,376.0
+250,Mutton Kudal Fry,1,317.0,317.0
+250,Plain Biryani,2,572.0,286.0
+251,Non Veg Meals,1,286.0,286.0
+252,Non Veg Meals,1,286.0,286.0
+253,Non Veg Meals,1,286.0,286.0
+254,Kozhi Milagu Perattu,1,350.0,350.0
+254,Chicken Kozhi Milagu Soup,1,148.0,148.0
+254,Chicken Dum Biryani,1,351.0,351.0
+255,Non Veg Meals,1,286.0,286.0
+256,Non Veg Meals,1,286.0,286.0
+257,Non Veg Meals,1,286.0,286.0
+258,Non Veg Meals,2,572.0,286.0
+259,Chicken Kozhi Milagu Soup,1,148.0,148.0
+259,Veg Clear Soup,1,113.0,113.0
+260,Veg Fried Rice,1,252.0,252.0
+260,Parotta 1 Pcs,2,114.0,57.0
+260,Paneer Pepper Fry,1,259.0,259.0
+261,Kozhi Milagu Perattu,1,350.0,350.0
+261,Non Veg Meals,2,572.0,286.0
+262,Chicken Fried Rice,1,363.0,363.0
+263,Hot And Sour Chicken Soup,1,155.0,155.0
+263,Chicken Kozhi Milagu Soup,1,148.0,148.0
+264,Veg Meals,1,234.0,234.0
+265,Non Veg Meals,2,572.0,286.0
+266,Chicken Kozhi Rasam,1,148.0,148.0
+267,Non Veg Meals,1,286.0,286.0
+268,Veg Clear Soup,1,108.0,108.0
+268,Non Veg Meals,2,572.0,286.0
+269,Chicken Kozhi Milagu Soup,2,296.0,148.0
+270,Parotta 1 Pcs,1,57.0,57.0
+270,Chicken Kozhi Milagu Soup,1,148.0,148.0
+270,Veg Clear Soup,1,113.0,113.0
+271,Veg Clear Soup,1,113.0,113.0
+272,Prawns Fry,1,371.0,371.0
+272,Mutton Fry,1,449.0,449.0
+273,Omelette,1,61.0,61.0
+273,Non Veg Meals,1,286.0,286.0
+274,Veg Clear Soup,1,108.0,108.0
+274,Non Veg Meals,2,572.0,286.0
+275,Non Veg Meals,1,286.0,286.0
+276,Non Veg Meals,3,858.0,286.0
+276,Veg Clear Soup,1,108.0,108.0
+277,Gobi Manchurian,1,246.0,246.0
+278,Non Veg Meals,1,286.0,286.0
+279,Hot And Sour Chicken Soup,1,155.0,155.0
+280,Non Veg Meals,1,286.0,286.0
+281,Gobi Manchurian,1,246.0,246.0
+282,Veg Meals,1,234.0,234.0
+283,Non Veg Meals,1,286.0,286.0
+284,Non Veg Meals,1,286.0,286.0
+285,Kadai Paneer,1,233.0,233.0
+286,Egg Masala,1,174.0,174.0
+287,Chicken Kozhi Milagu Soup,1,148.0,148.0
+288,Non Veg Meals,1,286.0,286.0
+289,Egg Kothu Parotta,1,260.0,260.0
+290,Chicken Chinthamani Special Soup,1,155.0,155.0
+290,Chicken Kozhi Milagu Soup,1,148.0,148.0
+291,Chicken Kozhi Milagu Soup,1,148.0,148.0
+291,Chicken Kozhi Rasam,1,148.0,148.0
+292,Veg Clear Soup,1,113.0,113.0
+293,Chicken Kozhi Milagu Soup,1,148.0,148.0
+294,Ginger Chicken,3,1068.0,356.0
+294,Veg Clear Soup,1,108.0,108.0
+294,Chicken Dum Biryani,5,1755.0,351.0
+295,Non Veg Meals,1,286.0,286.0
+296,Chicken Kozhi Milagu Soup,1,148.0,148.0
+296,Kozhi 65,1,343.0,343.0
+297,Veg Clear Soup,1,108.0,108.0
+297,Non Veg Meals,1,286.0,286.0
+297,Prawns Masala,1,377.0,377.0
+298,Omelette,2,122.0,61.0
+298,Non Veg Meals,1,286.0,286.0
+299,Non Veg Meals,1,286.0,286.0
+300,Gobi Manchurian,1,246.0,246.0
+300,Veg Clear Soup,1,108.0,108.0
+300,Chicken Dynamite,1,363.0,363.0
+301,Gundur Kozhi Mirapa,1,350.0,350.0
+301,Veg Clear Soup,1,108.0,108.0
+301,Omelette,1,61.0,61.0
+301,Non Veg Meals,1,286.0,286.0
+302,Non Veg Meals,1,286.0,286.0
+303,Veg Meals,1,234.0,234.0
+304,Non Veg Meals,1,286.0,286.0
+305,Non Veg Meals,1,286.0,286.0
+306,Naan,2,180.0,90.0
+306,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+306,Veg Clear Soup,1,108.0,108.0
+306,Chicken Kozhi Milagu Soup,1,148.0,148.0
+307,Ghee Rice,1,265.0,265.0
+307,Egg Masala,1,174.0,174.0
+308,Chicken Chinthamani Special Soup,1,150.0,150.0
+308,Chicken Kozhi Milagu Soup,1,143.0,143.0
+309,Chicken Kozhi Milagu Soup,1,143.0,143.0
+310,Chicken Hot Pepper,1,356.0,356.0
+311,Paneer Pepper Fry,1,259.0,259.0
+312,Pallipalayam Chicken Varuval,1,356.0,356.0
+312,Gundur Kozhi Mirapa,1,350.0,350.0
+312,Veg Clear Soup,1,108.0,108.0
+313,Roti,2,170.0,85.0
+313,Kadai Paneer,1,233.0,233.0
+314,Non Veg Meals,1,286.0,286.0
+315,Kozhi Milagu Perattu,1,350.0,350.0
+316,Veg Clear Soup,1,108.0,108.0
+316,Chicken Dynamite,1,363.0,363.0
+316,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+317,Kadai Paneer,1,233.0,233.0
+317,Ghee Rice,1,265.0,265.0
+317,Veg Clear Soup,1,108.0,108.0
+317,Garlic Naan,3,315.0,105.0
+317,Paneer Butter Masala,1,249.0,249.0
+317,Butter Naan,1,94.0,94.0
+318,Veg Clear Soup,1,113.0,113.0
+318,Boiled Egg,3,153.0,51.0
+319,Non Veg Meals,1,286.0,286.0
+320,Chicken Kozhi Milagu Soup,1,148.0,148.0
+321,Egg Podimas,1,91.0,91.0
+321,Non Veg Meals,1,286.0,286.0
+322,Non Veg Meals,1,286.0,286.0
+323,Non Veg Meals,1,286.0,286.0
+324,Non Veg Meals,1,286.0,286.0
+325,Non Veg Meals,1,286.0,286.0
+326,Non Veg Meals,1,286.0,286.0
+327,Kozhi 65,1,343.0,343.0
+327,Ghee Rice,1,395.0,395.0
+327,Veg Clear Soup,1,108.0,108.0
+328,Chicken Chinthamani Special Soup,1,155.0,155.0
+328,Parotta 1 Pcs,1,57.0,57.0
+329,Veg Clear Soup,2,226.0,113.0
+330,Paneer Butter Masala,1,249.0,249.0
+331,Egg Roast (DOSAI),1,100.0,100.0
+331,Parotta 1 Pcs,2,114.0,57.0
+332,Veg Meals,1,234.0,234.0
+333,Veg Meals,1,234.0,234.0
+334,Veg Meals,1,234.0,234.0
+335,Veg Meals,1,234.0,234.0
+336,Paneer Butter Masala,1,249.0,249.0
+336,Naan,1,90.0,90.0
+337,Veg Meals,1,234.0,234.0
+338,Veg Meals,1,234.0,234.0
+339,Veg Meals,1,234.0,234.0
+340,Veg Meals,1,234.0,234.0
+341,Parotta 1 Pcs,4,228.0,57.0
+342,Veg Meals,1,234.0,234.0
+343,Veg Meals,1,234.0,234.0
+344,Veg Meals,1,234.0,234.0
+345,Non Veg Meals,1,286.0,286.0
+346,Chicken Dynamite,1,363.0,363.0
+347,Paneer Butter Masala,1,249.0,249.0
+348,Kadai Paneer,1,233.0,233.0
+349,Paneer Butter Masala,1,249.0,249.0
+350,Paneer Butter Masala,1,249.0,249.0
+350,Veg Clear Soup,1,108.0,108.0
+350,Butter Roti,4,360.0,90.0
+350,Egg Roast (DOSAI),1,100.0,100.0
+351,Chinthamani Special Kothu Kozhi,1,441.0,441.0
+352,Chicken Kozhi Milagu Soup,1,148.0,148.0
+352,Boiled Egg,1,51.0,51.0
+353,Veg Meals,1,234.0,234.0
+354,Chicken Dynamite,1,448.0,448.0
+354,Chinthamani Special Kothu Kozhi,1,441.0,441.0
+354,Veg Clear Soup,1,108.0,108.0
+355,Veg Meals,1,234.0,234.0
+356,Non Veg Meals,2,572.0,286.0
+356,Veg Clear Soup,1,108.0,108.0
+356,Chicken Kozhi Milagu Soup,1,148.0,148.0
+356,Veg Meals,1,234.0,234.0
+357,Non Veg Meals,1,286.0,286.0
+358,Veg Meals,1,234.0,234.0
+359,Non Veg Meals,1,286.0,286.0
+360,Non Veg Meals,1,286.0,286.0
+360,Veg Clear Soup,1,108.0,108.0
+360,Veg Meals,1,234.0,234.0
+360,Chicken Kozhi Rasam,1,148.0,148.0
+361,Non Veg Meals,1,286.0,286.0
+362,Chinese Chilli Paneer,1,259.0,259.0
+363,Veg Clear Soup,1,108.0,108.0
+363,Non Veg Meals,2,572.0,286.0
+364,Veg Meals,1,234.0,234.0
+365,Non Veg Meals,1,286.0,286.0
+366,Chicken Kozhi Malli Soup,1,149.0,149.0
+367,Veg Clear Soup,1,113.0,113.0
+368,Chicken Kozhi Milagu Soup,1,148.0,148.0
+369,Veg Meals,1,234.0,234.0
+370,Non Veg Meals,1,286.0,286.0
+370,Chinthamani Special Kothu Kozhi,1,351.0,351.0
+370,Chicken Podi Varuval,1,358.0,358.0
+371,Chicken Fried Rice,1,483.0,483.0
+372,Butter Roti,3,270.0,90.0
+372,Paneer Butter Masala,1,249.0,249.0
+372,Naan,1,90.0,90.0
+373,Chicken Kozhi Milagu Soup,1,148.0,148.0
+374,Chicken Kozhi Milagu Soup,1,148.0,148.0
+375,Parotta 1 Pcs,1,57.0,57.0
+375,Egg Kothu Parotta,1,260.0,260.0
+376,Chicken Kozhi Milagu Soup,1,148.0,148.0
+377,Veg Fried Rice,1,252.0,252.0
+378,Chicken Kozhi Milagu Soup,2,296.0,148.0
+379,Non Veg Meals,1,286.0,286.0
+380,Non Veg Meals,1,286.0,286.0
+381,Veg Schezwan Fried Rice,1,259.0,259.0
+382,Non Veg Meals,1,286.0,286.0
+382,Chicken Lollipop (4 Pcs ),1,369.0,369.0
+382,Veg Clear Soup,1,108.0,108.0
+383,Veg Clear Soup,1,108.0,108.0
+383,Non Veg Meals,1,286.0,286.0
+383,Plain Biryani,1,286.0,286.0
+384,Veg Clear Soup,1,108.0,108.0
+384,Non Veg Meals,2,572.0,286.0
+385,Non Veg Meals,1,286.0,286.0
+386,Chicken Kozhi Milagu Soup,2,286.0,143.0
+387,Ghee Rice,1,265.0,265.0
+387,Veg Clear Soup,1,108.0,108.0
+387,Pallipalayam Chicken Varuval,1,356.0,356.0
+388,Gobi Manchurian,1,246.0,246.0
+389,Non Veg Meals,1,286.0,286.0
+390,Egg Podimas,1,91.0,91.0
+390,Chicken Kozhi Milagu Soup,1,148.0,148.0
+391,Non Veg Meals,1,286.0,286.0
+392,Non Veg Meals,1,286.0,286.0
+393,Chicken Lollipop (4 Pcs ),1,369.0,369.0
+393,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+394,Dragon Chicken,1,376.0,376.0
+395,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+395,Non Veg Meals,1,286.0,286.0
+396,Egg Fried Rice,1,259.0,259.0
+396,Non Veg Meals,1,286.0,286.0
+397,Non Veg Meals,1,286.0,286.0
+398,Boiled Egg,1,51.0,51.0
+398,Veg Meals,1,234.0,234.0
+399,Non Veg Meals,1,286.0,286.0
+400,Veg Schezwan Fried Rice,1,259.0,259.0
+401,Hot And Sour Chicken Soup,1,155.0,155.0
+402,Chicken Kozhi Rasam,1,148.0,148.0
+403,Kal Dosa,6,306.0,51.0
+403,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+404,Boiled Egg,1,51.0,51.0
+404,Chicken Schezwan Fried Rice,1,376.0,376.0
+404,Kozhi Milagu Perattu,1,350.0,350.0
+404,Veg Meals,1,234.0,234.0
+405,Non Veg Meals,1,286.0,286.0
+405,Prawns Masala,1,377.0,377.0
+406,Masala Kalakki,1,62.0,62.0
+406,Egg Podimas,1,91.0,91.0
+407,Non Veg Meals,1,286.0,286.0
+408,Non Veg Meals,1,286.0,286.0
+409,Gobi Manchurian,1,246.0,246.0
+410,Egg Podimas,1,91.0,91.0
+410,Chicken Kozhi Milagu Soup,1,148.0,148.0
+411,Chicken Kozhi Milagu Soup,2,296.0,148.0
+411,Chicken Dynamite,1,363.0,363.0
+412,Chicken Lollipop (4 Pcs ),1,369.0,369.0
+412,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+413,Kadai Paneer,1,233.0,233.0
+414,Chicken Kozhi Rasam,2,296.0,148.0
+414,Ghee Rice,1,265.0,265.0
+415,Mushroom Fried Rice,1,285.0,285.0
+415,Mutton Schezwan Noodles,1,428.0,428.0
+415,Pallipalayam Chicken Varuval,1,356.0,356.0
+416,Non Veg Meals,1,286.0,286.0
+417,Chicken Kozhi Milagu Soup,1,143.0,143.0
+417,Chicken Chinthamani Special Soup,1,150.0,150.0
+418,Hot And Sour Chicken Soup,1,155.0,155.0
+419,Gundur Kozhi Mirapa,1,350.0,350.0
+419,Prawns Fry,1,376.0,376.0
+419,Butter Naan,1,94.0,94.0
+419,Naan,1,90.0,90.0
+420,Gobi Manchurian,1,246.0,246.0
+420,Paneer Fried Rice,1,291.0,291.0
+420,Veg Meals,1,234.0,234.0
+421,Gobi Manchurian,1,246.0,246.0
+422,Veg Meals,2,468.0,234.0
+422,Masala Kalakki,2,124.0,62.0
+423,Gobi Manchurian,1,246.0,246.0
+424,Chicken Kozhi Milagu Soup,1,143.0,143.0
+425,Chicken Kozhi Milagu Soup,2,296.0,148.0
+426,Veg Clear Soup,1,113.0,113.0
+426,Gobi Manchurian,1,246.0,246.0
+427,Chicken Kozhi Milagu Soup,1,148.0,148.0
+427,Veg Clear Soup,1,113.0,113.0
+428,Non Veg Meals,1,286.0,286.0
+429,Chicken Kozhi Milagu Soup,1,143.0,143.0
+430,Gobi Pepper Salt,1,239.0,239.0
+430,Veg Schezwan Fried Rice,1,259.0,259.0
+431,Chicken Kozhi Milagu Soup,2,296.0,148.0
+432,Hot And Sour Veg Soup,1,130.0,130.0
+433,Non Veg Meals,1,286.0,286.0
+434,Mixed Non-Veg Fried Rice,1,408.0,408.0
+435,Chicken Kozhi Milagu Soup,1,148.0,148.0
+436,Chicken Kozhi Milagu Soup,1,148.0,148.0
+437,Butter Chicken,1,382.0,382.0
+437,Pallipalayam Chicken Varuval,1,356.0,356.0
+438,Roti,2,170.0,85.0
+439,Gobi Manchurian,1,246.0,246.0
+440,Chinthamani Special Kothu Kozhi,1,356.0,356.0
+440,Non Veg Meals,1,286.0,286.0
+441,Veg Meals,1,234.0,234.0
+442,Non Veg Meals,1,286.0,286.0
+443,Veg Meals,1,234.0,234.0
+444,Egg Biryani,1,286.0,286.0
+445,Naan,2,180.0,90.0
+445,Paneer Butter Masala,1,249.0,249.0
+446,Chicken Dynamite,1,363.0,363.0
+447,Chicken Kozhi Rasam,1,148.0,148.0
+447,Chicken Kozhi Milagu Soup,1,148.0,148.0
+448,Hot And Sour Veg Soup,1,135.0,135.0
+449,Chicken Kozhi Rasam,1,148.0,148.0
+449,Chicken Kozhi Milagu Soup,1,148.0,148.0
+450,Hot And Sour Veg Soup,1,135.0,135.0
+451,Chicken Kozhi Milagu Soup,1,148.0,148.0
+451,Chicken Kozhi Rasam,1,148.0,148.0
+452,Chicken Kozhi Milagu Soup,1,143.0,143.0
+453,Veg Clear Soup,1,113.0,113.0
+454,Plain Biryani,1,286.0,286.0
+454,Prawns Fry,1,376.0,376.0
+455,Non Veg Meals,1,286.0,286.0
+456,Non Veg Meals,1,286.0,286.0
+456,Chicken Kozhi Rasam,1,148.0,148.0
+457,Non Veg Meals,1,286.0,286.0
+457,Plain Biryani,1,286.0,286.0
+458,Kadai Paneer,1,233.0,233.0
+459,Chicken Kozhi Milagu Soup,1,148.0,148.0
+459,Chapati 1 pce,2,114.0,57.0
+459,Chicken Kozhi Rasam,1,148.0,148.0
+460,Kadai Paneer,1,233.0,233.0
+461,Gobi Manchurian,1,246.0,246.0
+462,Hot And Sour Chicken Soup,1,155.0,155.0
+463,Non Veg Meals,1,286.0,286.0
+464,Chicken Hot Pepper,1,356.0,356.0
+464,Ghee Roast,1,164.0,164.0
+464,Podi Roast,1,148.0,148.0
+464,Mixed Non-Veg Fried Rice,1,528.0,528.0

@@ -1,4 +1,4 @@
-"""Tests for src/model_selection.py: real-only scoring, no future leakage, statistics and the decision rule."""
+"""Tests for src/model_selection.py: no future leakage, statistics, the decision rule and the data profile."""
 import sys
 from pathlib import Path
 
@@ -17,27 +17,30 @@ FAST_MODELS = ("Seasonal naive", "Rolling mean", "Weekday mean", "Ridge", "Negat
 
 
 @pytest.fixture(scope="module")
-def real():
-    return ms.load_real_frame(WEATHER, ORDERS)
-
-
-@pytest.fixture(scope="module")
 def full():
     return predict.load_model_frame(WEATHER, ORDERS)
 
 
 # ---------------------------------------------------------------- data
-def test_real_frame_holds_only_the_272_real_days(real):
-    assert len(real) == 272
-    assert real.index.min() == pd.Timestamp("2025-01-02")
-    assert real.index.max() == pd.Timestamp("2025-09-30")
+def test_test_window_is_the_last_year(full):
+    X = predict.make_features(full)
+    first = ms.first_test_day(X, initial=len(X) - ms.TEST_DAYS)
+    assert (X.index >= first).sum() == 365
+    assert X.index[-1] == pd.Timestamp("2026-09-24")
 
 
-def test_first_test_day_leaves_the_initial_training_rows(real):
-    X = predict.make_features(real)
-    first = ms.first_test_day(X, initial=120)
-    assert (X.index < first).sum() == 120
-    assert (X.index >= first).sum() == 145
+def test_no_weather_columns_drop_every_weather_input(full):
+    cols = ms.no_weather_columns(predict.make_features(full))
+    assert "rain_x_weekend" not in cols
+    assert not set(predict.WEATHER_FEATURES) & set(cols)
+    assert "is_fri_sun" in cols and "lag7" in cols
+
+
+def test_generator_expected_value_lines_up_with_the_dates(full):
+    X = predict.make_features(full)
+    ref = ms.generator_expected(ORDERS, X.index[-10:])
+    daily = pd.read_csv(ORDERS, parse_dates=["date"]).set_index("date")
+    pd.testing.assert_series_equal(ref, daily["expected_orders"].loc[X.index[-10:]], check_names=False, check_freq=False)
 
 
 # ---------------------------------------------------------------- backtest
@@ -46,9 +49,9 @@ def _small_models():
     return {k: models[k] for k in FAST_MODELS}
 
 
-def test_backtest_scores_each_test_day_once_for_every_model(real):
-    X = predict.make_features(real)
-    y = real["order_count"].loc[X.index]
+def test_backtest_scores_each_test_day_once_for_every_model(full):
+    X = predict.make_features(full)
+    y = full["order_count"].loc[X.index]
     first = X.index[-21]
     preds = ms.rolling_backtest(X, y, _small_models(), first)
     assert list(preds.index) == list(X.index[-21:])
@@ -56,15 +59,15 @@ def test_backtest_scores_each_test_day_once_for_every_model(real):
     assert not preds.isna().any().any()
 
 
-def test_changing_an_actual_never_changes_forecasts_up_to_that_day(real):
+def test_changing_an_actual_never_changes_forecasts_up_to_that_day(full):
     """The core no-leak guarantee: forecasts for day t and earlier cannot depend on the actual of day t."""
-    X = predict.make_features(real)
-    y = real["order_count"].loc[X.index]
+    X = predict.make_features(full)
+    y = full["order_count"].loc[X.index]
     first = X.index[-21]
     base = ms.rolling_backtest(X, y, _small_models(), first)
 
     changed_day = X.index[-11]
-    tampered = real.copy()
+    tampered = full.copy()
     tampered.loc[changed_day, "order_count"] += 500
     X2 = predict.make_features(tampered)
     y2 = tampered["order_count"].loc[X2.index]
@@ -76,9 +79,9 @@ def test_changing_an_actual_never_changes_forecasts_up_to_that_day(real):
     assert not base.loc[~upto].equals(after.loc[~upto])
 
 
-def test_block_is_never_longer_than_the_refit_interval(real):
-    X = predict.make_features(real)
-    y = real["order_count"].loc[X.index]
+def test_block_is_never_longer_than_the_refit_interval(full):
+    X = predict.make_features(full)
+    y = full["order_count"].loc[X.index]
     seen = []
 
     def spy(Xtr, ytr):
@@ -98,55 +101,6 @@ def test_weekday_mean_predicts_the_training_mean_of_that_weekday():
     predictor = ms.make_models(quick=True)["Weekday mean"](X, y)
     next_monday = pd.DataFrame({f"dow_{i}": [float(i == 0)] for i in range(7)}, index=[pd.Timestamp("2025-01-20")])
     assert predictor(next_monday, None).iloc[0] == pytest.approx(3.5)
-
-
-# ---------------------------------------------------------------- hybrid (version B)
-def test_calibration_recovers_known_multipliers():
-    rng = np.random.default_rng(0)
-    idx = pd.date_range("2024-01-01", periods=2000)
-    rainy = rng.random(2000) < 0.4
-    df = pd.DataFrame({"is_rainy": rainy.astype(int), "heavy_rain": 0, "is_hot": 0, "is_festival": 0}, index=idx)
-    mu = 200 * np.where(rainy, 0.8, 1.0) * np.where(idx.dayofweek.isin([4, 5, 6]), 1.1, 1.0)
-    df["order_count"] = rng.negative_binomial(50, 50 / (50 + mu)).astype(float)
-    params = ms.calibrate_generator(df, cutoff=idx[-1] + pd.Timedelta(days=1))
-    assert params["base"] == pytest.approx(200, rel=0.03)
-    assert params["multipliers"]["rain_mid"] == pytest.approx(0.8, abs=0.03)
-    assert params["multipliers"]["weekend"] == pytest.approx(1.1, abs=0.03)
-    assert params["r"] == pytest.approx(50, rel=0.25)
-
-
-def test_calibration_ignores_every_day_from_the_cutoff_onward(real):
-    cutoff = real.index[127]
-    changed = real.copy()
-    changed.loc[changed.index >= cutoff, "order_count"] += 1000
-    assert ms.calibrate_generator(real, cutoff) == ms.calibrate_generator(changed, cutoff)
-
-
-def test_rare_condition_gets_a_neutral_multiplier():
-    idx = pd.date_range("2025-01-01", periods=100)
-    df = pd.DataFrame({"is_rainy": (np.arange(100) % 2).astype(int), "heavy_rain": 0, "is_festival": 0,
-                       "is_hot": (np.arange(100) == 3).astype(int),  # a single hot day cannot support an estimate
-                       "order_count": 200.0 + np.arange(100) % 7}, index=idx)
-    assert ms.calibrate_generator(df, idx[-1] + pd.Timedelta(days=1))["multipliers"]["hot"] == 1.0
-
-
-def test_hybrid_keeps_real_days_unchanged_and_replaces_the_earlier_days(full, real):
-    cutoff = real.index[127]
-    hybrid = ms.build_hybrid_frame(full, real, cutoff)
-    pd.testing.assert_series_equal(hybrid["order_count"].loc[real.index], real["order_count"])
-    before = hybrid.index < real.index.min()
-    assert before.sum() == 367  # all of 2024 plus 1 Jan 2025
-    assert hybrid.index.is_monotonic_increasing
-    assert not hybrid["order_count"].loc[before].equals(full["order_count"].loc[hybrid.index[before]])
-    assert hybrid.index.max() == real.index.max()  # synthetic Q4 2025 is never used
-
-
-def test_hybrid_test_rows_have_the_same_features_as_real_only(full, real):
-    cutoff = real.index[127]
-    X_real = predict.make_features(real)
-    X_hyb = predict.make_features(ms.build_hybrid_frame(full, real, cutoff))
-    test_days = X_real.index[X_real.index >= cutoff]
-    pd.testing.assert_frame_equal(X_real.loc[test_days], X_hyb.loc[test_days])
 
 
 # ---------------------------------------------------------------- statistics
@@ -225,6 +179,11 @@ def test_candidate_replaces_ridge_only_when_it_clears_every_condition():
     assert verdict["winner"] == "New" and verdict["replaced"] is True
 
 
+def test_best_possible_reference_never_wins():
+    ref = dict(MAE=5.0, delta_MAE=-5.0, dm_p_holm=0.0001, ci_low=-6.0, ci_high=-4.0)
+    assert ms.decide(_decision_table(**{ms.REFERENCE: ref}))["winner"] == "Ridge"
+
+
 def test_lowest_error_wins_when_several_candidates_qualify():
     a = dict(MAE=9.0, delta_MAE=-1.0, dm_p_holm=0.01, ci_low=-2.0, ci_high=-0.2)
     b = dict(MAE=8.0, delta_MAE=-2.0, dm_p_holm=0.01, ci_low=-3.0, ci_high=-1.0)
@@ -251,3 +210,17 @@ def test_profile_finds_a_weekly_cycle():
     y = pd.Series(100 + 20 * (idx.dayofweek == 5).astype(float), index=idx)
     X = pd.DataFrame({"a": np.arange(140.0)}, index=idx)
     assert _profile_row(ms.profile_data(X, y), "Autocorrelation at 7 days")["value"] > 0.9
+
+
+def test_profile_detects_the_rain_weekend_interaction():
+    rng = np.random.default_rng(2)
+    idx = pd.date_range("2025-01-01", periods=400)
+    wk = (idx.day_of_week >= 4).astype(float)
+    rain = (rng.random(400) < 0.3).astype(float)
+    temp = rng.normal(30, 3, 400)  # a continuous input, so RESET has a non-degenerate fit to test
+    y = pd.Series(100 + 100 * wk + 50 * rain - 120 * rain * wk + 2 * temp + rng.normal(0, 5, 400), index=idx)
+    X = pd.DataFrame({"is_fri_sun": wk, "is_rainy": rain, "rain_x_weekend": rain * wk, "temp": temp,
+                      **{f"dow_{i}": (idx.day_of_week == i).astype(float) for i in range(7)}}, index=idx)
+    table = ms.profile_data(X, y).set_index("trait")
+    assert table.loc["Rain x weekend F-test p-value", "value"] < 0.001
+    assert table.loc["RESET p-value", "value"] > 0.05  # with the interaction the linear form fits

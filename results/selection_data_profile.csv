@@ -1,9 +1,10 @@
 trait,value,reading,points_to
-Training days,120.0,Sample available before the first forecast,Sets how complex a model can be
-Days per feature,6.316,"Small sample, overfitting risk","Regularised linear: Ridge, ElasticNet"
-Variance / mean,4.668,Counts spread wider than Poisson,Negative Binomial
-Autocorrelation at 1 day,0.785,Yesterday carries information about today,"Lag features, SARIMAX"
-Autocorrelation at 7 days,0.587,Weekly memory,"SARIMAX, seasonal baselines"
-ADF p-value,0.117,Below 0.05 rejects a unit root,Decides differencing in SARIMAX
-KPSS p-value,0.01,Below 0.05 rejects stationarity,Decides differencing in SARIMAX
-RESET p-value,0.718,No evidence against a linear form,Linear models; trees as a check
+Training days,725.0,Sample available before the first forecast,Sets how complex a model can be
+Days per feature,34.5238,Enough days per feature,Any family
+Variance / mean,29.1131,Counts spread wider than Poisson,Negative Binomial
+Autocorrelation at 1 day,0.3212,Yesterday carries information about today,"Lag features, SARIMAX"
+Autocorrelation at 7 days,0.541,Weekly memory,"SARIMAX, seasonal baselines"
+ADF p-value,0.0001,Below 0.05 rejects a unit root,Decides differencing in SARIMAX
+KPSS p-value,0.1,Below 0.05 rejects stationarity,Decides differencing in SARIMAX
+RESET p-value,0.0141,Linear form is missing something,"Tree models: RF, XGBoost, Extra Trees"
+Rain x weekend F-test p-value,0.0,Rain works differently on weekdays and weekends,Linear models need the interaction term; trees can find it alone

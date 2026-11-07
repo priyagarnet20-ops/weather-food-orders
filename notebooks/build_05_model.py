@@ -28,8 +28,9 @@ md("""
 **Question.** Can next-day order volume be predicted from recent orders, the calendar and the weather, and which
 inputs matter most?
 
-**Data.** Real Surabaya, Indonesia weather (`data/raw/weather.csv`) joined to the real daily food orders
-from the Surabaya MSME Point-of-Sale dataset across 3 combined outlets (`data/raw/daily_orders.csv`).
+**Data.** Real Coimbatore weather (`data/raw/weather.csv`) joined to the *synthetic* daily orders from the generator
+(`docs/generator.md`). The orders are synthetic by design, so results show how well each model recovers the documented
+generator rules, not how a real restaurant behaves.
 
 **Approach.** One-day-ahead prediction. Features use only information known before the predicted day (lagged orders,
 calendar) plus that day's weather. Weather is *observed*, not forecast, so accuracy is an upper bound for a live system.
@@ -70,7 +71,7 @@ print("Features:", ", ".join(X.columns))
 md("""
 **Feature groups.** Lagged orders (`lag1`, `lag7`, `roll7` = mean of the previous 7 days), same-day weather
 (rain, temperature, humidity and the team's rainy/heavy/hot flags), calendar (day of week, Fri-Sun flag, festival
-flag from Indonesian national holidays) and monsoon phase (Northwest monsoon Nov-Apr, dry season May-Oct).
+flag from the documented festival calendar) and monsoon phase (south-west Jun-Sep, north-east Oct-Dec).
 Lags are shifted so a day never sees its own value.
 """)
 
@@ -170,7 +171,7 @@ plt.savefig(RESULTS / "fig13_shap.png", dpi=150, bbox_inches="tight"); plt.show(
 
 md("## 4. Effect of weather and the planning view")
 code("""
-no_weather_cols = [c for c in X.columns if c not in predict.WEATHER_FEATURES and not c.startswith("phase_")]
+no_weather_cols = [c for c in X.columns if c not in predict.WEATHER_INPUTS and not c.startswith("phase_")]
 _, p_nw = predict.fit_and_predict(Xtr[no_weather_cols], ytr, Xte[no_weather_cols])
 rows = []
 for m in ["Ridge", "Random Forest", "XGBoost"]:
@@ -188,23 +189,40 @@ print(f"{best}: on 90% of held-out days the prediction was within +/- {q90:.0f} 
 """)
 
 code("""
-# Compare best-model RMSE to test-period standard deviation
-mu = yte.mean()
-sd_actual = yte.std()
-print(f"Test-period actual mean: {mu:.1f} orders/day | Actual Std Dev: {sd_actual:.1f} orders")
-print(f"Best model ({best}) RMSE: {overall.loc[best, 'RMSE']:.1f} | MAE: {overall.loc[best, 'MAE']:.1f} | MAPE: {overall.loc[best, 'MAPE_%']:.1f}%")
+# Noise floor implied by the generator: daily counts are Negative Binomial around the generator's own expected value,
+# with dispersion r = outlets x per-outlet r (fitted on the real Swiggy days). Even a model that knew the expected value
+# could not beat RMSE = sqrt(mean(mu + mu^2 / r)) on these days.
+import calibration, generator
+R_DISP = generator.OUTLETS * calibration.calibrate().dispersion_r
+mu = pd.read_csv(ORDERS_CSV, parse_dates=["date"]).set_index("date")["expected_orders"].reindex(yte.index)
+floor_rmse = float(np.sqrt((mu + mu**2 / R_DISP).mean()))
+print(f"Irreducible RMSE on the test days (r = {R_DISP:.0f}): {floor_rmse:.1f}  vs best-model RMSE {overall.loc[best, 'RMSE']:.1f}")
 """)
 
 md("""
 ## 5. First findings
-1. **Machine learning models outperform naive baselines:** On the 56 held-out days, Ridge, Random Forest, and XGBoost capture the day-to-day demand variation from lagged orders, calendar signals, and weather features.
-2. **Real demand autocorrelation:** Unlike synthetic data, real restaurant orders show genuine day-to-day autocorrelation where past demand (`roll7`, `lag1`) provides valuable predictive signal.
-3. **Weather impact:** Weather conditions (precipitation, humidity, temperature bands, and Northwest monsoon phase) provide operational guidance for demand shifts.
-4. **Planning implications:** On 90% of held-out days, predictions fall within a tight operational buffer, providing actionable scheduling and stock procurement benchmarks for store managers.
+1. **Every model beats the baseline by a wide margin.** On the 56 held-out days Random Forest has MAE 14.6, XGBoost 14.7 and
+   Ridge 14.9, against 58.2 for the seasonal-naive baseline (about 75% lower); R² is 0.89-0.90. The three models are within
+   0.3 orders of each other, so the model family matters much less than the inputs.
+2. **Weather is a major driver, once the model sees how it works.** Removing every weather input (including the monsoon
+   phases) raises MAE by 60-64% for all three models. Rain lifts weekday orders and lowers weekend orders (real Swiggy
+   evidence, `docs/generator.md`), so the `rain_x_weekend` feature is essential: without it Ridge cannot represent the
+   effect at all. Permutation importance: Fri-Sun +36.8 MAE when shuffled, precipitation +9.1, rainy flag +8.8,
+   rain x weekend +2.8.
+3. **Errors are at the noise floor.** Daily counts are drawn as Negative Binomial around the generator's expected value
+   (r = 138), so even a perfect model would have RMSE of about 19.9 on these days. The best model's RMSE is 18.3 - within
+   sampling noise of that floor - so more tuning cannot help.
+4. **Yesterday's orders barely help.** `lag1`, `lag7` and `roll7` have near-zero importance because the generator has no
+   day-to-day memory. Real restaurant data would normally have it, so this should not be generalised.
+5. **Business reading.** Plan staffing and stock from the day type and the rain forecast together. On 90% of held-out days
+   the prediction was within about 28 orders (16% of the mean daily volume of 170).
 
 **Limits.**
-- The evaluation uses 56 held-out test days from a 731-day (2 full calendar years) observation period.
-- Weather variables reflect observed conditions (oracle setup); in live operations, numerical weather forecasts from meteorological services would be used.
+- Rainy test days have R² of only about 0.2 because rain compresses volume into a narrow band (low variance to explain);
+  their MAE (14.4-14.8) is as good as on other days.
+- The hot-day segment has only 6 test days, too few to compare models there.
+- Weather is observed, not forecast, so these errors are an upper bound on what a live system could achieve.
+- Results come from one chronological split.
 """)
 
 nb["cells"] = cells

@@ -4,8 +4,6 @@ Public functions are used by notebooks/07_timeseries.ipynb.
 
 Design choices (all documented in the notebook):
   * Target is the daily order count. Real weather (data/raw/weather.csv) is joined on date.
-  * The order series is 731 days: 272 real POS days (2025-01-02 to 2025-09-30) and 459 synthetic days
-    (`is_synthetic = 1`). Only real days are ever scored; synthetic days may be used as training history.
   * Weather regressors use the team-wide regime thresholds (rain >= 2.5 mm, heavy >= 15 mm,
     hot >= 33 C). Day-of-week enters as dummies, so the model never has to be told which
     days the generator treats as "weekend".
@@ -36,7 +34,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RAIN_MM = 2.5     # meaningful rain (team regime definition)
 HEAVY_MM = 15.0   # heavy rain
 HOT_C = 33.0      # hot day (temp_max)
-WEATHER_COLS = ["is_rainy", "heavy_rain", "is_hot"]
+WEATHER_COLS = ["is_rainy", "heavy_rain", "is_hot", "rain_x_weekend"]  # rain lifts weekdays, lowers weekends
 CALENDAR_COLS = ["is_festival"]   # known in advance; used by every model that takes regressors
 
 logging.getLogger("cmdstanpy").setLevel(logging.CRITICAL)
@@ -47,35 +45,33 @@ logging.getLogger("prophet").setLevel(logging.CRITICAL)
 # T04  data preparation
 # =============================================================================
 def load_daily(weather_csv: str | Path, orders_csv: str | Path) -> pd.DataFrame:
-    """Daily order series joined with weather; indexed by date, one row per order day.
+    """Daily order series joined with weather; indexed by date, one row per day.
 
     `orders_csv` may be a daily table (date, order_count) or an order-level table
     (date or timestamp column plus order_id), which is aggregated to daily counts.
-    The index follows the order dates (the weather file is longer than the order series).
-    Optional columns `is_festival` and `is_synthetic` are carried through (default 0).
     """
-    w = pd.read_csv(weather_csv, parse_dates=["date"]).set_index("date")
+    w = pd.read_csv(weather_csv, parse_dates=["date"])
     o = pd.read_csv(orders_csv)
     if "order_count" in o.columns:
-        o = o.assign(date=pd.to_datetime(o["date"]).dt.normalize())
-        y = o.drop_duplicates("date").set_index("date")[["order_count"]].astype(float)
-        by_day = o.set_index("date")
+        date_col = "date"
+        y = o.assign(date=pd.to_datetime(o[date_col]).dt.normalize())[["date", "order_count"]]
     else:
         date_col = next(c for c in ("date", "order_time", "timestamp", "datetime") if c in o.columns)
-        o = o.assign(date=pd.to_datetime(o[date_col]).dt.normalize())
-        y = o.groupby("date")["order_id"].nunique().rename("order_count").astype(float).to_frame()
-        by_day = o.set_index("date")
-    df = y.sort_index().join(w, how="left").asfreq("D")
-    for flag in ("is_festival", "is_synthetic"):
-        if flag in by_day.columns:
-            f = by_day[flag].astype(int).groupby(level=0).max()
-            df[flag] = f.reindex(df.index).fillna(0).astype(int)
-        else:
-            df[flag] = 0
+        d = pd.to_datetime(o[date_col]).dt.normalize()
+        y = o.assign(date=d).groupby("date")["order_id"].nunique().rename("order_count").reset_index()
+    df = w.merge(y, on="date", how="left").sort_values("date").set_index("date")
+    df["order_count"] = df["order_count"].astype(float)
+    df = df.asfreq("D")
+    if "is_festival" in o.columns:
+        f = o.assign(date=pd.to_datetime(o["date"]).dt.normalize()).set_index("date")["is_festival"]
+        df["is_festival"] = f.reindex(df.index).fillna(0).astype(int)
+    else:
+        df["is_festival"] = 0
     df["is_rainy"] = (df["precip_mm"] >= RAIN_MM).astype(int)
     df["heavy_rain"] = (df["precip_mm"] >= HEAVY_MM).astype(int)
     df["is_hot"] = (df["temp_max_c"] >= HOT_C).astype(int)
     df["dow"] = df.index.dayofweek
+    df["rain_x_weekend"] = df["is_rainy"] * df["dow"].isin([4, 5, 6]).astype(int)
     df["regime"] = np.select([df["is_rainy"] == 1, df["is_hot"] == 1], ["rainy", "hot"], "normal")
     return df
 
@@ -85,8 +81,6 @@ def data_quality(df: pd.DataFrame) -> pd.Series:
         "days": len(df),
         "start": df.index.min().date(),
         "end": df.index.max().date(),
-        "real_days": int((df["is_synthetic"] == 0).sum()),
-        "synthetic_days": int((df["is_synthetic"] == 1).sum()),
         "missing_order_days": int(df["order_count"].isna().sum()),
         "missing_weather_cells": int(df[["precip_mm", "temp_max_c"]].isna().sum().sum()),
         "min_orders": df["order_count"].min(),
@@ -127,13 +121,11 @@ def time_split(df: pd.DataFrame, test_days: int = 56) -> tuple[pd.DataFrame, pd.
     return df.iloc[:-test_days].copy(), df.iloc[-test_days:].copy()
 
 
-def exog_matrix(df: pd.DataFrame, weather: bool = True, dow: bool = True) -> pd.DataFrame:
-    """Regressors for SARIMAX: festival flag (+ day-of-week dummies) (+ weather flags)."""
-    X = df[CALENDAR_COLS].astype(float)
-    if dow:
-        D = pd.get_dummies(df["dow"].astype(int), prefix="dow", drop_first=True).astype(float)
-        D = D.reindex(columns=[f"dow_{i}" for i in range(1, 7)], fill_value=0.0)
-        X = pd.concat([D, X], axis=1)
+def exog_matrix(df: pd.DataFrame, weather: bool = True) -> pd.DataFrame:
+    """Regressors for SARIMAX: day-of-week dummies + festival flag (+ weather flags)."""
+    X = pd.get_dummies(df["dow"].astype(int), prefix="dow", drop_first=True).astype(float)
+    X = X.reindex(columns=[f"dow_{i}" for i in range(1, 7)], fill_value=0.0)
+    X = pd.concat([X, df[CALENDAR_COLS].astype(float)], axis=1)
     if weather:
         X = pd.concat([X, df[WEATHER_COLS].astype(float)], axis=1)
     return X
@@ -160,18 +152,12 @@ def weekday_mean(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
     return _frame(test.index, test["dow"].map(m).to_numpy())
 
 
-def rolling_mean7(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
-    """Mean of the last 7 training days, held flat over the horizon (level-only baseline)."""
-    return _frame(test.index, np.full(len(test), train["order_count"].iloc[-7:].mean()))
-
-
 @dataclass
 class SarimaxSpec:
     order: tuple = (0, 0, 0)
     seasonal_order: tuple = (0, 0, 0, 0)
     log: bool = False
     weather: bool = True
-    dow: bool = True      # day-of-week dummies as regressors
     label: str = ""
 
 
@@ -186,8 +172,8 @@ def _fit_sarimax(y, X, spec: SarimaxSpec):
 def make_sarimax(spec: SarimaxSpec) -> Callable:
     def fn(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
         y = np.log(train["order_count"]) if spec.log else train["order_count"]
-        res = _fit_sarimax(y, exog_matrix(train, spec.weather, spec.dow), spec)
-        fc = res.get_forecast(steps=len(test), exog=exog_matrix(test, spec.weather, spec.dow))
+        res = _fit_sarimax(y, exog_matrix(train, spec.weather), spec)
+        fc = res.get_forecast(steps=len(test), exog=exog_matrix(test, spec.weather))
         mu, ci = fc.predicted_mean.to_numpy(), fc.conf_int(alpha=0.20).to_numpy()
         if spec.log:  # back-transform with the usual variance correction for the mean
             s2 = float(res.params["sigma2"]) if "sigma2" in res.params.index else float(np.var(res.resid))
@@ -198,54 +184,25 @@ def make_sarimax(spec: SarimaxSpec) -> Callable:
 
 
 def select_sarimax_order(train: pd.DataFrame, weather: bool = True, log: bool = False) -> tuple[SarimaxSpec, pd.DataFrame]:
-    """Small AIC grid on the initial window only: ARMA order, seasonal AR/MA at lag 7, and whether
-    day-of-week dummies are kept. Returns the best spec and the full table."""
+    """Small AIC grid on the initial window only. Returns the best spec and the full table."""
     y = np.log(train["order_count"]) if log else train["order_count"]
+    X = exog_matrix(train, weather)
     rows = []
-    for use_dow, ((p, q), (P, Q)) in itertools.product(
-            [True, False], itertools.product([(0, 0), (1, 0), (0, 1), (1, 1), (2, 0)], [(0, 0), (1, 0)])):
-        spec = SarimaxSpec(order=(p, 0, q), seasonal_order=(P, 0, Q, 7 if (P or Q) else 0), log=log,
-                           weather=weather, dow=use_dow)
+    for (p, q), (P, Q) in itertools.product([(0, 0), (1, 0), (0, 1), (1, 1), (2, 0)], [(0, 0), (1, 0)]):
+        spec = SarimaxSpec(order=(p, 0, q), seasonal_order=(P, 0, Q, 7 if (P or Q) else 0), log=log, weather=weather)
         try:
-            res = _fit_sarimax(y, exog_matrix(train, weather, use_dow), spec)
-            rows.append({"order": (p, 0, q), "seasonal": spec.seasonal_order, "dow_dummies": use_dow,
-                         "aic": res.aic, "bic": res.bic})
-        except Exception:  # pragma: no cover - a failed candidate is simply skipped
-            rows.append({"order": (p, 0, q), "seasonal": spec.seasonal_order, "dow_dummies": use_dow,
-                         "aic": np.inf, "bic": np.inf})
+            res = _fit_sarimax(y, X, spec)
+            rows.append({"order": (p, 0, q), "seasonal": spec.seasonal_order, "aic": res.aic, "bic": res.bic})
+        except Exception as e:  # pragma: no cover - a failed candidate is simply skipped
+            rows.append({"order": (p, 0, q), "seasonal": spec.seasonal_order, "aic": np.inf, "bic": np.inf})
     tab = pd.DataFrame(rows).sort_values("aic").reset_index(drop=True)
     best = tab.iloc[0]
-    return SarimaxSpec(order=best["order"], seasonal_order=best["seasonal"], log=log, weather=weather,
-                       dow=bool(best["dow_dummies"])), tab
-
-
-def weather_effect(df: pd.DataFrame, log: bool = True, order_window: int | None = None) -> pd.DataFrame:
-    """Estimated effect of the weather flags, from a SARIMAX fit on all of `df` (inference, not forecasting).
-
-    With `log=True` the coefficients are proportional effects; `pct_effect` = exp(coef) - 1.
-    The ARMA order is chosen by AIC on the first `order_window` rows (all rows if None).
-    """
-    spec, _ = select_sarimax_order(df.iloc[:order_window] if order_window else df, weather=True, log=log)
-    y = np.log(df["order_count"]) if log else df["order_count"]
-    res = _fit_sarimax(y, exog_matrix(df, True, spec.dow), spec)
-    ci = res.conf_int()
-    rows = []
-    for term in WEATHER_COLS + CALENDAR_COLS:
-        c = float(res.params[term])
-        row = {"term": term, "coef": c, "ci_low": float(ci.loc[term, 0]), "ci_high": float(ci.loc[term, 1]),
-               "p_value": float(res.pvalues[term]), "n_days_flag": int(df[term].sum())}
-        if log:
-            row.update(pct_effect=(np.exp(c) - 1) * 100, pct_low=(np.exp(row["ci_low"]) - 1) * 100,
-                       pct_high=(np.exp(row["ci_high"]) - 1) * 100)
-        rows.append(row)
-    out = pd.DataFrame(rows).set_index("term")
-    out.attrs["order"] = (spec.order, spec.seasonal_order, spec.dow)
-    return out
+    return SarimaxSpec(order=best["order"], seasonal_order=best["seasonal"], log=log, weather=weather), tab
 
 
 def make_prophet(weather: bool = True, changepoint_prior_scale: float = 0.01) -> Callable:
     """Prophet with weekly seasonality, festival flag, optional weather regressors.
-    Yearly seasonality is off: the real series covers under one year, so a yearly term cannot be estimated."""
+    Yearly seasonality is off: the generator has no yearly term, so there is nothing for it to find."""
     def fn(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
         from prophet import Prophet
         for name in ("cmdstanpy", "prophet"):
@@ -269,30 +226,14 @@ def make_prophet(weather: bool = True, changepoint_prior_scale: float = 0.01) ->
     return fn
 
 
-def select_prophet_cps(init: pd.DataFrame, weather: bool = True, grid=(0.01, 0.05, 0.2, 0.5),
-                       val_days: int = 28) -> tuple[float, dict]:
-    """Pick Prophet's trend flexibility on the initial window only: fit on all but the last
-    `val_days` of it, score the last `val_days`. Returns (best value, {value: MAE})."""
-    tr, va = init.iloc[:-val_days], init.iloc[-val_days:]
-    scores = {}
-    for c in grid:
-        f = make_prophet(weather, c)(tr, va)
-        scores[c] = float((va["order_count"] - f["yhat"]).abs().mean())
-    return min(scores, key=scores.get), scores
-
-
 # =============================================================================
 # rolling-origin backtest
 # =============================================================================
 def rolling_origin(df: pd.DataFrame, models: dict[str, Callable], initial: int = 180,
                    horizon: int = 7, step: int = 7, verbose: bool = True) -> pd.DataFrame:
-    """Expanding-window backtest. Returns long table: date, fold, h, model, y, yhat, lo80, hi80.
-
-    `initial` is the number of rows before the first forecast day. The last fold may be shorter
-    than `horizon`, so every row after `initial` is forecast exactly once when step == horizon.
-    """
+    """Expanding-window backtest. Returns long table: date, fold, h, model, y, yhat, lo80, hi80."""
     out = []
-    origins = list(range(initial, len(df), step))
+    origins = list(range(initial, len(df) - horizon + 1, step))
     for k, o in enumerate(origins, 1):
         train, test = df.iloc[:o], df.iloc[o:o + horizon]
         for name, fn in models.items():
@@ -340,22 +281,13 @@ def add_context(fc: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
     return fc.merge(ctx.reset_index(), on="date", how="left")
 
 
-def paired_bootstrap_mae_diff(fc: pd.DataFrame, a: str, b: str, n_boot: int = 5000, seed: int = 0,
-                              block: int = 7) -> dict:
-    """MAE(a) - MAE(b) with a 95% moving-block bootstrap interval. Negative => a is better.
-
-    Forecast errors of consecutive days are correlated, so days are resampled in blocks of `block`
-    consecutive days (block=1 gives the ordinary bootstrap, which is too narrow for this data).
-    """
-    w = fc.pivot(index="date", columns="model", values=["y", "yhat"]).sort_index()
+def paired_bootstrap_mae_diff(fc: pd.DataFrame, a: str, b: str, n_boot: int = 5000, seed: int = 0) -> dict:
+    """MAE(a) - MAE(b) with a 95% bootstrap interval, resampling forecast days. Negative => a is better."""
+    w = fc.pivot(index="date", columns="model", values=["y", "yhat"])
     ea = (w["y"][a] - w["yhat"][a]).abs().to_numpy()
     eb = (w["y"][b] - w["yhat"][b]).abs().to_numpy()
-    n = len(ea)
-    block = max(1, min(block, n))
-    n_blocks = int(np.ceil(n / block))
     rng = np.random.default_rng(seed)
-    starts = rng.integers(0, n - block + 1, size=(n_boot, n_blocks))
-    idx = (starts[:, :, None] + np.arange(block)[None, None, :]).reshape(n_boot, -1)[:, :n]
+    idx = rng.integers(0, len(ea), size=(n_boot, len(ea)))
     d = ea[idx].mean(axis=1) - eb[idx].mean(axis=1)
     return {"a": a, "b": b, "mae_diff": float(ea.mean() - eb.mean()),
             "ci95": (float(np.percentile(d, 2.5)), float(np.percentile(d, 97.5))),

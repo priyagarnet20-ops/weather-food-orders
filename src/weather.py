@@ -1,4 +1,4 @@
-"""Open-Meteo weather fetcher for Surabaya, Indonesia (P1 / T02).
+"""Open-Meteo weather fetcher for Coimbatore (P1 / T02).
 
 Pulls real historical weather from the Open-Meteo Historical Weather (Archive) API
 and writes two cached CSVs plus a metadata file:
@@ -37,11 +37,11 @@ import pandas as pd
 
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
-# Location: Surabaya, Indonesia. Open-Meteo snaps the request to its nearest grid cell;
-# the grid point actually used is stored in weather_meta.json.
-LATITUDE = -7.2575
-LONGITUDE = 112.7521
-TIMEZONE = "Asia/Jakarta"
+# Location. Open-Meteo snaps the request to its nearest grid cell; the grid point actually
+# used is stored in weather_meta.json. Keep these identical across the whole team.
+LATITUDE = 11.00
+LONGITUDE = 76.99
+TIMEZONE = "Asia/Kolkata"
 
 DEFAULT_START = "2023-09-24"
 DEFAULT_END = "2026-09-24"

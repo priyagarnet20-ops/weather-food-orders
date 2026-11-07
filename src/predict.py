@@ -31,9 +31,12 @@ SEED = 42
 TEST_DAYS = 56
 CV_SPLITS = 5
 MODEL_NAMES = ("Seasonal naive", "Ridge", "Random Forest", "XGBoost")
-NW_MONSOON = [11, 12, 1, 2, 3, 4]  # Nov-Apr (wet season in Surabaya, Indonesia)
+SW_MONSOON = range(6, 10)   # Jun-Sep
+NE_MONSOON = range(10, 13)  # Oct-Dec
 
 WEATHER_FEATURES = ["precip_mm", "temp_max_c", "humidity_mean_pct", "is_rainy", "heavy_rain", "is_hot"]
+# every column that uses weather, including derived ones; the "without weather" model drops all of them
+WEATHER_INPUTS = WEATHER_FEATURES + ["rain_x_weekend"]
 
 
 def load_model_frame(weather_csv: str | Path, orders_csv: str | Path) -> pd.DataFrame:
@@ -45,7 +48,9 @@ def load_model_frame(weather_csv: str | Path, orders_csv: str | Path) -> pd.Data
 
 
 def monsoon_phase(month: int) -> str:
-    return "nw_monsoon" if month in NW_MONSOON else "dry_season"
+    if month in SW_MONSOON:
+        return "sw_monsoon"
+    return "ne_monsoon" if month in NE_MONSOON else "dry_season"
 
 
 def make_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -58,12 +63,14 @@ def make_features(df: pd.DataFrame) -> pd.DataFrame:
     for col in WEATHER_FEATURES:
         X[col] = df[col].astype(float)
     X["is_fri_sun"] = df.index.dayofweek.isin([4, 5, 6]).astype(int)
+    X["rain_x_weekend"] = (X["is_rainy"] * X["is_fri_sun"]).astype(float)  # rain lifts weekdays, lowers weekends
     X["is_festival"] = df["is_festival"].astype(float)
     dow = pd.get_dummies(df.index.dayofweek, prefix="dow").astype(float)
     dow.index = df.index
     X = pd.concat([X, dow.reindex(columns=[f"dow_{i}" for i in range(7)], fill_value=0.0)], axis=1)
     phase = pd.Series([monsoon_phase(m) for m in df.index.month], index=df.index)
-    X["phase_nw_monsoon"] = (phase == "nw_monsoon").astype(float)
+    for p in ("sw_monsoon", "ne_monsoon"):
+        X[f"phase_{p}"] = (phase == p).astype(float)
     return X.dropna()
 
 

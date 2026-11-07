@@ -34,19 +34,19 @@ md("""
 **Rubric:** Review 1 — preprocessing & cleaning (3 pts), feature engineering (3 pts), feature selection (2 pts)
 
 **Objective.** Merge the raw order transactions with daily weather observations for
-Surabaya, Indonesia, clean and validate the combined dataset, engineer predictive features
+Coimbatore, clean and validate the combined dataset, engineer predictive features
 (lags, bins, flags, monsoon phase), and perform feature selection via correlation
 analysis and Variance Inflation Factor (VIF).
 
 **Data sources.**
-| File | Rows | Description |
-|------|------|-------------|
-| `data/raw/weather.csv` | 1 097 days | Open-Meteo archive for Surabaya (-7.26°N, 112.75°E) |
-| `data/raw/orders.csv` | 142 618 orders | Combined real POS (53,820 orders) + empirical synthetic extension (88,798 orders) |
-| `data/raw/Products.csv` / `menu.csv` | 96 items | Real menu catalog with item categories and IDR prices |
+| File | Rows | Owner |
+|------|------|-------|
+| `data/raw/weather.csv` | 1 097 days | P1 |
+| `data/raw/orders.csv` | ≈ 183 000 orders | P2 |
+| `data/raw/menu.csv` | 80 items | P2 |
 
-> Real MSME F&B transactional data from Surabaya, Indonesia (Mendeley Data / Data in Brief),
-> joined with Open-Meteo historical weather observations.
+> The orders are *synthetic* (generated from documented rules in `docs/generator.md`),
+> while the weather is *real* Coimbatore data from Open-Meteo.
 """)
 
 # ========================================================================
@@ -139,7 +139,7 @@ daily_agg = (
     .reset_index()
 )
 print(f"Daily aggregation: {daily_agg.shape[0]} days, {daily_agg.shape[1]} columns")
-print(f"Date range: {daily_agg['date'].min().date()} -> {daily_agg['date'].max().date()}")
+print(f"Date range: {daily_agg['date'].min().date()} → {daily_agg['date'].max().date()}")
 daily_agg.head()
 """)
 
@@ -148,7 +148,7 @@ md("""
 ### 1.3 Merge orders with weather
 
 Inner join on `date` so we only keep days where **both** weather and orders exist.
-The festival flag (`is_festival`) is then added from the Indonesian national holiday calendar.
+The festival flag (`is_festival`) is then added from the generator's calendar.
 
 > `total_revenue`, `avg_order_value` and `avg_basket_size` are same-day outcomes of the orders.
 > They are kept for description only and must **not** be used as predictors of `order_count`.
@@ -157,13 +157,13 @@ The festival flag (`is_festival`) is then added from the Indonesian national hol
 code("""
 merged = pd.merge(daily_agg, weather, on="date", how="inner")
 
-# Festival days capture demand anomalies and are known in advance.
-# The flag comes from the Indonesian national holiday calendar (holidays.Indonesia).
+# Festival days are a documented demand driver (about -11%, survey) and are known in advance.
+# The flag comes from P2's generator calendar; add_festival_flag fails loudly if any date has none.
 from features import add_festival_flag
 merged = add_festival_flag(merged)
 print(f"Festival days: {int(merged['is_festival'].sum())}")
 print(f"Merged shape: {merged.shape}")
-print(f"Date range:   {merged['date'].min().date()} -> {merged['date'].max().date()}")
+print(f"Date range:   {merged['date'].min().date()} → {merged['date'].max().date()}")
 print(f"Days covered: {merged.shape[0]}")
 merged.head()
 """)
@@ -235,7 +235,7 @@ fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
 axes[0].boxplot(merged["avg_order_value"], vert=True)
 axes[0].set_title("avg_order_value — Box Plot")
-axes[0].set_ylabel("Rp")
+axes[0].set_ylabel("₹")
 
 axes[1].boxplot(merged["order_count"], vert=True)
 axes[1].set_title("order_count — Box Plot")
@@ -262,10 +262,9 @@ md("""
 
 | Check | Result |
 |-------|--------|
-| Rows after merge | 731 |
+| Rows after merge | 1 097 |
 | Missing values | 0 |
 | Duplicate dates | 0 |
-| Outlets combined | 3 (SHOP001, SHOP002, SHOP003) |
 | IQR outliers retained? | Yes — genuine weather-driven variation |
 """)
 
@@ -277,8 +276,8 @@ md("""
 ## T14 · Feature Engineering
 
 **Rubric requirement:** *"Lags (1, 7), 7-day rolling mean, rain flag and intensity
-bins, temperature bands, weekend and festival flags, monsoon phase (NW Nov–Apr,
-dry season May–Oct)."*
+bins, temperature bands, weekend and festival flags, monsoon phase (SW Jun–Sep,
+NE Oct–Dec)."*
 
 We use `src/features.py` (our reusable module) to apply all transformations.
 """)
@@ -306,7 +305,7 @@ new_cols = [
     "order_count_lag1", "order_count_lag7", "order_count_roll7",
     "is_rainy", "heavy_rain", "rain_intensity",
     "is_hot", "temp_band",
-    "dow", "is_weekend", "is_festival",
+    "dow", "is_weekend", "rain_x_weekend", "is_festival",
     "monsoon_phase",
 ]
 for col in new_cols:
@@ -403,7 +402,7 @@ numeric_cols = [
     "order_count", "precip_mm", "rain_mm", "temp_max_c", "temp_min_c",
     "temp_mean_c", "humidity_mean_pct", "wind_max_kmh",
     "order_count_lag1", "order_count_lag7", "order_count_roll7",
-    "is_rainy", "heavy_rain", "is_hot", "is_weekend", "is_festival",
+    "is_rainy", "heavy_rain", "is_hot", "is_weekend", "rain_x_weekend", "is_festival",
 ]
 # Keep only columns that exist
 numeric_cols = [c for c in numeric_cols if c in features.columns]
@@ -444,7 +443,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
 
 selected_features = [
-    "order_count_lag1",     # yesterday's orders (strong autocorrelation in real POS data, r = +0.769)
+    "order_count_lag1",     # yesterday's orders (weak here: the generator has no day-to-day memory)
     "order_count_lag7",     # same weekday last week
     "order_count_roll7",    # mean of the previous 7 days
     "rain_mm",              # continuous rain measure
@@ -453,7 +452,8 @@ selected_features = [
     "is_weekend",           # Fri-Sun flag, the strongest single signal
     "is_hot",               # binary hot flag
     "is_rainy",             # binary rain flag
-    "is_festival",          # Indonesian national public holidays flag
+    "rain_x_weekend",       # rain lifts weekday orders but lowers weekend orders
+    "is_festival",          # festival days lower demand by about 11% (survey)
 ]
 
 vif_data = sm.add_constant(features[selected_features].dropna())
@@ -509,12 +509,16 @@ md("""
 
 ### Key findings
 
-1. **Weather dynamics**: In Surabaya, heavy rainfall exhibits a moderating effect on physical store walk-in transactions (r ≈ -0.22), reflecting tropical monsoon travel friction.
-2. **Item-level substitution**: While overall volume dips during rain, item-level demand shifts toward hot comfort coffees and warm baked snacks.
-3. **Real transactional autocorrelation**: Unlike synthetic data, the real Surabaya dataset displays authentic day-to-day autocorrelation, making lag-1 and lag-7 effective features.
-4. **Festival days**: Indonesian national holidays (`is_festival`) capture demand anomalies.
-5. **Monsoon phase**: Captures seasonal regime shifts between the Northwest monsoon (wet season, Nov–Apr) and dry season (May–Oct).
-6. **No severe multicollinearity**: PCA is not required. VIF diagnostics confirm retained predictors are stable.
+1. **Weekend** (Fri-Sun) has the strongest link with order count: dry weekends carry roughly 2.5x a dry weekday's orders.
+2. **Rain works in two directions.** It raises orders on Mon-Thu and lowers them on Fri-Sun (real Swiggy evidence), so on its
+   own `is_rainy` correlates only weakly with order count. The engineered `rain_x_weekend` feature captures the switch and is
+   kept as a predictor.
+3. **Festival days lower demand** by about 11% (survey: people eat at home), so `is_festival` is kept as a predictor.
+4. **Lagged orders are weak predictors here.** The synthetic generator has no day-to-day memory, so lag-1 carries little
+   beyond the weekly pattern. This should not be generalised to real restaurant data.
+5. **Monsoon phase** captures seasonal shifts across the SW and NE monsoon.
+6. **No severe multicollinearity** (all VIF well below 10), so PCA is not required. We drop `temp_min_c`,
+   `precip_mm`, and `temp_mean_c` as they are redundant with retained features.
 """)
 
 # ========================================================================
