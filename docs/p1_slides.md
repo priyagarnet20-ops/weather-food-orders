@@ -20,10 +20,10 @@
 * Figures: `results/fig03_decomposition.png`, `results/fig05_forecast_vs_actual.png`
 
 ### Slide B: Results and what it means
-* Best MAE 30.7 orders/day (18.6% MAPE) vs 34.2 for the weekday-mean baseline and 48.0 for seasonal naive.
-* Weather knowledge lowers SARIMAX error by about 2.7 orders/day (8%); statistically distinguishable but modest.
-* Rainy-day error 34.0 vs dry-day 29.3: rainy days are hardest to plan for.
-* Within about 0.3 orders/day of the best possible score (generator expected value, MAE 30.5), so remaining error is noise.
+* Best MAE 15.8 orders/day (10.1% MAPE) vs 39.0 for the weekday-mean baseline and 48.2 for seasonal naive.
+* Weather knowledge (with the rain x weekend term) lowers SARIMAX error by 23.5 orders/day (60%; 95% CI 21.5-25.5).
+* Rainy-day error 15.4 vs dry-day 15.9: once the weather is known, rainy days are no harder to plan.
+* Within about 0.2 orders/day of the best possible score (generator expected value, MAE 15.5), so remaining error is noise.
 * Plan for forecast + 49 orders (about 29%) to cover 9 days in 10; 52 on rainy days, 47 on dry days.
 * Figures: `results/fig06_mae_by_model.png`, `results/fig07_error_rain_dry.png`
 * Speaker note: ranking among the three weather models is tentative (not statistically separable, chosen on the same folds it is scored on). Results show recovery of the generator's rules, not real customer behaviour.

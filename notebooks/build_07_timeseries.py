@@ -314,17 +314,13 @@ display(H.round(2)); H.round(3).to_csv(RES / "metrics_static_holdout.csv")
 md("""
 ### 6. How close to the best possible?
 Because the orders are synthetic, the noise floor is known: no model can beat the generator's own expected value. The cell
-below applies the multipliers documented by P2 (`docs/generator.md`) to the backtest days. **These constants are copied from the
-final generator (including the festival uplift on the 41 festival days); update them if P2 changes the generator.**
+below reads that value (`expected_orders`) straight from the generator's output for the backtest days, so it stays correct
+if the generator changes (`docs/generator.md`).
 """)
 code("""
-BASE, WEEKEND, RAIN_MID, RAIN_HEAVY, HEAT, FESTIVAL = 140, 1.30, 1.20, 1.35, 1.10, 1.25
 d = df.loc[fc["date"].unique()].copy()
-mult = np.where(d["dow"].isin([4, 5, 6]), WEEKEND, 1.0) \\
-     * np.select([d["precip_mm"] >= 15, d["precip_mm"] >= 2.5], [RAIN_HEAVY, RAIN_MID], 1.0) \\
-     * np.where(d["temp_max_c"] >= 33, HEAT, 1.0) \\
-     * np.where(d["is_festival"] == 1, FESTIVAL, 1.0)
-floor = pd.DataFrame({"date": d.index, "y": d["order_count"].to_numpy(), "yhat": BASE * mult, "model": "Generator expected value",
+expected = pd.read_csv(ORDERS_CSV, parse_dates=["date"]).set_index("date")["expected_orders"]
+floor = pd.DataFrame({"date": d.index, "y": d["order_count"].to_numpy(), "yhat": expected.reindex(d.index).to_numpy(), "model": "Generator expected value",
                       "lo80": np.nan, "hi80": np.nan})
 floor_m = F.metrics(floor)
 display(floor_m.round(2))
@@ -369,7 +365,7 @@ lines = [
     f"3. Versus the weekday-mean baseline the best model's MAE difference is {b1['mae_diff'].iloc[0]:.1f} orders/day "
     f"(95% interval {b1['ci95_low'].iloc[0]:.1f} to {b1['ci95_high'].iloc[0]:.1f}).",
     f"4. Error on rainy days is {rain_mae:.1f} orders/day against {dry_mae:.1f} on dry days; the spread of the best model's errors is "
-    f"{rain_sd:.0f} on rainy days versus {other_sd:.0f} on dry days, so rainy days are the hardest to plan for.",
+    f"{rain_sd:.0f} on rainy days versus {other_sd:.0f} on dry days, {'so rainy days are the hardest to plan for' if rain_sd > other_sd else 'so once the weather is known, rainy days are no harder to plan than dry days'}.",
     f"5. The generator's own expected value would score MAE {FLOOR_MAE:.1f}. The best model is {mae(best_model) - FLOOR_MAE:.1f} orders/day "
     f"({(mae(best_model) - FLOOR_MAE) / mae(best_model) * 100:.0f}% of its error) above that floor, "
     f"{'so nearly all remaining error is irreducible noise' if (mae(best_model) - FLOOR_MAE) / mae(best_model) < 0.15 else 'so there is still some structure a better model could capture'}.",
