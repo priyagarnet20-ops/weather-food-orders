@@ -51,7 +51,7 @@ In Review 1, our predictive models established that atmospheric weather (precipi
 In Review 2 (Method 1), we dive into **granular transaction baskets** using **Association Rule Mining (ARM)** to answer critical operational questions:
 1. **Product Co-occurrences:** What items are frequently purchased together in customer multi-item baskets?
 2. **Weather-Driven Rule Shifts (T11):** Do cross-purchasing patterns change systematically during rainy days compared to dry days? Which item pairings emerge exclusively during rainfall?
-3. **Planted Weather Affinity Recovery:** Does real customer purchasing behavior validate the expected surge in hot-comfort items (Masala Chai, Onion Pakora, Filter Coffee, Medu Vada) during monsoon showers, and cold-refresh items (Lime Juice, Ice Cream) during heatwaves?
+3. **Planted Weather Affinity Recovery:** Do the mined rules recover the generator's planted pairs (Chai, Pakora, Samosa, Coffee, Vada) during monsoon showers, and cold-refresh items (Ice Cream, Cold Coffee) during heatwaves?
 4. **Parameter Sensitivity (T12):** How sensitive are discovered itemsets and rules to variations in `min_support` and `min_confidence`? What is the optimal operational threshold for an 80-item Coimbatore menu catalog?
 
 **Data Provenance:**
