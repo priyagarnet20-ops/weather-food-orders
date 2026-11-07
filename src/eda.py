@@ -256,15 +256,18 @@ def plot_fig01_order_distribution(daily_df: pd.DataFrame, save_path: Path | None
     ax.set_xlabel("Daily Order Count")
     ax.set_ylabel("Frequency (Number of Days)")
 
-    # Annotation summary box
+    # Annotation summary box (computed, so it follows the data)
+    s = get_order_distribution_stats(daily_df)
+    regime_mean = daily_df.groupby("regime")["order_count"].mean()
+    dry_mean = daily_df.loc[~daily_df["is_rainy"], "order_count"].mean()
     stats_text = (
-        f"Sample: 1,097 days\n"
-        f"Mean: 176.3 orders/day\n"
-        f"Median: 170.0 orders/day\n"
-        f"Std Dev: 50.5 | IQR: 66.0\n"
-        f"Skewness: +0.80 (right-tailed)\n"
-        f"Rainy Mean: 203.1 (+23.2%)\n"
-        f"Hot Mean: 171.7 | Normal: 161.2"
+        f"Sample: {s['count']:,} days\n"
+        f"Mean: {s['mean']:.1f} orders/day\n"
+        f"Median: {s['median']:.1f} orders/day\n"
+        f"Std Dev: {s['std']:.1f} | IQR: {s['iqr']:.1f}\n"
+        f"Skewness: {s['skewness']:+.2f}\n"
+        f"Rainy Mean: {regime_mean['rainy']:.1f} ({(regime_mean['rainy'] / dry_mean - 1) * 100:+.1f}% vs dry)\n"
+        f"Hot Mean: {regime_mean['hot']:.1f} | Normal: {regime_mean['normal']:.1f}"
     )
     ax.text(
         0.73, 0.94, stats_text, transform=ax.transAxes,
@@ -284,27 +287,31 @@ def plot_fig02_basket_and_value(orders_df: pd.DataFrame, save_path: Path | None 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5.2), gridspec_kw={"width_ratios": [1, 1.4]})
 
     # Subplot 1: Basket size distribution
-    basket_pct = orders_df["item_count"].value_counts(normalize=True).sort_index() * 100
+    basket_pct = orders_df["item_count"].clip(upper=5).value_counts(normalize=True).sort_index() * 100
     bars = ax1.bar(basket_pct.index, basket_pct.values, color=C["blue"], width=0.55, edgecolor=C["bg"])
+    ax1.set_xticks(basket_pct.index, [str(k) if k < 5 else "5+" for k in basket_pct.index])
     ax1.set_title("Customer Basket Size Distribution")
     ax1.set_xlabel("Number of Items in Order Basket")
     ax1.set_ylabel("Share of Total Transactions (%)")
-    ax1.set_xticks(range(1, 6))
-    ax1.set_ylim(0, 50)
+    ax1.set_ylim(0, basket_pct.max() * 1.25)
 
     for bar in bars:
         h = bar.get_height()
         ax1.text(bar.get_x() + bar.get_width() / 2, h + 1.2, f"{h:.1f}%", ha="center", va="bottom", fontsize=9.5, color=C["ink"])
 
+    modal = int(basket_pct.idxmax())
     ax1.text(
-        0.05, 0.92, f"Total Orders: {len(orders_df):,}\nMean Basket: 2.11 items\nModal Basket: 2 items (42.0%)",
+        0.45, 0.92,
+        f"Total Orders: {len(orders_df):,}\nMean Basket: {orders_df['item_count'].mean():.2f} items\n"
+        f"Modal Basket: {modal} item{'s' if modal > 1 else ''} ({basket_pct.max():.1f}%)",
         transform=ax1.transAxes, fontsize=9, va="top",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor=C["light"])
     )
 
-    # Subplot 2: Order value distribution by meal slot
-    slot_order = ["Breakfast", "Evening Snacks", "Dinner", "Lunch"]
-    colors = [C["gray"], C["orange"], C["aqua"], C["blue"]]
+    # Subplot 2: Order value distribution by meal slot (only slots present in the data)
+    slot_colors = {"Breakfast": C["gray"], "Lunch": C["blue"], "Evening Snacks": C["orange"], "Dinner": C["aqua"]}
+    slot_order = [s for s in slot_colors if s in set(orders_df["meal_slot"])]
+    colors = [slot_colors[s] for s in slot_order]
     box = ax2.boxplot(
         [orders_df[orders_df["meal_slot"] == s]["order_value"] for s in slot_order],
         tick_labels=slot_order, patch_artist=True, showmeans=True,
@@ -352,23 +359,28 @@ def plot_fig03_weekday_patterns(daily_df: pd.DataFrame, save_path: Path | None =
     weekend_mean = dow_stats.loc[["Fri", "Sat", "Sun"], "mean"].mean()
 
     ax.axhline(weekday_mean, color=C["gray"], linestyle="--", linewidth=1.5, label=f"Mon–Thu Baseline: {weekday_mean:.1f} orders")
-    ax.axhline(weekend_mean, color=C["blue"], linestyle="--", linewidth=1.5, label=f"Fri–Sun Mean: {weekend_mean:.1f} orders (+33.6%)")
+    weekend_lift = (weekend_mean / weekday_mean - 1) * 100
+    ax.axhline(weekend_mean, color=C["blue"], linestyle="--", linewidth=1.5,
+               label=f"Fri–Sun Mean: {weekend_mean:.1f} orders ({weekend_lift:+.1f}%)")
 
     ax.set_title("Day-of-Week Order Patterns: Pronounced Weekend Surge (Fri–Sun)")
     ax.set_xlabel("Day of Week")
     ax.set_ylabel("Mean Daily Orders (with ±0.5σ error bar)")
     ax.set_xticks(x)
     ax.set_xticklabels(dow_names)
-    ax.set_ylim(0, 270)
+    ax.set_ylim(0, (dow_stats["mean"] + dow_stats["std"] / 2).max() * 1.35)
 
     for bar, (_, row) in zip(bars, dow_stats.iterrows()):
         h = row["mean"]
-        ax.text(bar.get_x() + bar.get_width() / 2, h + 14, f"{h:.1f}", ha="center", va="bottom", fontsize=9.5, fontweight="bold", color=C["ink"])
+        ax.text(bar.get_x() + bar.get_width() / 2, h + row["std"] / 2 + 3, f"{h:.1f}", ha="center", va="bottom", fontsize=9.5, fontweight="bold", color=C["ink"])
 
-    # Insight annotation
+    # Insight annotation (computed)
+    peak_day = dow_stats["mean"].idxmax()
     ax.text(
-        0.03, 0.88,
-        "Key Operational Finding:\n• Mon–Thu remains steady at ~154 orders/day\n• Friday to Sunday surges by +33.6% to ~206 orders/day\n• Sunday is peak volume (209.9 orders/day)",
+        0.03, 0.97,
+        f"Key Operational Finding:\n• Mon–Thu averages ~{weekday_mean:.0f} orders/day\n"
+        f"• Friday to Sunday: {weekend_lift:+.1f}% to ~{weekend_mean:.0f} orders/day\n"
+        f"• Peak day: {peak_day} ({dow_stats.loc[peak_day, 'mean']:.1f} orders/day)",
         transform=ax.transAxes, fontsize=9.5, va="top",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor=C["light"])
     )
@@ -390,18 +402,20 @@ def plot_fig04_hourly_meal_slots(orders_df: pd.DataFrame, save_path: Path | None
     # Plot hourly volume
     bars = ax.bar(hours, counts, color=C["blue"], width=0.7, edgecolor=C["bg"])
 
-    # Highlight operational meal slots with shaded spans
-    slots = [
-        ("Breakfast (7:00–10:30)\n15.0% orders | Avg ₹116", 7, 10.5, C["gray"]),
-        ("Lunch (12:00–15:00)\n35.0% orders | Avg ₹198", 12, 15, C["blue"]),
-        ("Snacks (16:00–18:30)\n19.9% orders | Avg ₹97", 16, 18.5, C["orange"]),
-        ("Dinner (19:00–22:30)\n30.1% orders | Avg ₹182", 19, 22.5, C["aqua"])
-    ]
+    # Shade each meal slot over the hours it actually covers in the data
+    slot_colors = {"Breakfast": C["gray"], "Lunch": C["blue"], "Evening Snacks": C["orange"], "Dinner": C["aqua"]}
+    slot_info = orders_df.groupby("meal_slot").agg(
+        start=("hour", "min"), end=("hour", "max"), n=("hour", "size"), value=("order_value", "mean"))
+    slot_info["share"] = slot_info["n"] / slot_info["n"].sum() * 100
+    slot_info = slot_info.sort_values("start")
 
-    for label, start, end, col in slots:
-        ax.axvspan(start - 0.4, end - 0.4, alpha=0.15, color=col)
-        mid = (start + end) / 2 - 0.4
-        ax.text(mid, max(counts) * 1.05, label, ha="center", va="bottom", fontsize=8.5, fontweight="bold", color=C["ink"])
+    for k, (slot, row) in enumerate(slot_info.iterrows()):
+        start, end = int(row["start"]), int(row["end"]) + 1
+        ax.axvspan(start - 0.4, end - 0.6, alpha=0.15, color=slot_colors.get(slot, C["gray"]))
+        label = f"{slot.replace('Evening ', '')} ({start:02d}–{end:02d})\n{row['share']:.1f}% | Avg ₹{row['value']:.0f}"
+        height = max(counts) * (1.05 if k % 2 == 0 else 0.62)  # stagger so narrow windows do not collide
+        ax.text((start + end) / 2 - 0.5, height, label, ha="center", va="bottom",
+                fontsize=8.5, fontweight="bold", color=C["ink"])
 
     ax.set_title("Hourly Food Order Volumes Across Operational Meal Windows")
     ax.set_xlabel("Hour of the Day (0:00 to 23:00 IST)")
@@ -411,14 +425,17 @@ def plot_fig04_hourly_meal_slots(orders_df: pd.DataFrame, save_path: Path | None
     ax.set_ylim(0, max(counts) * 1.25)
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f"{int(y):,}"))
 
-    # Highlight quiet hours
+    # Insight box (computed)
+    top_hours = hourly_counts.nlargest(3).index.sort_values()
+    peak_slot = slot_info["share"].idxmax()
+    first, last = int(hourly_counts.index.min()), int(hourly_counts.index.max()) + 1
     ax.text(
         0.03, 0.72,
         "Operational Insights:\n"
-        "• 100% of orders cluster within 4 defined meal windows\n"
-        "• Lunch is the peak volume window (35.0%) and highest value\n"
-        "• Kitchen prep should scale for 12:00–14:00 and 19:00–21:00\n"
-        "• Rest/prep periods: 00:00–07:00, 10:30–12:00, 15:00–16:00",
+        f"• All orders fall between {first:02d}:00 and {last:02d}:00\n"
+        f"• {peak_slot} is the peak window ({slot_info.loc[peak_slot, 'share']:.1f}% of orders)\n"
+        f"• Busiest hours: {', '.join(f'{h:02d}:00' for h in top_hours)}\n"
+        f"• Closed / prep: before {first:02d}:00 and after {last:02d}:00",
         transform=ax.transAxes, fontsize=9, va="top",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor=C["light"])
     )
@@ -460,8 +477,9 @@ def plot_fig05_rain_vs_dry_comparison(daily_df: pd.DataFrame, save_path: Path | 
         ax1.text(i, m + 15, f"Mean: {m:.1f}", ha="center", va="bottom", fontweight="bold", fontsize=9, color=C["ink"])
 
     # Subplot 2: Cumulative density / KDE comparison
-    sns.kdeplot(data=daily_df[~daily_df["is_rainy"]]["order_count"], ax=ax2, color=C["gray"], fill=True, alpha=0.3, label="Dry Days (< 2.5mm, n=768)")
-    sns.kdeplot(data=daily_df[daily_df["is_rainy"]]["order_count"], ax=ax2, color=C["blue"], fill=True, alpha=0.35, label="Rainy Days (≥ 2.5mm, n=329)")
+    n_dry, n_rain = int((~daily_df["is_rainy"]).sum()), int(daily_df["is_rainy"].sum())
+    sns.kdeplot(data=daily_df[~daily_df["is_rainy"]]["order_count"], ax=ax2, color=C["gray"], fill=True, alpha=0.3, label=f"Dry Days (< 2.5mm, n={n_dry})")
+    sns.kdeplot(data=daily_df[daily_df["is_rainy"]]["order_count"], ax=ax2, color=C["blue"], fill=True, alpha=0.35, label=f"Rainy Days (≥ 2.5mm, n={n_rain})")
 
     ax2.set_title("Density Shift: Rainy vs Dry Days")
     ax2.set_xlabel("Daily Order Count")
@@ -480,10 +498,11 @@ def plot_fig05_rain_vs_dry_comparison(daily_df: pd.DataFrame, save_path: Path | 
         f"Hypothesis Test Results:\n"
         f"• Dry Mean: {dry_mean:.1f} orders/day\n"
         f"• Rainy Mean: {rain_mean:.1f} orders/day\n"
-        f"• Rain Lift: +{lift:.1f}% surge\n"
-        f"• Heavy Rain Lift: +38.4% surge\n"
+        f"• Rain effect (all days): {lift:+.1f}%\n"
+        f"• Heavy rain effect: {(cat_means[cats[2]] / dry_mean - 1) * 100:+.1f}%\n"
         f"• Welch's t-test: t = {rain_stats['t_statistic']:.2f}, p = {rain_stats['t_pvalue']:.2e}\n"
-        f"• Mann-Whitney U: p = {rain_stats['mwu_pvalue']:.2e} (Reject H₀)",
+        f"• Mann-Whitney U: p = {rain_stats['mwu_pvalue']:.2e}\n"
+        f"• Rain lifts weekdays, lowers weekends (Fig 06)",
         transform=ax2.transAxes, fontsize=9, va="top",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor=C["light"])
     )
@@ -518,21 +537,21 @@ def plot_fig06_weekday_rain_interaction(daily_df: pd.DataFrame, save_path: Path 
     ax.set_ylabel("Mean Daily Orders")
     ax.set_xticks(x)
     ax.set_xticklabels(dow_names)
-    ax.set_ylim(0, 270)
+    ax.set_ylim(0, max(dry_means.max(), rain_means.max()) * 1.45)
 
-    # Percentage lift annotations above rainy bars
+    # Percentage change annotations above rainy bars (text stays in ink; the bar carries the colour)
+    lifts = (rain_means - dry_means) / dry_means * 100
     for i in range(len(dow_names)):
-        d_val = dry_means.iloc[i]
-        r_val = rain_means.iloc[i]
-        lift = (r_val - d_val) / d_val * 100
-        ax.text(x[i] + width/2, r_val + 4, f"+{lift:.0f}%", ha="center", va="bottom", fontsize=8.5, fontweight="bold", color=C["blue"])
+        ax.text(x[i] + width/2, rain_means.iloc[i] + 4, f"{lifts.iloc[i]:+.0f}%", ha="center", va="bottom",
+                fontsize=8.5, fontweight="bold", color=C["ink"])
 
+    wk, we = lifts.loc[["Mon", "Tue", "Wed", "Thu"]].mean(), lifts.loc[["Fri", "Sat", "Sun"]].mean()
     ax.text(
-        0.03, 0.92,
+        0.03, 0.97,
         "Strategic Interaction Insight:\n"
-        "• Rainy-day lift varies by weekday (+14.7% Tuesday to +33.4% Monday)\n"
-        "• Rainy Sundays represent peak stress on delivery fleet (mean: 237 orders/day)\n"
-        "• Rainy Tuesday (174.5) is below dry Saturday/Sunday average (194.4)",
+        f"• Rain on Mon–Thu: {wk:+.0f}% on average (people stay in and order)\n"
+        f"• Rain on Fri–Sun: {we:+.0f}% on average (weekend outings cancelled)\n"
+        "• Rain flattens the weekly cycle: plan weekday staff up, weekend staff down",
         transform=ax.transAxes, fontsize=9, va="top",
         bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor=C["light"])
     )
@@ -566,26 +585,7 @@ def plot_fig07_rainy_item_spikers(item_shift_df: pd.DataFrame, save_path: Path |
         ha = "left" if val >= 0 else "right"
         ax.text(val + offset, bar.get_y() + bar.get_height() / 2, f"{val:+.1f}%", ha=ha, va="center", fontsize=9, fontweight="bold", color=C["ink"])
 
-    ax.text(
-        0.03, 0.22,
-        "Plunging Items (Cold Refresh):\n"
-        "• Tender Coconut Ice Cream: -64.2%\n"
-        "• Vanilla Ice Cream: -60.8%\n"
-        "• Watermelon Juice: -56.4%",
-        transform=ax.transAxes, fontsize=8.5,
-        bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor=C["orange"])
-    )
-
-    ax.text(
-        0.65, 0.82,
-        "Surging Items (Hot Comfort):\n"
-        "• Medu Vada: +117.5%\n"
-        "• Onion Pakora: +105.6%\n"
-        "• Milagai Bajji: +87.6%\n"
-        "• Masala Chai: +52.6%",
-        transform=ax.transAxes, fontsize=8.5,
-        bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor=C["blue"])
-    )
+    ax.set_xlim(combined["relative_lift_pct"].min() * 1.6, combined["relative_lift_pct"].max() * 1.25)
 
     if save_path:
         save_fig(fig, save_path)
@@ -598,19 +598,23 @@ def plot_fig08_category_regime_shifts(cat_regime_pct: pd.DataFrame, save_path: P
 
     regime_order = ["hot", "normal", "rainy"]
     regime_labels = ["Hot Regime\n(T_max ≥ 33°C)", "Normal Regime\n(Dry & Moderate)", "Rainy Regime\n(Precip ≥ 2.5mm)"]
-    cat_df = cat_regime_pct[regime_order].T
+    # Fold the many food categories into "Other food" so each group keeps one fixed colour
+    keep = ["Hot Beverages", "Snacks", "Cold Drinks & Desserts", "Soups", "Meals"]
+    pct = cat_regime_pct[regime_order]
+    grouped = pct.reindex(keep).fillna(0)
+    grouped.loc["Other food"] = pct.drop(index=[k for k in keep if k in pct.index]).sum()
+    cat_df = grouped.T
 
-    # Selected category palette
-    cat_colors = [C["blue"], C["gray"], C["orange"], "#d9822b", C["aqua"], "#8e44ad"]
+    cat_colors = [C["orange"], "#d9822b", C["blue"], C["aqua"], "#8e44ad", C["gray"]]
 
     bottom = np.zeros(len(regime_order))
     for i, col in enumerate(cat_df.columns):
         vals = cat_df[col].values
-        ax.bar(regime_labels, vals, bottom=bottom, label=col, color=cat_colors[i % len(cat_colors)], width=0.55, edgecolor=C["bg"])
+        ax.bar(regime_labels, vals, bottom=bottom, label=col, color=cat_colors[i], width=0.55, edgecolor=C["bg"])
         # Annotate large segments
         for j, (v, b) in enumerate(zip(vals, bottom)):
-            if v > 11:
-                ax.text(j, b + v/2, f"{v:.1f}%", ha="center", va="center", color="white" if i in [0, 4, 5] else C["ink"], fontsize=8.5, fontweight="bold")
+            if v > 8:
+                ax.text(j, b + v/2, f"{v:.1f}%", ha="center", va="center", color="white", fontsize=8.5, fontweight="bold")
         bottom += vals
 
     ax.set_title("Menu Category Share Shift Across Ambient Weather Regimes")
@@ -657,13 +661,14 @@ def plot_fig09_weather_orders_heatmap(daily_df: pd.DataFrame, save_path: Path | 
     ax.set_title("Weather & Order Variables Correlation Heatmap (Coimbatore 3-Year Analysis)", pad=16)
 
     # Highlight important findings
+    r = corr["Order Count"]
     note = (
-        "Key Correlations:\n"
-        "• Rain: r = +0.29 with Order Count (p < 10⁻²⁰)\n"
-        "• Precip Hours: r = +0.25 (p < 10⁻¹⁵)\n"
-        "• Revenue: r = +0.98 with Orders\n"
-        "• Avg Order Value: r = -0.12 (Snack shift)\n"
-        "• Wind: r = 0.00 (Negligible effect)"
+        "Key Correlations with Order Count:\n"
+        f"• Rain: r = {r['Precipitation (mm)']:+.2f} (pooled; + on weekdays, − at weekends)\n"
+        f"• Precip Hours: r = {r['Precip Hours']:+.2f}\n"
+        f"• Revenue: r = {r['Total Revenue']:+.2f}\n"
+        f"• Avg Order Value: r = {r['Avg Order Value']:+.2f}\n"
+        f"• Wind: r = {r['Max Wind Speed']:+.2f}"
     )
     ax.text(
         0.02, 0.35, note, transform=ax.transAxes, fontsize=9, va="top",

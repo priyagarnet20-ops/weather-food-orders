@@ -37,13 +37,13 @@ This notebook delivers the end-to-end Exploratory Data Analysis (EDA) investigat
 
 **Core Analytical Questions:**
 1. **Demand Distributions:** What does the baseline distribution of daily orders and transaction values look like across the 3-year observation window (2023–2026)?
-2. **Temporal Cadence:** How do order volumes fluctuate across weekdays (Mon–Sun) and operational meal slots (Breakfast, Lunch, Evening Snacks, Dinner)?
-3. **Meteorological Impact:** What is the precise quantitative lift in order volume during rainy conditions compared to dry weather? Are these differences statistically significant?
+2. **Temporal Cadence:** How do order volumes fluctuate across weekdays (Mon–Sun) and operational meal slots (Lunch, Evening Snacks, Dinner)?
+3. **Meteorological Impact:** How does rain change order volume, and does the effect differ between weekdays and weekends? Are the differences statistically significant?
 4. **Item & Category Substitutions:** How does weather alter consumer culinary preferences? Which menu items surge or plunge during monsoonal downpours versus extreme heat episodes?
 5. **Multi-variable Correlations:** What are the linear and monotonic relationships between weather variables (precipitation, humidity, temperature, wind, daylight) and order volumes/revenue?
 
 **Data Integrity Note:**
-Weather data is **real reanalysis data** fetched from the Open-Meteo Historical Weather API (`data/raw/weather.csv`, P1). Food order volumes and customer baskets are **synthetic transactions** generated using documented negative-binomial demand models and planted item affinities (`src/generator.py`, P2). Downstream observations evaluate the empirical recovery of these operational rules.
+Weather data is **real reanalysis data** fetched from the Open-Meteo Historical Weather API (`data/raw/weather.csv`, P1). Food order volumes and customer baskets are **synthetic transactions** from `src/generator.py`, whose parameters are derived from real Hotel Chinthamani Swiggy orders, the team survey and real outlet prices (`docs/generator.md`, validated in `docs/validation.md`). Observations below therefore describe the evidence-based rules as they appear in three years of data.
 """)
 
 code("""
@@ -82,10 +82,10 @@ md("""
 
 We ingest five foundational datasets from `data/raw/`:
 * `daily_orders.csv`: 1,097 daily records combining meteorological observations, calendar tags, and order totals.
-* `orders.csv`: 193,406 granular transaction records with timestamps, meal slots, baskets, and basket order values.
+* `orders.csv`: 182,696 granular transaction records with timestamps, meal slots, baskets, and basket order values.
 * `weather.csv`: 1,097 daily weather records from Open-Meteo API.
 * `weather_hourly.csv`: 26,328 hourly meteorological readings.
-* `menu.csv`: 40 authentic Coimbatore menu items with categorization, base prices, and weather affinities.
+* `menu.csv`: 80 items (70 real Hotel Chinthamani dishes + 10 sourced snacks and drinks) with category, price and weather affinity.
 """)
 
 code("""
@@ -136,18 +136,18 @@ plt.show()
 
 md(r"""
 ### Observations on Daily Order Volume
-* **Central Tendency & Spread:** Over the 1,097 days, daily food orders average **176.3 orders/day** with a standard deviation of **50.5**. The median volume is **170.0 orders/day**, with an Interquartile Range (IQR) of **66.0 orders** (25th percentile: 141.0; 75th percentile: 207.0).
-* **Positive Skewness:** The distribution exhibits a positive skewness of **+0.80** and kurtosis of **1.07**, characterized by a long right tail extending to a single-day maximum of **384 orders**. These demand surges coincide with rainy weekend days and regional festive occasions.
-* **Regime Divergence:** Order demand varies substantially across ambient regimes:
-  * **Rainy days ($\ge 2.5$ mm):** Mean of **203.1 orders/day** (median: 198.0).
-  * **Hot days ($T_{\max} \ge 33^\circ$C):** Mean of **171.7 orders/day** (median: 166.0).
-  * **Normal days:** Mean of **161.2 orders/day** (median: 156.0).
+* **Central Tendency & Spread:** Over the 1,097 days, daily orders average **166.5 orders/day** (SD **69.0**). The median is **139 orders/day**, IQR **122** (25th percentile 112; 75th percentile 234).
+* **Two-Humped Shape:** Skewness is **+0.74** and kurtosis **-0.82**: the distribution is a mix of a weekday hump (~110-170) and a weekend hump (~220-300), with a maximum of **354 orders**.
+* **Regime Divergence:**
+  * **Rainy days ($\ge 2.5$ mm):** mean **153.5 orders/day** with a much smaller spread (SD 23.8) - rain pulls weekdays up and weekends down.
+  * **Hot days ($T_{\max} \ge 33^\circ$C):** mean **177.2 orders/day**.
+  * **Normal days:** mean **169.5 orders/day**.
 """)
 
 md(r"""
 ## 3. Customer Basket & Monetary Value Distributions (T19)
 
-Next, we analyze the structure of the 193,406 individual customer transactions: basket sizes ($k \in [1, 5]$ items) and total spend per order.
+Next, we analyze the structure of the 182,696 individual customer transactions: basket sizes and total spend per order.
 """)
 
 code("""
@@ -171,13 +171,9 @@ plt.show()
 
 md("""
 ### Observations on Basket Size & Monetary Value
-* **Basket Architecture:** The empirical modal basket size is **2 items**, representing **42.0%** of all orders (81,233 transactions). Single-item orders account for **29.9%**, 3-item baskets represent **17.9%**, while large family baskets of 4 and 5 items comprise **7.1%** and **3.1%** respectively. The global mean basket size is **2.11 items**.
-* **Financial Value Dispersion:** Order value averages **₹160.7** (median: **₹120.0**), ranging from ₹25 (single tea/coffee) up to ₹910. The 25th–75th interquartile span is **₹70 to ₹220**.
-* **Meal Slot Monetization:** While basket size remains remarkably uniform across meal slots (~2.10 to 2.12 items/order), spend varies drastically by slot:
-  * **Lunch:** Highest average spend (**₹197.8**; median ₹170), driven by biryanis and full meals.
-  * **Dinner:** Substantial average spend (**₹182.4**; median ₹150), driven by parotta platters and curries.
-  * **Breakfast:** Moderately priced (**₹115.8**; median ₹95), dominated by dosa/idli tiffin staples.
-  * **Evening Snacks:** Lowest ticket size (**₹96.8**; median ₹80), characterized by chai, filter coffee, and deep-fried savories.
+* **Basket Architecture:** Single-item orders dominate (**54.6%**), as in the real Swiggy report (65% of food orders). 2-item baskets are **27.2%**, 3 items **11.0%**, 4+ items **7.2%**. Mean basket: **1.73 items**.
+* **Financial Value Dispersion:** Order value averages **₹320** (median **₹255**); the interquartile span is **₹146 to ₹303**, with large group orders up to ₹2,979.
+* **Meal Slot Monetization:** Spend is nearly identical across slots (Lunch ₹319, Evening Snacks ₹320, Dinner ₹323) because every slot mixes real restaurant meals with cheaper snack/drink orders.
 """)
 
 md("""
@@ -199,10 +195,9 @@ plt.show()
 
 md("""
 ### Observations on Day-of-Week Patterns
-* **Weekday Stability (Mon–Thu):** Ordering volume remains remarkably uniform from Monday to Thursday, averaging **154.2 orders/day** (Monday: 152.3; Tuesday: 158.2; Wednesday: 153.2; Thursday: 153.0). Standard deviations are stable (~35–41 orders).
-* **Weekend Demand Surge (Fri–Sun):** A decisive structural shift begins on Friday (**200.9 orders/day**, +30.3% vs weekday baseline) and peaks on Saturday (**207.0**, +34.2%) and Sunday (**209.9**, +36.1%).
-* **Consolidated Weekend Lift:** The combined Friday–Sunday period averages **205.9 orders/day**, representing a **+33.6% surge** over the Monday–Thursday baseline.
-* **Operational Implication:** Delivery fleet dispatch and kitchen preparation should operate on a dual-tier schedule: standard baseline staffing Monday through Thursday, scaling up by +35% for Friday through Sunday shifts.
+* **Weekday Stability (Mon–Thu):** Volume is flat from Monday to Thursday at about **124 orders/day** (Mon 123.6, Tue 125.9, Wed 123.8, Thu 122.3).
+* **Weekend Demand Surge (Fri–Sun):** Friday **223.7**, Saturday **225.0**, Sunday **222.2** orders/day - about **+80%** over Mon–Thu. The size comes from the real Swiggy weekend effect (x2.47 on dry days).
+* **Operational Implication:** Two staffing tiers - baseline Monday–Thursday, roughly 1.8x capacity Friday–Sunday on dry days (rain changes this; see section 6).
 """)
 
 md("""
@@ -226,12 +221,9 @@ plt.show()
 
 md("""
 ### Observations on Hourly Rhythm & Meal Slots
-* **Clustered Demand Windows:** 100% of customer orders are concentrated within four distinct operational windows:
-  1. **Lunch (12:00–15:00):** **35.0%** of total orders (67,614 transactions). Demand is intense and flat across hours 12, 13, and 14 (~22,500 orders/hour).
-  2. **Dinner (19:00–22:30):** **30.1%** of total orders (58,274 transactions). Steady peak across hours 19, 20, and 21 (~16,650 orders/hour).
-  3. **Evening Snacks (16:00–18:30):** **19.9%** of total orders (38,526 transactions). Peak tea-time surge at 16:00 and 17:00 (~15,380 orders/hour).
-  4. **Breakfast (07:00–10:30):** **15.0%** of total orders (28,992 transactions). Steady morning volume across hours 7, 8, and 9 (~8,280 orders/hour).
-* **Inter-Slot Rest & Prep Windows:** Hours 00:00–07:00, 10:30–12:00, 15:00–16:00, and 22:30–24:00 register zero customer orders. These operational downtimes provide critical windows for kitchen inventory restocking, ingredient prep, and rider shift handoffs.
+* **Trading Hours:** All orders fall between **11:00 and 23:00**, the real outlet's trading hours (there is no breakfast slot).
+* **Lunch Dominates:** **73.6%** of orders arrive 11:00–16:00, peaking at 12:00 and 13:00. Dinner (19:00–23:00) takes **16.8%** with a spike at 20:00; the evening snack window (16:00–19:00) **9.7%**.
+* **Prep Windows:** Before 11:00 and 15:00–16:00 are the natural restocking and prep windows.
 """)
 
 md(r"""
@@ -247,10 +239,10 @@ code("""
 rain_stats = eda.get_rain_vs_dry_stats(daily)
 
 print("=== STATISTICAL COMPARISON: RAINY VS DRY DAYS ===")
-print(f"• Dry Days Mean:       {rain_stats['dry_mean']:.2f} orders/day (n = 768)")
-print(f"• Rainy Days Mean:     {rain_stats['rainy_mean']:.2f} orders/day (n = 329)")
-print(f"• Absolute Difference: +{rain_stats['absolute_diff']:.2f} orders/day")
-print(f"• Relative Surge:      +{rain_stats['lift_pct']:.2f}%")
+print(f"• Dry Days Mean:       {rain_stats['dry_mean']:.2f} orders/day (n = {int((~daily['is_rainy']).sum())})")
+print(f"• Rainy Days Mean:     {rain_stats['rainy_mean']:.2f} orders/day (n = {int(daily['is_rainy'].sum())})")
+print(f"• Absolute Difference: {rain_stats['absolute_diff']:+.2f} orders/day")
+print(f"• Relative Change:     {rain_stats['lift_pct']:+.2f}%")
 print(f"• Welch's t-test:      t = {rain_stats['t_statistic']:.4f}, p = {rain_stats['t_pvalue']:.4e}")
 print(f"• Mann-Whitney U test: U = {rain_stats['mwu_statistic']:,.1f}, p = {rain_stats['mwu_pvalue']:.4e}")
 
@@ -272,18 +264,19 @@ plt.show()
 
 md(r"""
 ### Observations on Rainfall Effects & Day-of-Week Interaction
-* **Substantial Volume Expansion:** On rainy days ($\ge 2.5$ mm), mean orders jump to **203.1 orders/day** compared to **164.8 orders/day** on dry days — a statistically significant surge of **+23.2%** (Welch's $t = 11.24$, $p = 2.23 \times 10^{-26}$; Mann-Whitney $p = 9.98 \times 10^{-28}$).
-* **Precipitation Intensity Gradient:**
-  * Days with **moderate rain (2.5–15 mm)** average **196.7 orders/day** (+19.3% over dry baseline).
-  * Days with **heavy monsoonal rain ($\ge 15$ mm)** reach **228.1 orders/day**, representing a massive **+38.4% demand expansion** over dry conditions.
-* **Weekday Variation:** Rainy-day lift varies by weekday, from **+14.7% on Tuesday** to **+33.4% on Monday**; the effect is not uniform.
-* **Weekend Remains Strong:** Rainy Tuesdays average **174.5 orders/day**, below the **194.4** average on dry Saturdays and Sundays. Rain increases demand overall, but does not outweigh the weekend pattern.
+* **Pooled Effect Is Negative:** Rainy days average **153.5 orders/day** against **172.1** on dry days (**-10.9%**, Welch $t = -5.87$, $p = 6.0 \times 10^{-9}$; Mann-Whitney $p = 4.0 \times 10^{-4}$). Moderate rain averages 154.6 (-10.2%), heavy rain 149.0 (-13.4%).
+* **But Rain Works in Opposite Directions by Day Type (the key finding):**
+  * **Mon–Thu:** rain lifts orders from **107.9 to 165.9** (**+54%**) - people stay in and order.
+  * **Fri–Sun:** rain cuts orders from **265.5 to 139.6** (**-47%**) - weekend outings that end in a takeaway are cancelled.
+  * The pooled figure hides both effects; models need a rain x weekend term (see 05_model).
+* **Rain Flattens the Week:** On rainy days the spread of daily orders falls to SD 23.8 from 80.4 on dry days.
+* **Evidence:** both directions come from the real Swiggy orders (x1.56 on rainy weekdays, x0.54 on rainy weekends); the survey agrees on the weekend half.
 """)
 
 md("""
 ## 7. Menu Item & Category Weather Substitutions (T19)
 
-Beyond aggregate order volumes, weather dramatically transforms consumer culinary choices. We unnest the 193,406 orders into individual dishes and evaluate preference shifts.
+Beyond aggregate order volumes, weather dramatically transforms consumer culinary choices. We unnest the 182,696 orders into individual dishes and evaluate preference shifts.
 """)
 
 code("""
@@ -317,20 +310,13 @@ plt.show()
 
 md("""
 ### Observations on Item & Category Substitutions
-* **The Comfort Surge:** Deep-fried savory snacks and hot beverages experience massive demand increases on rainy days:
-  * **Medu Vada:** **+117.5% relative lift** (frequency rises from 4.4% of dry items to 9.6% of rainy items).
-  * **Onion Pakora:** **+105.6% relative lift** (surging from 7.2% to 14.8% of items).
-  * **Milagai Bajji:** **+87.6% relative lift** (from 3.9% to 7.2%).
-  * **Masala Chai:** **+52.6% relative lift** (from 9.9% to 15.1%).
-* **The Cold Beverage Collapse:** Conversely, cooling items plummet during monsoonal downpours:
-  * **Tender Coconut Ice Cream:** **-64.2% drop**.
-  * **Vanilla Ice Cream:** **-60.8% drop**.
-  * **Watermelon Juice:** **-56.4% drop**.
+* **The Comfort Surge (rainy vs dry share of items):** Samosa **+335%**, Coffee **+211%**, Pakora **+200%**, Bajji **+168%**, Chai **+155%**, Vada **+40%** - the snacks survey respondents name for rainy days (Q9).
+* **The Cold Drink Collapse:** Fresh Lime Juice **-77%**, Cold Coffee **-58%**, Buttermilk **-53%**, Ice Cream **-42%**.
 * **Category Regime Shifts:**
-  * **Beverages (Hot):** Expands from 12.1% in hot weather to **22.3%** in rainy weather.
-  * **Snacks & Quick Bites:** Doubles from 10.9% in hot weather to **24.5%** in rainy weather.
-  * **Cold Refreshments & Juices:** Contracts from **26.0%** in hot weather down to **9.1%** in rainy conditions.
-  * **Staple Meals (Biryani & Mains, South Indian Tiffin):** Remain remarkably stable across all weather conditions (~20% and ~18% respectively), confirming that base meal demand is inelastic while snack/beverage choices are highly weather-dependent.
+  * **Cold Drinks & Desserts:** **47.2%** of items on hot days vs ~11% on normal and rainy days (survey Q10: ice cream, lime juice, cold coffee).
+  * **Snacks:** **19.0%** on rainy days vs ~7-8% otherwise; **Hot Beverages** 11.9% vs ~4%.
+  * **Soups:** 15.6% on rainy days vs 10.2% on hot days (real Swiggy soup tilt).
+  * **Restaurant meals** shrink in share on hot and rainy days only because snack/drink orders grow; the food baskets themselves are the real Swiggy ones.
 """)
 
 md("""
@@ -358,13 +344,11 @@ plt.show()
 
 md("""
 ### Observations on Weather-Orders Correlation Matrix
-* **Rainfall is the Primary Meteorological Driver:**
-  * Daily precipitation (`precip_mm`) exhibits a positive correlation of **$r = +0.29$** with order count ($p < 10^{-20}$, Spearman $\\rho = +0.25$).
-  * Precipitation duration (`precip_hours`) displays a positive correlation of **$r = +0.25$** ($p < 10^{-15}$). Days with protracted rainfall generate sustained delivery demand throughout the day.
-  * Mean relative humidity (`humidity_mean_pct`) also correlates positively at **$r = +0.11$**.
-* **Order Count vs Total Revenue:** Order count and daily total revenue move in near-perfect synchrony (**$r = +0.98$**), demonstrating that volume gains directly translate into top-line revenue expansion.
-* **The Snack Shift Dilution Effect:** Daily average order value (`mean_order_val`) has a slight negative correlation with daily order count (**$r = -0.12$**). When rain drives customer volume surges, many orders consist of lower-ticket items (Chai ₹30, Pakora ₹45), slightly decreasing the average basket price even while total daily gross revenue surges.
-* **Negligible Meteorological Factors:** Maximum wind speed (`wind_max_kmh`, $r = 0.00$) and daylight duration (`daylight_s`, $r = +0.06$) have virtually no bearing on food delivery demand in Coimbatore.
+* **Pooled Correlations Are Weak - and Misleading:** Precipitation has $r = -0.10$ with order count (Spearman $+0.06$), precipitation hours $r = -0.11$. This is the pooled rain effect cancelling out: on weekdays alone the rank correlation of rain with orders is clearly positive (tested in `tests/test_eda.py`), at weekends negative.
+* **Order Count vs Total Revenue:** $r = +0.94$ - volume drives revenue.
+* **Average Order Value:** essentially unrelated to volume ($r = +0.01$).
+* **Negligible Factors:** wind ($r = +0.01$) and daylight ($r = +0.01$) have no bearing on demand.
+* **Lesson:** a correlation matrix cannot show an interaction; Fig 06 and the models with `rain_x_weekend` can.
 """)
 
 md("""
@@ -381,25 +365,24 @@ plt.show()
 
 md("""
 ### Observations on Longitudinal Trends
-* **Stationarity & Seasonality:** As confirmed in time-series diagnostic testing, the order volume series is stationary around a constant mean of 176 orders/day. The day-to-day fluctuations are driven entirely by calendar cycles (Fri–Sun weekend peaks), weather shocks (rainy pulses), and 41 localized Tamil Nadu festival spikes (e.g., Deepavali, Pongal, Ayudha Puja).
-* **Monsoon Synchronization:** Major order spikes coincide with the Northeast Monsoon (October–December) and Southwest Monsoon (June–September) precipitation events, reaching 300+ orders per day during active monsoonal troughs.
+* **Stationary Series:** No trend; daily volume moves around ~167 orders/day, driven by the weekly cycle (Fri–Sun peaks), rain (which compresses that cycle) and 41 Tamil Nadu festival days (about x0.89, from the survey).
+* **Monsoon Months Look Flatter:** During the SW (Jun–Sep) and NE (Oct–Dec) monsoons rainy days are frequent, so weekday and weekend volumes move closer together.
 """)
 
 md("""
 ## 10. Summary of Key Findings & Review 1 Recommendations (T19 & T20)
 
 ### 1. Key Analytical Findings
-1. **Rain Increases Delivery Volume by +23.2%:** Rainy days ($\\ge 2.5$ mm) lift average daily orders from 164.8 to 203.1 orders/day (Welch $p = 2.23 \\times 10^{-26}$). Heavy rain ($\\ge 15$ mm) averages **228.1 orders/day** (+38.4% vs. dry days).
-2. **Weekend Lift (+33.6%):** Orders surge from 154.2 orders/day (Mon–Thu) to 205.9 orders/day on Friday through Sunday, peaking on Sunday at 209.9 orders/day.
-3. **Compounding Interaction:** Rain increases demand on every weekday, with varying lift (+14.7% Tuesday to +33.4% Monday). Rainy Sundays represent the operational stress peak (mean 237 orders).
-4. **Meal Window Concentration:** 100% of demand clusters into 4 windows: Lunch (35.0%), Dinner (30.1%), Evening Snacks (19.9%), and Breakfast (15.0%).
-5. **Dramatic Menu Substitution:** Rain causes a 2x surge in hot beverages and fried snacks (Pakora +106%, Vada +118%, Chai +53%), while cold juices and ice creams drop by over 55–64%.
-6. **Correlation Insights:** Precipitation ($r = +0.29$) and rain hours ($r = +0.25$) are the primary drivers of demand. Average ticket size slightly contracts ($r = -0.12$) due to the influx of small snack orders.
+1. **Rain Has Opposite Effects by Day Type:** +54% on Mon–Thu, -47% on Fri–Sun; pooled, rainy days are 10.9% below dry days ($p = 6.0 \\times 10^{-9}$). Rain flattens the weekly cycle.
+2. **Weekend Lift (~+80% on dry days):** about 124 orders/day Mon–Thu vs about 224 Fri–Sun.
+3. **Lunch Dominates:** 73.6% of orders arrive 11:00–16:00; dinner 16.8%, evening snacks 9.7%.
+4. **Menu Substitution:** rainy days triple the share of samosa, pakora, bajji, chai and coffee; hot days push cold drinks and ice cream to 47% of items.
+5. **Correlations Mislead Here:** pooled $r$ for rain is about $-0.1$ because the weekday and weekend effects cancel.
 
 ### 2. Operational Recommendations for Review 1
-* **Dynamic Kitchen Prep:** Pre-batch onion pakora batter, vada mix, and masala chai decoction when rainfall probability $\\ge 50\\%$. Restock cold refreshments and ice cream tubs when maximum temperature forecast exceeds $33^\\circ$C.
-* **Targeted Delivery Fleet Rostering:** Increase delivery rider incentives and shift capacity by +30% on rainy weekdays and +50% on rainy weekends (especially Sundays between 12:00–14:30 and 19:00–21:30).
-* **Promotional Bundles:** Launch a dedicated "Coimbatore Monsoon Combo" (Masala Chai + Onion Pakora) during rainfall alerts to capitalize on organic customer cravings and lift basket ticket values.
+* **Weather-Aware Staffing:** on a rainy weekday add roughly 50% capacity; on a rainy weekend cut the usual weekend uplift by about half.
+* **Dynamic Kitchen Prep:** pre-batch samosa, pakora, bajji and chai/coffee when rain is forecast; stock ice cream, lime juice and cold coffee when the maximum temperature forecast is at least $33^\\circ$C.
+* **Promotional Bundles:** a rainy-day "Chai + Samosa / Pakora" combo and a hot-day "Ice Cream + Cold Coffee" combo, matching the survey-backed pairs.
 
 ---
 **All 10 presentation-ready charts have been exported to `results/eda/` and `slides/review1/figures/`.**
