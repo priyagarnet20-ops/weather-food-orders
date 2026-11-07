@@ -171,7 +171,7 @@ plt.savefig(RESULTS / "fig13_shap.png", dpi=150, bbox_inches="tight"); plt.show(
 
 md("## 4. Effect of weather and the planning view")
 code("""
-no_weather_cols = [c for c in X.columns if c not in predict.WEATHER_FEATURES and not c.startswith("phase_")]
+no_weather_cols = [c for c in X.columns if c not in predict.WEATHER_INPUTS and not c.startswith("phase_")]
 _, p_nw = predict.fit_and_predict(Xtr[no_weather_cols], ytr, Xte[no_weather_cols])
 rows = []
 for m in ["Ridge", "Random Forest", "XGBoost"]:
@@ -189,34 +189,38 @@ print(f"{best}: on 90% of held-out days the prediction was within +/- {q90:.0f} 
 """)
 
 code("""
-# Noise floor implied by the generator: daily counts are Negative Binomial with r = 25, so even a model that knows the
-# true expected value cannot beat sd = sqrt(mu + mu^2 / r) per day.
-R_DISP = 25
-mu = yte.mean()
-print(f"Irreducible sd at the test-period mean ({mu:.0f} orders/day): {np.sqrt(mu + mu**2 / R_DISP):.1f}  "
-      f"vs best-model RMSE {overall.loc[best, 'RMSE']:.1f}")
+# Noise floor implied by the generator: daily counts are Negative Binomial around the generator's own expected value,
+# with dispersion r = outlets x per-outlet r (fitted on the real Swiggy days). Even a model that knew the expected value
+# could not beat RMSE = sqrt(mean(mu + mu^2 / r)) on these days.
+import calibration, generator
+R_DISP = generator.OUTLETS * calibration.calibrate().dispersion_r
+mu = pd.read_csv(ORDERS_CSV, parse_dates=["date"]).set_index("date")["expected_orders"].reindex(yte.index)
+floor_rmse = float(np.sqrt((mu + mu**2 / R_DISP).mean()))
+print(f"Irreducible RMSE on the test days (r = {R_DISP:.0f}): {floor_rmse:.1f}  vs best-model RMSE {overall.loc[best, 'RMSE']:.1f}")
 """)
 
 md("""
 ## 5. First findings
-1. **Every model beats the baseline.** On the 56 held-out days Ridge has MAE 29.7 against 45.5 for the seasonal-naive
-   baseline (about 35% lower); RMSE falls from 60.4 to 37.3. Ridge, XGBoost and Random Forest are within about 2 orders
-   of MAE of each other, so the model family matters much less than the choice of inputs.
-2. **Rain is the strongest signal.** The rainy-day flag has by far the largest permutation importance (about +7 MAE when
-   shuffled), ahead of Fri-Sun (+2.9) and heavy rain (+2.7). Rainy days average about 203 orders against 161 on normal days
-   in the generated data, and the models pick that up. Removing the weather and monsoon inputs raises MAE by 3 to 7%.
-3. **Errors are close to the noise floor.** The generator draws daily counts with extra randomness (Negative Binomial,
-   r = 25), which caps accuracy at an RMSE of about 38 orders at this volume. The best model's RMSE is 37, so there is
-   little left to gain from more tuning. A MAPE near 17% reflects that noise, not a weak model.
-4. **Yesterday's orders barely help.** `lag1` and `lag7` have near-zero importance because the generator has no day-to-day
-   memory. Real restaurant data would normally have it, so this finding should not be generalised beyond the synthetic data.
-5. **Business reading.** Plan staffing and stock from the day of week and the rain forecast. On 90% of held-out days the
-   prediction was within about 70 orders (roughly 38% of daily volume), so a buffer of that size is needed to cover
-   most days.
+1. **Every model beats the baseline by a wide margin.** On the 56 held-out days Random Forest has MAE 14.6, XGBoost 14.7 and
+   Ridge 14.9, against 58.2 for the seasonal-naive baseline (about 75% lower); R² is 0.89-0.90. The three models are within
+   0.3 orders of each other, so the model family matters much less than the inputs.
+2. **Weather is a major driver, once the model sees how it works.** Removing every weather input (including the monsoon
+   phases) raises MAE by 60-64% for all three models. Rain lifts weekday orders and lowers weekend orders (real Swiggy
+   evidence, `docs/generator.md`), so the `rain_x_weekend` feature is essential: without it Ridge cannot represent the
+   effect at all. Permutation importance: Fri-Sun +36.8 MAE when shuffled, precipitation +9.1, rainy flag +8.8,
+   rain x weekend +2.8.
+3. **Errors are at the noise floor.** Daily counts are drawn as Negative Binomial around the generator's expected value
+   (r = 138), so even a perfect model would have RMSE of about 19.9 on these days. The best model's RMSE is 18.3 - within
+   sampling noise of that floor - so more tuning cannot help.
+4. **Yesterday's orders barely help.** `lag1`, `lag7` and `roll7` have near-zero importance because the generator has no
+   day-to-day memory. Real restaurant data would normally have it, so this should not be generalised.
+5. **Business reading.** Plan staffing and stock from the day type and the rain forecast together. On 90% of held-out days
+   the prediction was within about 28 orders (16% of the mean daily volume of 170).
 
 **Limits.**
+- Rainy test days have R² of only about 0.2 because rain compresses volume into a narrow band (low variance to explain);
+  their MAE (14.4-14.8) is as good as on other days.
 - The hot-day segment has only 6 test days, too few to compare models there.
-- Residuals show mild weekly autocorrelation (Ljung-Box p = 0.02 at lag 7), a small structure the models do not capture.
 - Weather is observed, not forecast, so these errors are an upper bound on what a live system could achieve.
 - Results come from one chronological split.
 """)
