@@ -14,9 +14,9 @@ T12,P2,Rule threshold sensitivity,R2,Method 1 evaluation (3),Table in notebook,7
 T13,P3,Merge and clean,R1,Cleaning & preprocessing (3),"03_preprocess.ipynb, data/processed/",2,3,"Join orders to weather on date. Types, missing values, duplicates, IQR outliers on order value. Log each step."
 T14,P3,Feature engineering,R1,Feature engineering (2),"src/features.py, PR",3,3,"Lags (1, 7), 7-day rolling mean, rain flag and intensity bins, temperature bands, weekend and festival flags, monsoon phase (SW Jun-Sep, NE Oct-Dec)."
 T15,P3,Feature selection check,R1,Feature engineering (2),Notebook section,3,2,Correlation matrix and VIF. PCA only if multicollinearity is a problem.
-T16,P3,ARM data preparation,R2,Method 1 prep & implementation (2),src/arm.py,5,2,"Orders to one-hot transactions (TransactionEncoder), split into rainy and dry day segments."
-T17,P3,FP-Growth / Apriori implementation,R2,Method 1 prep & implementation (2),"06_arm.ipynb, rules CSV",5,3,"Frequent itemsets and rules per segment, exported as a rules table for the dashboard."
-T18,P3,Final report,R2,Final report deliverable,"docs/report, slides/",8,5,Compile all sections into the final report and assemble the Review 2 deck.
+T16,P3,ARM data preparation,R2,Method 1 prep & implementation (2),"src/arm.py, tests/test_arm.py",5,2,"Orders to one-hot transactions (TransactionEncoder), split into rainy and dry day segments."
+T17,P3,FP-Growth / Apriori implementation,R2,Method 1 prep & implementation (2),"notebooks/06_arm.ipynb, results/rules_*.csv",5,3,"Frequent itemsets and rules per segment, exported as a rules table for the dashboard."
+T18,P3,Final report,R2,Final report deliverable,"slides/review2/review2_arm_deck.pptx, results/",8,5,Compile all sections into the final report and assemble the Review 2 deck.
 T19,P4,Exploratory data analysis,R1,EDA & visualization (3),04_eda.ipynb,3,3,"Order distributions, weekday and hourly patterns, rain vs dry comparison, weather-orders correlation heatmap."
 T20,P4,Presentation chart set,R1,EDA & visualization (3),"PNG exports, slides",3,2,"Clean, labelled exports of the 8-10 key charts."
 T21,P4,Review 1 deck,R1,Presentation (3),slides/review1,4,2,Assemble the 10-minute deck with one section per person.
