@@ -183,8 +183,16 @@ def forecast_view(daily: pd.DataFrame) -> None:
         col2.metric("Mean predicted orders", f"{timeline[selected_model].mean():.1f}")
         col3.metric("Last observed order date", last_order_date.strftime("%d %b %Y"))
         st.subheader(f"{selected_model} forecast: {start_date:%d %b %Y} – {end_date:%d %b %Y}")
-        st.line_chart(timeline.set_index("date")[[selected_model]])
-        st.caption("Only dates in the selected range and weather filter are shown.")
+        st.line_chart(
+            timeline.set_index("date")[[selected_model]],
+            x_label="Date",
+            y_label="Projected orders per day",
+        )
+        st.caption(
+            f"{selected_model} is projected recursively over the selected range. Ridge is the "
+            "dashboard default from the predictive-model comparison; the seven-day SARIMAX result "
+            "and +25-order planning buffer in the Review 2 slides are separate and are not applied here."
+        )
         st.subheader("Daily forecast, weather and occasions")
         daily_view = timeline[
             [
@@ -246,7 +254,11 @@ def forecast_view(daily: pd.DataFrame) -> None:
     col1.metric("Days shown", f"{len(view):,}")
     col2.metric("Mean actual orders", f"{view['actual'].mean():.1f}")
     col3.metric(f"{selected_model} MAE", f"{actual_mae:.1f} orders")
-    st.line_chart(view.set_index("date")[["actual", selected_model]])
+    st.line_chart(
+        view.set_index("date")[["actual", selected_model]],
+        x_label="Date",
+        y_label="Orders per day",
+    )
     st.caption(
         "Historical evaluation on a chronological 56-day holdout. Same-day observed weather is used, "
         "so this retrospective result is an optimistic upper bound for a live forecast."
