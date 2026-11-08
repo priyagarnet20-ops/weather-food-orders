@@ -34,8 +34,8 @@ def get_forecasts(daily: pd.DataFrame) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=3600, show_spinner="Fetching recent and forecast weather from Open-Meteo...")
-def get_weather_extension(last_order_date: str) -> pd.DataFrame:
-    return fetch_weather_extension(last_order_date)
+def get_weather_extension(last_order_date: str, end_date: str) -> pd.DataFrame:
+    return fetch_weather_extension(last_order_date, end_date=end_date)
 
 
 @st.cache_data(show_spinner="Training demand models and projecting future dates...")
@@ -73,6 +73,35 @@ def weather_label(row: pd.Series) -> str:
     return "Dry"
 
 
+def persistent_date_input(
+    label: str,
+    state_key: str,
+    min_date,
+    max_date,
+    default_date,
+):
+    """Keep independent date selections stable across reruns and view switches."""
+    widget_key = f"{state_key}_widget"
+    saved_date = st.session_state.get(state_key, default_date)
+    if not min_date <= saved_date <= max_date:
+        saved_date = default_date
+
+    widget_date = st.session_state.get(widget_key, saved_date)
+    if not min_date <= widget_date <= max_date:
+        widget_date = saved_date
+    if widget_key not in st.session_state or st.session_state[widget_key] != widget_date:
+        st.session_state[widget_key] = widget_date
+
+    selected_date = st.sidebar.date_input(
+        label,
+        min_value=min_date,
+        max_value=max_date,
+        key=widget_key,
+    )
+    st.session_state[state_key] = selected_date
+    return selected_date
+
+
 def forecast_view(daily: pd.DataFrame) -> None:
     st.header("Order forecast")
     forecast_mode = st.radio(
@@ -86,82 +115,126 @@ def forecast_view(daily: pd.DataFrame) -> None:
 
     if forecast_mode == "Upcoming dates":
         last_order_date = pd.to_datetime(daily["date"]).max().normalize()
+        min_forecast_date = (last_order_date + pd.Timedelta(days=1)).date()
+        max_forecast_date = pd.Timestamp("2027-01-01").date()
+        if min_forecast_date > max_forecast_date:
+            st.error("The latest order date is beyond the supported forecast window ending 1 Jan 2027.")
+            return
+        today = local_today()
+        default_forecast_date = min(max(today.date(), min_forecast_date), max_forecast_date)
+        start_date = persistent_date_input(
+            "Forecast start date",
+            "upcoming_forecast_start",
+            min_forecast_date,
+            max_forecast_date,
+            default_forecast_date,
+        )
+        end_date = persistent_date_input(
+            "Forecast end date",
+            "upcoming_forecast_end",
+            min_forecast_date,
+            max_forecast_date,
+            default_forecast_date,
+        )
+        if start_date > end_date:
+            st.info("The forecast end date must be on or after the start date.")
+            return
         if st.button("Refresh weather forecast"):
             get_weather_extension.clear()
             get_future_forecasts.clear()
         try:
-            weather_extension = get_weather_extension(last_order_date.date().isoformat())
+            weather_extension = get_weather_extension(
+                last_order_date.date().isoformat(),
+                max_forecast_date.isoformat(),
+            )
             forecasts = get_future_forecasts(daily, weather_extension)
         except (OSError, RuntimeError, ValueError, pd.errors.ParserError) as error:
             st.error(f"Could not generate future forecasts: {error}")
             return
 
-        today = local_today()
-        future_weather = weather_extension.loc[weather_extension["date"] >= today].copy()
-        view = forecasts.loc[forecasts["date"] >= today].merge(
-            future_weather[["date", "is_rainy", "is_hot"]],
+        forecast_details = forecasts.merge(
+            weather_extension[
+                [
+                    "date",
+                    "is_rainy",
+                    "is_hot",
+                    "temp_max_c",
+                    "precip_mm",
+                    "festival_name",
+                ]
+            ],
             on="date",
             how="left",
         )
-        if view.empty:
-            st.error("Open-Meteo returned no forecast dates from today onward.")
+        timeline = forecast_details.loc[
+            forecast_details["date"].dt.date.between(start_date, end_date)
+        ].copy()
+        if timeline.empty:
+            st.error(f"No forecasts are available from {start_date:%d %b %Y} to {end_date:%d %b %Y}.")
             return
-        view["weather"] = view.apply(weather_label, axis=1)
-
-        min_date, max_date = view["date"].min().date(), view["date"].max().date()
-        date_range = st.sidebar.date_input(
-            "Forecast date range",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date,
-        )
-        if not isinstance(date_range, tuple) or len(date_range) != 2:
-            st.info("Select both a start and end date.")
-            return
-        view = view.loc[
-            view["date"].dt.date.between(date_range[0], date_range[1])
-            & view["weather"].isin(selected_weather)
-        ]
-        if view.empty:
-            st.info("No upcoming forecast days match these filters.")
+        timeline["weather"] = timeline.apply(weather_label, axis=1)
+        timeline = timeline.loc[timeline["weather"].isin(selected_weather)]
+        if timeline.empty:
+            st.info("No forecast days in this range match the weather filter.")
             return
 
-        gap_days = max(0, (today - last_order_date).days - 1)
         col1, col2, col3 = st.columns(3)
-        col1.metric("Forecast days shown", f"{len(view):,}")
-        col2.metric("Mean forecast orders", f"{view[selected_model].mean():.1f}")
+        col1.metric("Forecast period", f"{start_date:%d %b} – {end_date:%d %b %Y}")
+        col2.metric("Mean predicted orders", f"{timeline[selected_model].mean():.1f}")
         col3.metric("Last observed order date", last_order_date.strftime("%d %b %Y"))
-        st.line_chart(view.set_index("date")[[selected_model]])
-        st.caption("Vertical axis: projected orders per day.")
-        if gap_days:
-            st.warning(
-                f"The available order data ends on {last_order_date:%d %b %Y}, {gap_days} days before today. "
-                "The model recursively projects demand across that gap using observed weather, then "
-                "uses Open-Meteo's current 16-day weather forecast. These are exploratory projections, "
-                "not reliable operational forecasts; update the order data before using them for staffing or inventory."
-            )
-        else:
-            st.caption("Uses the latest available orders and Open-Meteo's current 16-day weather forecast.")
+        st.subheader(f"{selected_model} forecast: {start_date:%d %b %Y} – {end_date:%d %b %Y}")
+        st.line_chart(timeline.set_index("date")[[selected_model]])
+        st.caption("Only dates in the selected range and weather filter are shown.")
+        st.subheader("Daily forecast, weather and occasions")
+        daily_view = timeline[
+            [
+                "date",
+                selected_model,
+                "weather",
+                "temp_max_c",
+                "precip_mm",
+                "festival_name",
+            ]
+        ].rename(
+            columns={
+                selected_model: "Predicted orders",
+                "weather": "Weather",
+                "temp_max_c": "High temp (°C)",
+                "precip_mm": "Precipitation (mm)",
+                "festival_name": "Festival / occasion",
+            }
+        )
+        daily_view["Festival / occasion"] = daily_view["Festival / occasion"].replace("", "—")
+        st.dataframe(daily_view, hide_index=True, use_container_width=True)
+
+        st.caption("Uses Open-Meteo weather where available and historical monthly medians beyond its forecast horizon.")
         return
 
     forecasts = get_forecasts(daily)
     forecast_dates = forecasts["date"]
     min_date, max_date = forecast_dates.min().date(), forecast_dates.max().date()
-    date_range = st.sidebar.date_input(
-        "Holdout date range",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date,
-        key="holdout_date_range",
+    start_date = persistent_date_input(
+        "Holdout start date",
+        "holdout_start",
+        min_date,
+        max_date,
+        min_date,
     )
+    end_date = persistent_date_input(
+        "Holdout end date",
+        "holdout_end",
+        min_date,
+        max_date,
+        max_date,
+    )
+    if start_date > end_date:
+        st.info("The holdout end date must be on or after the start date.")
+        return
     weather = daily[["date", "is_rainy", "is_hot"]].copy()
     weather["weather"] = weather.apply(weather_label, axis=1)
     view = forecasts.merge(weather[["date", "weather"]], on="date", how="left")
-    if not isinstance(date_range, tuple) or len(date_range) != 2:
-        st.info("Select both a start and end date.")
-        return
     view = view.loc[
-        view["date"].dt.date.between(date_range[0], date_range[1])
+        view["date"].dt.date.between(start_date, end_date)
         & view["weather"].isin(selected_weather)
     ]
     if view.empty:

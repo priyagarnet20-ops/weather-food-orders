@@ -4,7 +4,7 @@ import pytest
 
 from dashboard.analytics import mine_pair_rules, rolling_pair_lift
 from dashboard.forecasting import _future_feature_row, forecast_future_orders
-from dashboard.weather import local_today
+from dashboard.weather import fetch_weather_extension, local_today
 
 
 @pytest.fixture
@@ -166,3 +166,44 @@ def test_future_forecast_rejects_weather_date_gaps():
 
     with pytest.raises(ValueError, match="without gaps"):
         forecast_future_orders(daily, gap_weather)
+
+
+def test_weather_extension_fills_missing_api_values_from_historical_month(
+    tmp_path, monkeypatch
+):
+    historical = pd.DataFrame({
+        "date": pd.to_datetime(["2024-01-01", "2024-01-02"]),
+        "precip_mm": [2.0, 4.0],
+        "rain_mm": [1.0, 3.0],
+        "temp_max_c": [32.0, 34.0],
+        "humidity_mean_pct": [60.0, 80.0],
+    })
+    weather_csv = tmp_path / "weather.csv"
+    historical.to_csv(weather_csv, index=False)
+    forecast = pd.DataFrame({
+        "date": pd.to_datetime(["2025-01-02", "2025-01-03"]),
+        "precip_mm": [0.0, float("nan")],
+        "rain_mm": [0.0, float("nan")],
+        "temp_max_c": [30.0, float("nan")],
+        "humidity_mean_pct": [70.0, float("nan")],
+    })
+    monkeypatch.setattr("dashboard.weather._api_daily", lambda _url: forecast.copy())
+
+    extension = fetch_weather_extension(
+        "2025-01-01",
+        weather_csv=weather_csv,
+        today="2025-01-02",
+        end_date="2025-01-15",
+    )
+
+    imputed = extension.loc[extension["date"] == pd.Timestamp("2025-01-03")].iloc[0]
+    assert extension["date"].tolist() == list(pd.date_range("2025-01-02", "2025-01-15"))
+    assert extension["weather_imputed"].tolist() == [False] + [True] * 13
+    assert imputed[["precip_mm", "rain_mm", "temp_max_c", "humidity_mean_pct"]].tolist() == [
+        3.0, 2.0, 33.0, 70.0
+    ]
+    assert imputed["is_rainy"] == 1
+    assert imputed["is_hot"] == 1
+    pongal = extension.loc[extension["date"] == pd.Timestamp("2025-01-14")].iloc[0]
+    assert pongal["festival_name"] == "Pongal"
+    assert pongal["is_festival"] == 1
