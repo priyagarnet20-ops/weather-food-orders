@@ -35,6 +35,11 @@ OVERVIEW_PROJECT_SUMMARY = (
     "Because order baskets are generated, the menu results demonstrate recovery of known generator patterns; "
     "they are not evidence of real customer purchasing behaviour."
 )
+OVERVIEW_FINDINGS = (
+    ("Full-year rolling-origin evaluation", "365 days"),
+    ("Ridge reference MAE (orders/day)", "15.08"),
+    ("MAE increase without weather", "22.4 orders/day"),
+)
 
 st.set_page_config(
     page_title="Coimbatore Food Orders",
@@ -251,6 +256,15 @@ def overview_view(daily: pd.DataFrame) -> None:
     with st.container(border=True):
         st.markdown("**About this capstone**")
         st.write(OVERVIEW_PROJECT_SUMMARY)
+    st.subheader("What the full-year evaluation found")
+    finding_columns = st.columns(len(OVERVIEW_FINDINGS))
+    for column, (label, value) in zip(finding_columns, OVERVIEW_FINDINGS):
+        column.metric(label, value)
+    st.caption(
+        "Project-wide results: a rolling-origin evaluation used observed same-day weather, so its "
+        "accuracy is optimistic for live use. Orders are synthetic; these results measure recovery "
+        "of the documented generator patterns, not guaranteed restaurant performance."
+    )
     period = st.selectbox(
         "Time period",
         ("All history", "Last 12 months", "Last 90 days"),
@@ -288,10 +302,11 @@ def overview_view(daily: pd.DataFrame) -> None:
         delta_color="off",
     )
     metrics[3].metric(
-        "Rain-day change",
-        f"{rainy_mean - dry_mean:+.1f} orders/day" if rain_change is not None else "N/A",
+        "Rain-day difference",
+        f"{rainy_mean - dry_mean:+.1f}" if rain_change is not None else "N/A",
         delta=f"{rain_change:+.1f}% vs non-rainy" if rain_change is not None else None,
         delta_color="off",
+        help="Difference in average orders per day: rainy-day average minus non-rainy-day average.",
     )
     st.caption(
         f"{view['date'].min():%d %b %Y} – {view['date'].max():%d %b %Y} · "
@@ -311,10 +326,39 @@ def overview_view(daily: pd.DataFrame) -> None:
             "4-week average": weekly.rolling(4, min_periods=1).mean(),
         }
     )
-    st.line_chart(
-        trend,
-        x_label="Week starting",
-        y_label="Average orders per day",
+    trend_data = (
+        trend.rename_axis("week")
+        .reset_index()
+        .melt(id_vars="week", var_name="Series", value_name="Average orders")
+    )
+    trend_chart = (
+        alt.Chart(trend_data)
+        .mark_line(point=alt.OverlayMarkDef(filled=True, size=28))
+        .encode(
+            x=alt.X("week:T", title="Week starting", axis=alt.Axis(format="%b %Y")),
+            y=alt.Y("Average orders:Q", title="Average orders per day"),
+            color=alt.Color(
+                "Series:N",
+                title="Measure",
+                scale=alt.Scale(
+                    domain=["Weekly average", "4-week average"],
+                    range=["#78bdf5", "#1769aa"],
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip("week:T", title="Week starting", format="%d %b %Y"),
+                alt.Tooltip("Series:N", title="Measure"),
+                alt.Tooltip("Average orders:Q", title="Orders/day", format=".1f"),
+            ],
+        )
+        .properties(height=340)
+    )
+    st.altair_chart(trend_chart, use_container_width=True)
+    st.caption(
+        "**How to read this:** the light line is the average daily order count for each week; "
+        "the dark line smooths it using the current and previous three weeks. This is a descriptive "
+        "trend, not a forecast. **Source:** project-generated daily order counts; orders are synthetic "
+        "and represent the documented generator, not observed customer demand."
     )
 
     weekday_col, weather_col = st.columns(2)
@@ -881,7 +925,6 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     st.title("Coimbatore Food Orders")
-    st.caption("Weather-aware demand planning and menu analysis · Amrita School of Computing")
     try:
         daily, orders, daily_orders = load_data()
     except (OSError, ValueError, pd.errors.ParserError) as error:
