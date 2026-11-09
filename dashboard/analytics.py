@@ -3,46 +3,20 @@ from __future__ import annotations
 
 from collections import Counter
 from itertools import combinations
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
 MONSOON_PHASES = {
     "SW monsoon (Jun-Sep)": {6, 7, 8, 9},
     "NE monsoon (Oct-Dec)": {10, 11, 12},
     "Dry season (Jan-May)": {1, 2, 3, 4, 5},
 }
-
-
-def load_dashboard_data(root: str | Path = ROOT) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Load current project data and reject incomplete or misaligned inputs."""
-    root = Path(root)
-    daily = pd.read_csv(root / "data" / "processed" / "daily_features.csv", parse_dates=["date"])
-    orders = pd.read_csv(root / "data" / "raw" / "orders.csv", parse_dates=["date"])
-    daily_orders = pd.read_csv(root / "data" / "raw" / "daily_orders.csv", parse_dates=["date"])
-
-    required_daily = {"date", "order_count", "precip_mm", "temp_max_c", "is_rainy", "is_hot", "is_festival"}
-    required_orders = {"order_id", "date", "items"}
-    required_daily_orders = {"date", "is_rainy"}
-    if not required_daily.issubset(daily.columns):
-        raise ValueError(f"Daily features are missing required columns: {sorted(required_daily - set(daily.columns))}")
-    if not required_orders.issubset(orders.columns):
-        raise ValueError(f"Orders are missing required columns: {sorted(required_orders - set(orders.columns))}")
-    if not required_daily_orders.issubset(daily_orders.columns):
-        raise ValueError(f"Daily orders are missing required columns: {sorted(required_daily_orders - set(daily_orders.columns))}")
-    if daily["date"].duplicated().any() or daily_orders["date"].duplicated().any():
-        raise ValueError("Daily dashboard data must contain exactly one row per date.")
-    if orders["order_id"].duplicated().any():
-        raise ValueError("Order IDs must be unique before mining association rules.")
-    if orders["date"].isna().any() or daily["date"].isna().any():
-        raise ValueError("Dashboard dates must not be missing.")
-
-    daily = daily.sort_values("date").reset_index(drop=True)
-    orders = orders.sort_values(["date", "order_id"]).reset_index(drop=True)
-    daily_orders = daily_orders.sort_values("date").reset_index(drop=True)
-    return daily, orders, daily_orders
+PLANTED_RAIN_PAIRS = (
+    ("Chai", "Pakora"),
+    ("Chai", "Samosa"),
+    ("Coffee", "Vada"),
+)
 
 
 def _baskets(items: pd.Series) -> list[set[str]]:
@@ -114,6 +88,74 @@ def mine_pair_rules(
     )
 
 
+def compare_weather_pair_rules(
+    rules: pd.DataFrame,
+    min_confidence: float = 0.05,
+    max_lift: float = 20.0,
+) -> pd.DataFrame:
+    """Compare directed pair rules across weather regimes and remove basket shortcuts."""
+    if not 0 <= min_confidence < 1:
+        raise ValueError("min_confidence must be between 0 and 1.")
+    if max_lift <= 0:
+        raise ValueError("max_lift must be positive.")
+    required = {
+        "segment", "antecedent", "consequent", "support", "confidence",
+        "lift", "pair_count", "transactions",
+    }
+    if not required.issubset(rules.columns):
+        raise ValueError(f"rules must contain {sorted(required)}.")
+
+    eligible = rules.loc[
+        (rules["confidence"] >= min_confidence)
+        & (rules["confidence"] < 1.0 - 1e-12)
+        & (rules["lift"] <= max_lift)
+        & rules["segment"].isin(["Rainy", "Dry"])
+    ].copy()
+    pair_columns = ["antecedent", "consequent"]
+    rainy = eligible.loc[eligible["segment"] == "Rainy"].drop(columns="segment")
+    dry = eligible.loc[eligible["segment"] == "Dry"].drop(columns="segment")
+    rainy = rainy.rename(columns={
+        "support": "rainy_support",
+        "confidence": "rainy_confidence",
+        "lift": "rainy_lift",
+        "pair_count": "rainy_pair_count",
+        "transactions": "rainy_orders",
+    })
+    dry = dry.rename(columns={
+        "support": "dry_support",
+        "confidence": "dry_confidence",
+        "lift": "dry_lift",
+        "pair_count": "dry_pair_count",
+        "transactions": "dry_orders",
+    })
+    comparison = rainy.merge(dry, on=pair_columns, how="inner", validate="one_to_one")
+    comparison["confidence_change_pp"] = (
+        comparison["rainy_confidence"] - comparison["dry_confidence"]
+    ) * 100
+    comparison["lift_change"] = comparison["rainy_lift"] - comparison["dry_lift"]
+    comparison["lift_ratio"] = comparison["rainy_lift"] / comparison["dry_lift"]
+    comparison["planted_rain_pair"] = comparison.apply(
+        lambda row: (row["antecedent"], row["consequent"]) in PLANTED_RAIN_PAIRS,
+        axis=1,
+    )
+    return comparison.sort_values(
+        ["confidence_change_pp", "rainy_support"],
+        ascending=[False, False],
+        ignore_index=True,
+    )
+
+
+def filter_weather_effect(comparison: pd.DataFrame, effect: str) -> pd.DataFrame:
+    """Filter a paired-rule comparison by which weather regime has higher confidence."""
+    if effect == "All pairs":
+        return comparison.copy()
+    if effect == "Stronger on rainy days":
+        return comparison.loc[comparison["confidence_change_pp"] > 0].copy()
+    if effect == "Stronger on dry days":
+        return comparison.loc[comparison["confidence_change_pp"] < 0].copy()
+    raise ValueError(f"Unsupported weather effect filter: {effect}")
+
+
 def rolling_pair_lift(
     orders: pd.DataFrame,
     daily_orders: pd.DataFrame,
@@ -122,12 +164,13 @@ def rolling_pair_lift(
     segment: str,
     window_days: int = 14,
     min_transactions: int = 20,
+    min_antecedent_transactions: int = 20,
 ) -> pd.DataFrame:
     """Calculate a selected rule's lift in rolling calendar windows of one weather segment."""
     if segment not in {"Rainy", "Dry"}:
         raise ValueError("segment must be either 'Rainy' or 'Dry'.")
-    if window_days < 1 or min_transactions < 1:
-        raise ValueError("window_days and min_transactions must be positive.")
+    if window_days < 1 or min_transactions < 1 or min_antecedent_transactions < 1:
+        raise ValueError("window and transaction thresholds must be positive.")
     required_orders = {"date", "items"}
     required_daily = {"date", "is_rainy"}
     if not required_orders.issubset(orders.columns):
@@ -155,14 +198,19 @@ def rolling_pair_lift(
     ).reindex(dates, fill_value=0)
     rolling = counts.rolling(window_days, min_periods=window_days).sum()
     n, a, b, ab = (rolling[column] for column in ("n", "a", "b", "ab"))
-    valid = (n >= min_transactions) & (a > 0) & (b > 0)
+    valid = (n >= min_transactions) & (a >= min_antecedent_transactions) & (b > 0)
     lift = pd.Series(np.nan, index=dates, dtype=float)
+    confidence = pd.Series(np.nan, index=dates, dtype=float)
     lift.loc[valid] = ab.loc[valid] * n.loc[valid] / (a.loc[valid] * b.loc[valid])
+    confidence.loc[valid] = ab.loc[valid] / a.loc[valid]
 
     result = pd.DataFrame({
         "date": dates,
         "lift": lift.to_numpy(),
+        "confidence": confidence.to_numpy(),
         "transactions": n.to_numpy(),
+        "antecedent_orders": a.to_numpy(),
+        "pair_orders": ab.to_numpy(),
     })
     result["monsoon_phase"] = result["date"].dt.month.map(
         lambda month: next(

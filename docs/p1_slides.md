@@ -24,6 +24,6 @@
 * Weather knowledge (with the rain x weekend term) lowers SARIMAX error by 23.5 orders/day (60%; 95% CI 21.5-25.5).
 * Rainy-day error 15.4 vs dry-day 15.9: once the weather is known, rainy days are no harder to plan.
 * Within about 0.2 orders/day of the best possible score (generator expected value, MAE 15.5), so remaining error is noise.
-* Plan for forecast + 49 orders (about 29%) to cover 9 days in 10; 52 on rainy days, 47 on dry days.
+* Latest backtest 90th-percentile planning buffer: about +25 orders overall (17% of forecast), +27 on rainy days, and +24 on dry days (`results/planning_buffer.csv`). These revised values supersede the earlier +49/+52/+47 figures.
 * Figures: `results/fig06_mae_by_model.png`, `results/fig07_error_rain_dry.png`
 * Speaker note: ranking among the three weather models is tentative (not statistically separable, chosen on the same folds it is scored on). Results show recovery of the generator's rules, not real customer behaviour.
