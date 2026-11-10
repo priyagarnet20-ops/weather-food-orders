@@ -27,15 +27,6 @@ from dashboard.analytics import (
 WEATHER_OPTIONS = ("Dry", "Rainy", "Hot")
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 FORECAST_MODEL = "Ridge"
-MODEL_SELECTION_MODELS = (
-    "SARIMAX",
-    "Negative Binomial",
-    "Poisson",
-    "Ridge",
-    "Random Forest",
-    "XGBoost",
-    "Seasonal naive",
-)
 OVERVIEW_PROJECT_SUMMARY = (
     "This capstone studies how Coimbatore weather affects both restaurant order volume and menu combinations. "
     "It combines 1,097 days of real Open-Meteo weather with synthetic orders calibrated from local restaurant "
@@ -43,11 +34,6 @@ OVERVIEW_PROJECT_SUMMARY = (
     "models (Unit 2), and rolling time-series forecasts plus weather-segmented association rules (Unit 3). "
     "Because order baskets are generated, the menu results demonstrate recovery of known generator patterns; "
     "they are not evidence of real customer purchasing behaviour."
-)
-OVERVIEW_FINDINGS = (
-    ("Full-year rolling-origin evaluation", "365 days"),
-    ("Ridge reference MAE (orders/day)", "15.08"),
-    ("MAE increase without weather", "22.4 orders/day"),
 )
 
 st.set_page_config(
@@ -61,41 +47,6 @@ st.set_page_config(
 @st.cache_data(show_spinner="Loading Coimbatore order and weather data...")
 def load_data():
     return load_dashboard_data(ROOT)
-
-
-@st.cache_data(show_spinner=False)
-def load_dataset_csv(relative_path: str) -> bytes:
-    """Read a project CSV for download from the Dataset tab."""
-    path = ROOT / relative_path
-    if not path.is_file():
-        raise FileNotFoundError(f"Dataset file does not exist: {path}")
-    return path.read_bytes()
-
-
-@st.cache_data(show_spinner=False)
-def load_model_selection_results() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load the saved rolling-origin predictions and full-year model metrics."""
-    forecast_path = ROOT / "results" / "selection_backtest_forecasts.csv"
-    metrics_path = ROOT / "results" / "selection_metrics.csv"
-    forecasts = pd.read_csv(forecast_path, parse_dates=["date"])
-    metrics = pd.read_csv(metrics_path, index_col=0)
-    if "date" not in forecasts:
-        raise ValueError("Saved model-selection forecasts are missing the date column.")
-    if forecasts["date"].isna().any() or forecasts["date"].duplicated().any():
-        raise ValueError("Saved model-selection forecasts must have one valid row per date.")
-    missing_forecasts = set(MODEL_SELECTION_MODELS) - set(forecasts.columns)
-    if missing_forecasts:
-        raise ValueError(f"Saved forecasts are missing models: {sorted(missing_forecasts)}")
-    required_metrics = {"MAE", "delta_MAE", "dm_p_holm", "ci_low", "ci_high"}
-    missing_metrics = required_metrics - set(metrics.columns)
-    if missing_metrics:
-        raise ValueError(f"Saved model metrics are missing columns: {sorted(missing_metrics)}")
-    missing_models = set(MODEL_SELECTION_MODELS) - set(metrics.index.astype(str))
-    if missing_models:
-        raise ValueError(f"Saved metrics are missing models: {sorted(missing_models)}")
-    metrics.index = metrics.index.astype(str)
-    forecasts = forecasts.sort_values("date").reset_index(drop=True)
-    return forecasts, metrics
 
 
 @st.cache_data(show_spinner="Training chronological holdout models...")
@@ -292,132 +243,6 @@ def select_holdout_models(
     return comparison.loc[comparison["Model"].isin(selected_models)].reset_index(drop=True)
 
 
-def model_selection_summary(metrics: pd.DataFrame) -> pd.DataFrame:
-    """Rank saved model-selection metrics and explain each result against Ridge."""
-    missing_columns = {"MAE", "dm_p_holm", "ci_low", "ci_high"} - set(metrics.columns)
-    if missing_columns:
-        raise ValueError(f"Model-selection metrics are missing columns: {sorted(missing_columns)}")
-    missing_models = set(MODEL_SELECTION_MODELS) - set(metrics.index.astype(str))
-    if missing_models:
-        raise ValueError(f"Model-selection metrics are missing models: {sorted(missing_models)}")
-
-    ranked = metrics.copy()
-    ranked.index = ranked.index.astype(str)
-    ranked = ranked.loc[list(MODEL_SELECTION_MODELS)].copy()
-    ridge_mae = float(ranked.loc[FORECAST_MODEL, "MAE"])
-    ranked["MAE gap"] = ranked["MAE"] - ridge_mae
-
-    def result_label(model: str, row: pd.Series) -> str:
-        if model == FORECAST_MODEL:
-            return "Selected incumbent"
-        gap = float(row["MAE gap"])
-        p_value = float(row["dm_p_holm"])
-        ci_low, ci_high = float(row["ci_low"]), float(row["ci_high"])
-        if ci_low <= 0 <= ci_high and p_value >= 0.05:
-            return "Statistically tied with Ridge"
-        if gap > 0 and p_value < 0.05:
-            return "Significantly worse than Ridge"
-        if gap > 0:
-            return "Higher MAE; not significant after correction"
-        if gap < 0 and p_value < 0.05 and ci_high < 0:
-            return "Significantly better than Ridge"
-        return "Lower MAE; not significant"
-
-    ranked["Result"] = [
-        result_label(model, row)
-        for model, row in ranked.iterrows()
-    ]
-    return ranked.sort_values("MAE").rename_axis("Model").reset_index()
-
-
-def model_selection_view() -> None:
-    st.subheader("Full-year model selection")
-    try:
-        forecasts, metrics = load_model_selection_results()
-        comparison = model_selection_summary(metrics)
-    except (OSError, ValueError, pd.errors.ParserError) as error:
-        st.error(f"Could not load the saved full-year model-selection results: {error}")
-        return
-
-    start_date = forecasts["date"].min()
-    end_date = forecasts["date"].max()
-    selected_row = comparison.loc[comparison["Model"] == FORECAST_MODEL].iloc[0]
-    best_row = comparison.iloc[0]
-    summary = st.columns(3)
-    summary[0].metric("Evaluation period", f"{len(forecasts):,} days")
-    summary[1].metric("Lowest recorded MAE", f"{best_row['MAE']:.2f}", delta=str(best_row["Model"]))
-    summary[2].metric("Selected model", FORECAST_MODEL, delta=f"MAE {selected_row['MAE']:.2f}")
-    st.caption(
-        f"Rolling-origin evaluation on saved results from {start_date:%d %b %Y} "
-        f"to {end_date:%d %b %Y}. Lower MAE indicates smaller average daily error."
-    )
-
-    palette = {
-        "Selected incumbent": "#c24170",
-        "Statistically tied with Ridge": "#2d7f79",
-        "Higher MAE; not significant after correction": "#d18727",
-        "Significantly worse than Ridge": "#b94a48",
-        "Significantly better than Ridge": "#2d7f79",
-        "Lower MAE; not significant": "#7a8a99",
-    }
-    chart = (
-        alt.Chart(comparison)
-        .mark_bar(cornerRadiusEnd=4)
-        .encode(
-            x=alt.X("MAE:Q", title="Mean absolute error (orders/day)"),
-            y=alt.Y("Model:N", title=None, sort=alt.SortField(field="MAE", order="ascending")),
-            color=alt.Color(
-                "Result:N",
-                title="Selection result",
-                scale=alt.Scale(domain=list(palette), range=list(palette.values())),
-            ),
-            tooltip=[
-                alt.Tooltip("Model:N", title="Model"),
-                alt.Tooltip("MAE:Q", title="MAE", format=".2f"),
-                alt.Tooltip("MAE gap:Q", title="MAE gap vs Ridge", format="+.2f"),
-                alt.Tooltip("Result:N", title="Result"),
-            ],
-        )
-        .properties(height=280)
-    )
-    st.altair_chart(chart, use_container_width=True)
-
-    table = comparison[
-        ["Model", "MAE", "MAE gap", "dm_p_holm", "ci_low", "ci_high", "Result"]
-    ].copy()
-    table = table.rename(
-        columns={
-            "MAE gap": "MAE gap vs Ridge",
-            "dm_p_holm": "Holm-adjusted p",
-            "ci_low": "95% CI low",
-            "ci_high": "95% CI high",
-        }
-    )
-    table["MAE"] = table["MAE"].map(lambda value: f"{value:.2f}")
-    table["MAE gap vs Ridge"] = table["MAE gap vs Ridge"].map(
-        lambda value: "—" if abs(value) < 0.0005 else f"{value:+.2f}"
-    )
-    table["Holm-adjusted p"] = table["Holm-adjusted p"].map(
-        lambda value: "—" if pd.isna(value) else ("<0.001" if value < 0.001 else f"{value:.3f}")
-    )
-    for column in ("95% CI low", "95% CI high"):
-        table[column] = table[column].map(
-            lambda value: "—" if pd.isna(value) else f"{value:+.2f}"
-        )
-    st.dataframe(table, hide_index=True, use_container_width=True)
-    st.info(
-        "SARIMAX has the lowest recorded MAE, but its advantage over Ridge is only "
-        f"{abs(float(best_row['MAE']) - float(selected_row['MAE'])):.2f} orders/day and is not "
-        "statistically significant after Holm correction. Ridge remains the selected incumbent; "
-        "no challenger met the pre-defined replacement rule."
-    )
-    st.caption(
-        "Statistical ties are identified when the Holm-adjusted Diebold–Mariano p-value is at least "
-        "0.05 and the 95% confidence interval for the MAE gap includes zero. This comparison uses "
-        "the saved one-year backtest; upcoming forecasts continue to use Ridge."
-    )
-
-
 def overview_view(daily: pd.DataFrame) -> None:
     st.header("Demand overview")
     st.caption(
@@ -426,15 +251,6 @@ def overview_view(daily: pd.DataFrame) -> None:
     with st.container(border=True):
         st.markdown("**About this capstone**")
         st.write(OVERVIEW_PROJECT_SUMMARY)
-    st.subheader("What the full-year evaluation found")
-    finding_columns = st.columns(len(OVERVIEW_FINDINGS))
-    for column, (label, value) in zip(finding_columns, OVERVIEW_FINDINGS):
-        column.metric(label, value)
-    st.caption(
-        "Project-wide results: a rolling-origin evaluation used observed same-day weather, so its "
-        "accuracy is optimistic for live use. Orders are synthetic; these results measure recovery "
-        "of the documented generator patterns, not guaranteed restaurant performance."
-    )
     period = st.selectbox(
         "Time period",
         ("All history", "Last 12 months", "Last 90 days"),
@@ -472,11 +288,10 @@ def overview_view(daily: pd.DataFrame) -> None:
         delta_color="off",
     )
     metrics[3].metric(
-        "Rain-day difference",
-        f"{rainy_mean - dry_mean:+.1f}" if rain_change is not None else "N/A",
+        "Rain-day change",
+        f"{rainy_mean - dry_mean:+.1f} orders/day" if rain_change is not None else "N/A",
         delta=f"{rain_change:+.1f}% vs non-rainy" if rain_change is not None else None,
         delta_color="off",
-        help="Difference in average orders per day: rainy-day average minus non-rainy-day average.",
     )
     st.caption(
         f"{view['date'].min():%d %b %Y} – {view['date'].max():%d %b %Y} · "
@@ -496,39 +311,10 @@ def overview_view(daily: pd.DataFrame) -> None:
             "4-week average": weekly.rolling(4, min_periods=1).mean(),
         }
     )
-    trend_data = (
-        trend.rename_axis("week")
-        .reset_index()
-        .melt(id_vars="week", var_name="Series", value_name="Average orders")
-    )
-    trend_chart = (
-        alt.Chart(trend_data)
-        .mark_line(point=alt.OverlayMarkDef(filled=True, size=28))
-        .encode(
-            x=alt.X("week:T", title="Week starting", axis=alt.Axis(format="%b %Y")),
-            y=alt.Y("Average orders:Q", title="Average orders per day"),
-            color=alt.Color(
-                "Series:N",
-                title="Measure",
-                scale=alt.Scale(
-                    domain=["Weekly average", "4-week average"],
-                    range=["#78bdf5", "#1769aa"],
-                ),
-            ),
-            tooltip=[
-                alt.Tooltip("week:T", title="Week starting", format="%d %b %Y"),
-                alt.Tooltip("Series:N", title="Measure"),
-                alt.Tooltip("Average orders:Q", title="Orders/day", format=".1f"),
-            ],
-        )
-        .properties(height=340)
-    )
-    st.altair_chart(trend_chart, use_container_width=True)
-    st.caption(
-        "**How to read this:** the light line is the average daily order count for each week; "
-        "the dark line smooths it using the current and previous three weeks. This is a descriptive "
-        "trend, not a forecast. **Source:** project-generated daily order counts; orders are synthetic "
-        "and represent the documented generator, not observed customer demand."
+    st.line_chart(
+        trend,
+        x_label="Week starting",
+        y_label="Average orders per day",
     )
 
     weekday_col, weather_col = st.columns(2)
@@ -586,226 +372,6 @@ def overview_view(daily: pd.DataFrame) -> None:
             f"- **Daily records:** {len(daily):,}\n"
             "- **Weather:** historical Coimbatore observations\n"
             "- **Orders:** synthetically generated baskets; patterns are illustrative and not causal"
-        )
-
-
-def dataset_view(
-    daily: pd.DataFrame,
-    orders: pd.DataFrame,
-    daily_orders: pd.DataFrame,
-) -> None:
-    st.header("About the dataset")
-    st.caption(
-        "This project joins historical Coimbatore weather with generated restaurant orders "
-        "to explore demand patterns. Weather is observed/reanalysis data; orders are synthetic."
-    )
-
-    daily = daily.sort_values("date")
-    start_date = pd.to_datetime(daily["date"]).min()
-    end_date = pd.to_datetime(daily["date"]).max()
-    basket_items = (
-        orders["items"]
-        .dropna()
-        .astype(str)
-        .str.split(";")
-        .explode()
-        .str.strip()
-    )
-    menu_item_count = int(basket_items.loc[basket_items.ne("")].nunique())
-
-    summary = st.columns(4)
-    coverage_years = (end_date - start_date).days / 365.25
-    summary[0].metric("Coverage period", f"{coverage_years:.1f} years")
-    summary[1].metric("Daily records", f"{len(daily):,}")
-    summary[2].metric("Synthetic orders", f"{len(orders):,}")
-    summary[3].metric("Menu items", f"{menu_item_count:,}")
-    st.caption(f"Full date range: {start_date:%d %B %Y} to {end_date:%d %B %Y}")
-    detail = st.columns(4)
-    detail[0].metric("Average orders per day", f"{daily['order_count'].mean():.1f}")
-    detail[1].metric(
-        "Daily order range",
-        f"{int(daily['order_count'].min()):,}–{int(daily['order_count'].max()):,}",
-    )
-    detail[2].metric(
-        "Rainy days (>= 2.5 mm)",
-        f"{int(daily['is_rainy'].astype(bool).sum()):,}",
-    )
-    detail[3].metric(
-        "Festival days",
-        f"{int(daily_orders['is_festival'].astype(bool).sum()):,}",
-    )
-    st.subheader("What is included")
-    st.markdown(
-        f"The analysis covers **{start_date:%d %B %Y} to {end_date:%d %B %Y}**. Each day combines "
-        "weather observations with calendar features and a generated order count. The transaction "
-        "file contains one generated basket per order, with its time, meal slot, items and value."
-    )
-    inventory = pd.DataFrame(
-        [
-            {
-                "File": "data/raw/weather.csv",
-                "Rows": len(daily),
-                "Columns": 11,
-                "Contents": "Daily weather observations from the Open-Meteo Archive API.",
-            },
-            {
-                "File": "data/processed/daily_features.csv",
-                "Rows": len(daily),
-                "Columns": len(daily.columns),
-                "Contents": "Joined daily weather, generated demand, calendar flags and model features.",
-            },
-            {
-                "File": "data/raw/orders.csv",
-                "Rows": len(orders),
-                "Columns": len(orders.columns),
-                "Contents": "One generated order per row; item names in each basket are separated by semicolons.",
-            },
-            {
-                "File": "data/raw/daily_orders.csv",
-                "Rows": len(daily_orders),
-                "Columns": len(daily_orders.columns),
-                "Contents": "Daily generated counts, weather regime, festival fields and generation parameters.",
-            },
-        ]
-    )
-    st.dataframe(inventory, hide_index=True, use_container_width=True)
-
-    st.subheader("Download dataset files")
-    st.caption("Download the CSV files used by the dashboard.")
-    downloads = (
-        ("Weather observations", "data/raw/weather.csv"),
-        ("Daily features", "data/processed/daily_features.csv"),
-        ("Generated orders", "data/raw/orders.csv"),
-        ("Daily order summary", "data/raw/daily_orders.csv"),
-    )
-    download_columns = st.columns(2)
-    for index, (label, relative_path) in enumerate(downloads):
-        download_columns[index % 2].download_button(
-            label=f"Download {label} CSV",
-            data=load_dataset_csv(relative_path),
-            file_name=Path(relative_path).name,
-            mime="text/csv",
-            key=f"dataset_download_{relative_path}",
-            use_container_width=True,
-        )
-
-    st.subheader("Download real restaurant base data")
-    st.caption(
-        "Cleaned records from the Hotel Chinthamani Swiggy report. These real orders informed "
-        "the generated history and are separate from it."
-    )
-    restaurant_downloads = (
-        ("Restaurant orders", "data/real/chinthamani_orders.csv"),
-        ("Restaurant order items", "data/real/chinthamani_items.csv"),
-    )
-    restaurant_columns = st.columns(2)
-    for index, (label, relative_path) in enumerate(restaurant_downloads):
-        restaurant_columns[index].download_button(
-            label=f"Download {label} CSV",
-            data=load_dataset_csv(relative_path),
-            file_name=Path(relative_path).name,
-            mime="text/csv",
-            key=f"source_download_{relative_path}",
-            use_container_width=True,
-        )
-
-    st.subheader("Download supporting calibration data")
-    st.caption(
-        "The survey responses informed demand and basket assumptions; outlet listings supplied "
-        "snack and drink prices."
-    )
-    calibration_downloads = (
-        ("Team survey responses", "data/real/survey_responses.csv"),
-        ("Reference snack and drink prices", "data/reference/snack_drink_prices.csv"),
-    )
-    calibration_columns = st.columns(2)
-    for index, (label, relative_path) in enumerate(calibration_downloads):
-        calibration_columns[index].download_button(
-            label=f"Download {label} CSV",
-            data=load_dataset_csv(relative_path),
-            file_name=Path(relative_path).name,
-            mime="text/csv",
-            key=f"source_download_{relative_path}",
-            use_container_width=True,
-        )
-
-    st.subheader("Sources and construction")
-    weather_source, order_source = st.columns(2)
-    with weather_source:
-        st.markdown("**Weather — real archive data**")
-        st.write(
-            "Daily historical weather for Coimbatore (11.00 N, 76.99 E) comes from the Open-Meteo "
-            "Archive API, using the Asia/Kolkata time zone. The dataset includes precipitation, "
-            "rainfall, temperature, wind, weather codes, daylight, rainy hours and humidity. "
-            "Values are gridded reanalysis estimates rather than measurements from a city weather station."
-        )
-    with order_source:
-        st.markdown("**Orders — generated from real source data**")
-        st.write(
-            "The three-year order history is generated, not a record of actual transactions. Its "
-            "generation is informed by 464 orders from Hotel Chinthamani's Swiggy report, responses "
-            "from 27 adult Coimbatore survey participants, and local menu-price references. These "
-            "sources calibrate daily order volumes and basket composition; the resulting dataset "
-            "adds weather-linked patterns for analysis."
-        )
-
-    st.subheader("Key fields")
-    field_guide = pd.DataFrame(
-        [
-            {
-                "Dataset": "Daily features",
-                "Fields": "date, order_count, total_revenue, avg_order_value, avg_basket_size",
-                "Meaning": "Calendar day, generated demand and daily order-value summaries.",
-            },
-            {
-                "Dataset": "Weather",
-                "Fields": "precip_mm, rain_mm, temp_max_c, temp_min_c, temp_mean_c, wind_max_kmh, weather_code, daylight_s, precip_hours, humidity_mean_pct",
-                "Meaning": "Daily precipitation, temperature, wind, WMO condition and humidity measures.",
-            },
-            {
-                "Dataset": "Weather flags",
-                "Fields": "is_rainy, heavy_rain, is_hot, rain_intensity, temp_band",
-                "Meaning": "Project thresholds: rainy >= 2.5 mm, heavy rain >= 15 mm, hot >= 33 C.",
-            },
-            {
-                "Dataset": "Calendar",
-                "Fields": "dow, is_weekend, is_festival, festival_name, monsoon_phase",
-                "Meaning": "Weekday, project weekend (Friday–Sunday), festival and seasonal context.",
-            },
-            {
-                "Dataset": "Demand history",
-                "Fields": "order_count_lag1, order_count_lag7, order_count_roll7",
-                "Meaning": "Previous-day, previous-week and rolling seven-day order features.",
-            },
-            {
-                "Dataset": "Order baskets",
-                "Fields": "order_id, date, timestamp, meal_slot, items, item_count, order_value",
-                "Meaning": "Generated transaction identifiers, timing, semicolon-separated items and order value.",
-            },
-            {
-                "Dataset": "Generator details",
-                "Fields": "regime, mult_weekend, mult_rain, mult_temp, mult_festival, expected_orders",
-                "Meaning": "Weather regime, generation multipliers and expected daily volume in daily_orders.csv.",
-            },
-        ]
-    )
-    st.dataframe(field_guide, hide_index=True, use_container_width=True)
-    st.caption(
-        "The first rows of lag-based features have missing values when earlier history is unavailable; "
-        "this is expected and does not indicate missing source weather."
-    )
-
-    with st.expander("Generator assumptions and limitations"):
-        st.markdown(
-            "- Daily demand is generated from a negative-binomial process with a fixed seed. "
-            "The documented calibration includes a Friday–Sunday multiplier of 2.47, weekday-rain "
-            "multiplier of 1.56, weekend-rain multiplier of 0.54, heat multiplier of 1.07 and "
-            "festival multiplier of 0.89.\n"
-            "- Weather flags use project-specific thresholds, not official meteorological definitions.\n"
-            "- The source restaurant report covers one outlet and a short period; the team survey "
-            "contains 27 adults. Neither is representative of all Coimbatore restaurants or customers.\n"
-            "- Menu association rules measure patterns intentionally introduced by the generator. "
-            "They are useful for demonstrating the method, not for claiming observed buying behaviour."
         )
 
 
@@ -890,13 +456,10 @@ def forecast_view(daily: pd.DataFrame) -> None:
     st.header("Order forecast")
     forecast_mode = st.radio(
         "Forecast type",
-        ("Upcoming dates", "Historical holdout evaluation", "Full-year model selection"),
+        ("Upcoming dates", "Historical holdout evaluation"),
         horizontal=True,
         key="forecast_mode",
     )
-    if forecast_mode == "Full-year model selection":
-        model_selection_view()
-        return
     selected_weather = st.multiselect(
         "Weather filter",
         WEATHER_OPTIONS,
@@ -979,7 +542,7 @@ def forecast_view(daily: pd.DataFrame) -> None:
         forecast_chart(timeline, [(FORECAST_MODEL, FORECAST_MODEL)])
         bridge_days = max(0, (start_date - last_order_date.date()).days - 1)
         st.caption(
-            f"Ridge, the project's selected model, is projected recursively. "
+            f"Ridge, the project's best-performing model, is projected recursively. "
             f"There are {bridge_days} intervening days "
             "between the last observed order date and the requested range; those order counts are "
             "estimates fed back into the lag features, so forecast uncertainty increases with distance. "
@@ -1130,30 +693,26 @@ def forecast_view(daily: pd.DataFrame) -> None:
 def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
     st.header("Menu combinations by weather")
     st.caption(
-        "Compare each directed item pair's confidence on rainy versus dry days using Market Basket Analysis. "
-        "Because order baskets are generated, this view evaluates the recovery of planted generator patterns "
-        "rather than unobserved customer purchasing behaviour."
+        "Compare each directed item pair's confidence on rainy versus dry days. Since baskets are generated, "
+        "this view evaluates planted generator patterns rather than observed customer behaviour."
     )
-    param_cols = st.columns(2)
-    with param_cols[0]:
-        min_support = st.slider(
-            "Minimum support per weather segment (%)",
-            min_value=0.1,
-            max_value=2.0,
-            value=0.5,
-            step=0.1,
-            format="%.1f%%",
-            help="Support is the share of rainy or dry baskets containing both items. Default 0.5% filters out rare copied-basket quirks.",
-        )
-    with param_cols[1]:
-        min_confidence = st.slider(
-            "Minimum rule confidence (%)",
-            min_value=1,
-            max_value=50,
-            value=5,
-            step=1,
-            help="Confidence is the share of baskets containing the first item that also contain the second.",
-        )
+    min_support = st.slider(
+        "Minimum support per weather segment (%)",
+        min_value=0.1,
+        max_value=2.0,
+        value=0.5,
+        step=0.1,
+        format="%.1f%%",
+        help="Support is the share of rainy or dry baskets containing both items. Default 0.5% filters out rare copied-basket quirks.",
+    )
+    min_confidence = st.slider(
+        "Minimum rule confidence (%)",
+        min_value=1,
+        max_value=50,
+        value=5,
+        step=1,
+        help="Confidence is the share of baskets containing the first item that also contain the second.",
+    )
     support_fraction = min_support / 100
     rainy_dates = set(daily_orders.loc[daily_orders["is_rainy"].astype(bool), "date"])
     rainy_count = int(orders["date"].isin(rainy_dates).sum())
@@ -1165,6 +724,9 @@ def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
         f"{dry_min_pair_count:,} dry orders. Rules with 100% confidence or lift above 20 are "
         "excluded as likely copied-basket shortcuts; lift remains visible for context."
     )
+    summaries = st.columns(2)
+    summaries[0].metric("Rainy-day baskets", f"{rainy_count:,}")
+    summaries[1].metric("Dry-day baskets", f"{dry_count:,}")
     try:
         comparisons = get_pair_comparisons(
             orders, daily_orders, support_fraction, min_confidence / 100
@@ -1173,165 +735,77 @@ def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
         st.error(f"Could not compare weather-segmented rules: {error}")
         return
 
-    summaries = st.columns(4)
-    summaries[0].metric("Rainy-day baskets", f"{rainy_count:,}", help="Total orders placed on rainy days")
-    summaries[1].metric("Dry-day baskets", f"{dry_count:,}", help="Total orders placed on dry days")
-    if not comparisons.empty:
-        top_rain = comparisons.sort_values("confidence_change_pp", ascending=False).iloc[0]
-        top_dry = comparisons.sort_values("confidence_change_pp", ascending=True).iloc[0]
-        summaries[2].metric(
-            "Top monsoon surge",
-            f"{top_rain['antecedent']} → {top_rain['consequent']}",
-            f"{top_rain['confidence_change_pp']:+.1f} pp",
-            help="Item pairing with the highest confidence increase on rainy days.",
-        )
-        summaries[3].metric(
-            "Top fair-weather combo",
-            f"{top_dry['antecedent']} → {top_dry['consequent']}",
-            f"{top_dry['confidence_change_pp']:+.1f} pp",
-            help="Item pairing favored on dry days (highest drop during rain).",
-        )
-    else:
-        summaries[2].metric("Top monsoon surge", "—")
-        summaries[3].metric("Top fair-weather combo", "—")
-
-    if not comparisons.empty:
-        st.subheader("Pairing confidence shift: Rain surge vs. Fair-weather surge")
-        st.caption(
-            "Difference in pairing confidence between rainy and dry days. Combinations in rose surge during rainfall; "
-            "combinations in slate blue are favored on dry, sunny days."
-        )
-        gainers = comparisons.nlargest(5, "confidence_change_pp").copy()
-        losers = comparisons.nsmallest(5, "confidence_change_pp").copy()
-        shift_df = pd.concat([gainers, losers]).sort_values("confidence_change_pp", ascending=True)
-        shift_df["Pair"] = shift_df["antecedent"] + " → " + shift_df["consequent"]
-        shift_df["Weather regime"] = shift_df["confidence_change_pp"].apply(
-            lambda val: "Rain surge (+)" if val > 0 else "Fair-weather surge (−)"
-        )
-
-        shift_chart = (
-            alt.Chart(shift_df)
-            .mark_bar(cornerRadius=4)
-            .encode(
-                y=alt.Y("Pair:N", sort=None, title="Menu combination (If basket has → also contains)"),
-                x=alt.X(
-                    "confidence_change_pp:Q",
-                    title="Rainy − dry confidence difference (percentage points)",
-                ),
-                color=alt.Color(
-                    "Weather regime:N",
-                    scale=alt.Scale(
-                        domain=["Rain surge (+)", "Fair-weather surge (−)"],
-                        range=["#c24170", "#274c77"],
-                    ),
-                    legend=alt.Legend(title="Surge regime"),
-                ),
-                tooltip=[
-                    alt.Tooltip("Pair:N", title="Combination"),
-                    alt.Tooltip("confidence_change_pp:Q", title="Confidence change (pp)", format="+.1f"),
-                    alt.Tooltip("rainy_confidence:Q", title="Rainy confidence", format=".1%"),
-                    alt.Tooltip("dry_confidence:Q", title="Dry confidence", format=".1%"),
-                    alt.Tooltip("rainy_lift:Q", title="Rainy lift", format=".2f"),
-                    alt.Tooltip("dry_lift:Q", title="Dry lift", format=".2f"),
-                ],
-            )
-            .properties(height=320)
-        )
-        st.altair_chart(shift_chart, use_container_width=True)
-
-    st.subheader("Detailed association rules comparison")
-    all_items = (
-        sorted(set(comparisons["antecedent"]).union(set(comparisons["consequent"])))
-        if not comparisons.empty
-        else []
+    scope = st.radio(
+        "Rule set",
+        ("Planted rain-effect pairs", "All eligible pairs"),
+        horizontal=True,
+        help="The default focuses on the rain-related pairs intentionally planted in the generator.",
     )
-    filter_cols = st.columns([1.2, 1, 1.2])
-    with filter_cols[0]:
-        scope = st.radio(
-            "Rule set",
-            ("Planted rain-effect pairs", "All eligible pairs"),
-            horizontal=True,
-            help="The default focuses on the rain-related pairs intentionally planted in the generator.",
-        )
-    with filter_cols[1]:
-        effect = st.selectbox(
-            "Weather effect",
-            ("All pairs", "Stronger on rainy days", "Stronger on dry days"),
-            help="Filters the comparison table by the sign of rainy confidence minus dry confidence.",
-        )
-    with filter_cols[2]:
-        item_filter = st.selectbox(
-            "Filter by menu item",
-            ["All items"] + all_items,
-            help="Show combinations containing this specific item.",
-        )
-
-    table_data = comparisons.copy()
     if scope == "Planted rain-effect pairs":
-        table_data = table_data.loc[table_data["planted_rain_pair"]]
-    table_data = filter_weather_effect(table_data, effect)
-    if item_filter != "All items":
-        table_data = table_data.loc[
-            (table_data["antecedent"] == item_filter)
-            | (table_data["consequent"] == item_filter)
-        ]
+        comparisons = comparisons.loc[comparisons["planted_rain_pair"]]
+    effect = st.selectbox(
+        "Weather effect",
+        ("All pairs", "Stronger on rainy days", "Stronger on dry days"),
+        help="Filters the comparison table by the sign of rainy confidence minus dry confidence.",
+    )
+    comparisons = filter_weather_effect(comparisons, effect)
+    if comparisons.empty:
+        st.info("No paired rules meet these support, confidence and weather-effect settings.")
+        return
 
-    if table_data.empty:
-        st.info("No paired rules meet these support, confidence, item, and weather-effect filters.")
-    else:
-        table = table_data[
-            [
-                "antecedent",
-                "consequent",
-                "rainy_support",
-                "dry_support",
-                "rainy_confidence",
-                "dry_confidence",
-                "confidence_change_pp",
-                "rainy_lift",
-                "dry_lift",
-                "lift_ratio",
-                "rainy_pair_count",
-                "dry_pair_count",
-            ]
-        ].rename(
-            columns={
-                "antecedent": "If basket has",
-                "consequent": "Also contains",
-                "rainy_support": "Rainy support",
-                "dry_support": "Dry support",
-                "rainy_confidence": "Rainy confidence",
-                "dry_confidence": "Dry confidence",
-                "confidence_change_pp": "Rainy − dry confidence (pp)",
-                "rainy_lift": "Rainy lift",
-                "dry_lift": "Dry lift",
-                "lift_ratio": "Rainy / dry lift",
-                "rainy_pair_count": "Rainy pair orders",
-                "dry_pair_count": "Dry pair orders",
+    table = comparisons[
+        [
+            "antecedent",
+            "consequent",
+            "rainy_support",
+            "dry_support",
+            "rainy_confidence",
+            "dry_confidence",
+            "confidence_change_pp",
+            "rainy_lift",
+            "dry_lift",
+            "lift_ratio",
+            "rainy_pair_count",
+            "dry_pair_count",
+        ]
+    ].rename(
+        columns={
+            "antecedent": "If basket has",
+            "consequent": "Also contains",
+            "rainy_support": "Rainy support",
+            "dry_support": "Dry support",
+            "rainy_confidence": "Rainy confidence",
+            "dry_confidence": "Dry confidence",
+            "confidence_change_pp": "Rainy − dry confidence (pp)",
+            "rainy_lift": "Rainy lift",
+            "dry_lift": "Dry lift",
+            "lift_ratio": "Rainy / dry lift",
+            "rainy_pair_count": "Rainy pair orders",
+            "dry_pair_count": "Dry pair orders",
+        }
+    )
+    st.dataframe(
+        table.style.format(
+            {
+                "Rainy support": "{:.2%}",
+                "Dry support": "{:.2%}",
+                "Rainy confidence": "{:.1%}",
+                "Dry confidence": "{:.1%}",
+                "Rainy − dry confidence (pp)": "{:+.1f}",
+                "Rainy lift": "{:.2f}",
+                "Dry lift": "{:.2f}",
+                "Rainy / dry lift": "{:.2f}×",
+                "Rainy pair orders": "{:,.0f}",
+                "Dry pair orders": "{:,.0f}",
             }
-        )
-        st.dataframe(
-            table.style.format(
-                {
-                    "Rainy support": "{:.2%}",
-                    "Dry support": "{:.2%}",
-                    "Rainy confidence": "{:.1%}",
-                    "Dry confidence": "{:.1%}",
-                    "Rainy − dry confidence (pp)": "{:+.1f}",
-                    "Rainy lift": "{:.2f}",
-                    "Dry lift": "{:.2f}",
-                    "Rainy / dry lift": "{:.2f}×",
-                    "Rainy pair orders": "{:,.0f}",
-                    "Dry pair orders": "{:,.0f}",
-                }
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
-        st.caption(
-            "Sorted by rainy-minus-dry confidence in percentage points. Lift may move in the opposite "
-            "direction because item prevalence also changes with weather."
-        )
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.caption(
+        "Sorted by rainy-minus-dry confidence in percentage points. Lift may move in the opposite "
+        "direction because item prevalence also changes with weather."
+    )
 
     st.subheader("14-day planted-pair trend")
     planted_pairs = [
@@ -1339,111 +813,42 @@ def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
         for _, row in comparisons.iterrows()
         if (row["antecedent"], row["consequent"]) in PLANTED_RAIN_PAIRS
     ]
-    if planted_pairs:
-        selected_pair = st.selectbox(
-            "Planted pair",
-            planted_pairs,
-            format_func=lambda pair: f"{pair[0]} → {pair[1]}",
-        )
-        trend_metric = st.radio(
-            "Trend metric",
-            ("Confidence", "Lift"),
-            horizontal=True,
-            help="Confidence directly shows how often the consequent appears when the antecedent is present.",
-        )
-        rainy_trend = get_pair_timeline(
-            orders, daily_orders, *selected_pair, "Rainy"
-        ).rename(columns={trend_metric.lower(): "Rainy"})
-        dry_trend = get_pair_timeline(
-            orders, daily_orders, *selected_pair, "Dry"
-        ).rename(columns={trend_metric.lower(): "Dry"})
-        trend = rainy_trend[["date", "Rainy"]].merge(
-            dry_trend[["date", "Dry"]], on="date", how="outer"
-        ).set_index("date")
-        if trend.dropna(how="all").empty:
-            st.info("Not enough antecedent orders in any 14-day window to show this pair.")
-        else:
-            st.line_chart(
-                trend,
-                x_label="Window end date",
-                y_label="Confidence" if trend_metric == "Confidence" else "Lift",
-                color=["#c24170", "#274c77"],
-            )
-            st.caption(
-                "Each point uses a rolling 14-day calendar window and is hidden unless the segment contains "
-                "at least 20 antecedent orders. Empty stretches indicate insufficient evidence, not zero lift."
-            )
-    else:
-        st.info("Select a support/confidence threshold that includes planted rain-effect pairs to view a planted-pair timeline.")
-
-    if not comparisons.empty:
-        st.subheader("Smart upsell recommender")
-        st.caption(
-            "Simulate real-time checkout recommendations: select an item currently in the customer's cart "
-            "and toggle current weather to view the optimal data-backed companion item."
-        )
-        available_antecedents = sorted(comparisons["antecedent"].unique())
-        sim_col1, sim_col2 = st.columns([1.1, 1.4])
-        with sim_col1:
-            cart_item = st.selectbox("Item in customer's cart", available_antecedents)
-            sim_weather = st.radio(
-                "Current weather condition",
-                ("Rainy", "Dry"),
-                horizontal=True,
-                help="Switch between rainy and dry weather to see how companion recommendations dynamically adapt.",
-            )
-        with sim_col2:
-            cand = comparisons.loc[comparisons["antecedent"] == cart_item]
-            if not cand.empty:
-                if sim_weather == "Rainy":
-                    best_rule = cand.sort_values(
-                        ["rainy_confidence", "rainy_lift"], ascending=[False, False]
-                    ).iloc[0]
-                    conf = best_rule["rainy_confidence"]
-                    lift = best_rule["rainy_lift"]
-                    delta = best_rule["confidence_change_pp"]
-                else:
-                    best_rule = cand.sort_values(
-                        ["dry_confidence", "dry_lift"], ascending=[False, False]
-                    ).iloc[0]
-                    conf = best_rule["dry_confidence"]
-                    lift = best_rule["dry_lift"]
-                    delta = -best_rule["confidence_change_pp"]
-
-                st.markdown(f"**Recommended companion add-on:** `{best_rule['consequent']}`")
-                rec_metrics = st.columns(3)
-                rec_metrics[0].metric(
-                    "Conversion chance",
-                    f"{conf:.1%}",
-                    help="Conditional probability that the customer accepts this add-on.",
-                )
-                rec_metrics[1].metric(
-                    "Pairing synergy (Lift)",
-                    f"{lift:.2f}×",
-                    help="How much more often these two items are ordered together compared to chance.",
-                )
-                rec_metrics[2].metric(
-                    "Weather shift",
-                    f"{delta:+.1f} pp",
-                    help="Change in conversion chance compared to the opposite weather regime.",
-                )
-                if best_rule["planted_rain_pair"]:
-                    st.caption("⭐ Validated planted monsoon benchmark combination.")
-            else:
-                st.info("No frequent pairings found for this item.")
-
-    with st.expander("🍽️ Kitchen operations & inventory recommendations", expanded=False):
-        st.markdown(
-            "- **Dynamic Rain Bundles:** When rainfall is forecasted (precipitation ≥ 2.5 mm), automatically promote "
-            "the *'Monsoon Evening Combo'* (Chai + Pakora or Coffee + Vada) on the ordering homepage. "
-            "Vada + Coffee pairing jumps by **+32.3 percentage points** on rainy days.\n"
-            "- **Production Batch Timing:** Afternoon snack prep (frying Pakoras, steaming Vadas) should be scaled up "
-            "by **+30% to +40%** ahead of rainfall to prevent out-of-stock bottlenecks.\n"
-            "- **Perishables & Cold Storage:** Dial down Ice Cream batch defrosting and Cold Coffee milk allocations "
-            "on rainy days, as Ice Cream companion ordering drops by **−23.3 percentage points**.\n"
-            "- **Meal Slot Targeting:** Soup + Biryani/Kothu pairings maintain stable high lift (>4.0×) across both regimes, "
-            "making soup an ideal year-round upsell regardless of weather."
-        )
+    if not planted_pairs:
+        st.info("Select planted rain-effect pairs to view a planted-pair timeline.")
+        return
+    selected_pair = st.selectbox(
+        "Planted pair",
+        planted_pairs,
+        format_func=lambda pair: f"{pair[0]} → {pair[1]}",
+    )
+    trend_metric = st.radio(
+        "Trend metric",
+        ("Confidence", "Lift"),
+        horizontal=True,
+        help="Confidence directly shows how often the consequent appears when the antecedent is present.",
+    )
+    rainy_trend = get_pair_timeline(
+        orders, daily_orders, *selected_pair, "Rainy"
+    ).rename(columns={trend_metric.lower(): "Rainy"})
+    dry_trend = get_pair_timeline(
+        orders, daily_orders, *selected_pair, "Dry"
+    ).rename(columns={trend_metric.lower(): "Dry"})
+    trend = rainy_trend[["date", "Rainy"]].merge(
+        dry_trend[["date", "Dry"]], on="date", how="outer"
+    ).set_index("date")
+    if trend.dropna(how="all").empty:
+        st.info("Not enough antecedent orders in any 14-day window to show this pair.")
+        return
+    st.line_chart(
+        trend,
+        x_label="Window end date",
+        y_label="Confidence" if trend_metric == "Confidence" else "Lift",
+        color=["#c24170", "#274c77"],
+    )
+    st.caption(
+        "Each point uses a rolling 14-day calendar window and is hidden unless the segment contains "
+        "at least 20 antecedent orders. Empty stretches indicate insufficient evidence, not zero lift."
+    )
 
 def main() -> None:
     st.markdown(
@@ -1476,19 +881,18 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     st.title("Coimbatore Food Orders")
+    st.caption("Weather-aware demand planning and menu analysis · Amrita School of Computing")
     try:
         daily, orders, daily_orders = load_data()
     except (OSError, ValueError, pd.errors.ParserError) as error:
         st.error(f"Could not load dashboard data: {error}")
         st.stop()
 
-    overview_tab, dataset_tab, patterns_tab, forecast_tab, menu_tab = st.tabs(
-        ["Overview", "Dataset", "Demand patterns", "Forecasts", "Menu insights"]
+    overview_tab, patterns_tab, forecast_tab, menu_tab = st.tabs(
+        ["Overview", "Demand patterns", "Forecasts", "Menu insights"]
     )
     with overview_tab:
         overview_view(daily)
-    with dataset_tab:
-        dataset_view(daily, orders, daily_orders)
     with patterns_tab:
         demand_patterns_view(daily)
     with forecast_tab:
