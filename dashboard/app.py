@@ -995,6 +995,47 @@ def dataset_view(
         )
 
 
+def dataset_view(daily: pd.DataFrame) -> None:
+    st.header("Dataset")
+    st.caption(
+        "How the project assembled its weather and order data for forecasting and menu analysis."
+    )
+    start_date = pd.to_datetime(daily["date"]).min()
+    end_date = pd.to_datetime(daily["date"]).max()
+    summary = st.columns(3)
+    summary[0].metric("Date coverage", f"{start_date:%b %Y} – {end_date:%b %Y}")
+    summary[1].metric("Daily records", f"{len(daily):,}")
+    summary[2].metric("Generated orders", f"{int(daily['order_count'].sum()):,}")
+    st.subheader("How we built the dataset")
+    steps = [
+        (
+            "1. Collect weather",
+            "Retrieved daily and hourly historical conditions for Coimbatore from the Open-Meteo "
+            "Archive API, using India Standard Time. The daily series spans the full analysis period.",
+        ),
+        (
+            "2. Prepare real-world evidence",
+            "Cleaned a short Hotel Chinthamani Swiggy report into order and item records, and cleaned "
+            "the team survey to retain adult responses. Restaurant records describe the source period "
+            "only; they are not the three-year order history.",
+        ),
+        (
+            "3. Calibrate and generate orders",
+            "Used restaurant records to estimate order-volume, timing and food-basket patterns. "
+            "Survey responses and local menu-price references informed snack/drink mix, pairings, "
+            "festival assumptions and prices. A fixed-seed generator then created daily order counts "
+            "and baskets across the weather history.",
+        ),
+        (
+            "4. Build the analysis table",
+            "Combined daily weather with generated demand and calendar features, then derived "
+            "weather flags and lag features for the dashboard's demand, forecasting and menu analyses.",
+        ),
+    ]
+    for title, description in steps:
+        with st.container(border=True):
+            st.markdown(f"**{title}**")
+            st.write(description)
 def demand_patterns_view(daily: pd.DataFrame) -> None:
     st.header("Demand patterns")
     st.caption("Compare order volume by weekday, weather and season using the project’s daily dataset.")
@@ -1513,8 +1554,6 @@ def main() -> None:
     )
     with overview_tab:
         overview_view(daily)
-    with dataset_tab:
-        dataset_view(daily, orders, daily_orders)
     with patterns_tab:
         demand_patterns_view(daily)
     with forecast_tab:
