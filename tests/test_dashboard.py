@@ -10,9 +10,12 @@ from dashboard.analytics import (
     rolling_pair_lift,
 )
 from dashboard.app import (
+    MODEL_SELECTION_MODELS,
     filter_overview_period,
     forecast_weather_label,
     holdout_model_comparison,
+    load_model_selection_results,
+    model_selection_summary,
     select_holdout_models,
     weather_filter_mask,
 )
@@ -117,6 +120,44 @@ def test_holdout_model_selection_rejects_unknown_model():
 
     with pytest.raises(ValueError, match="Unknown forecast models"):
         select_holdout_models(comparison, ["Not a model"])
+
+
+def test_full_year_model_selection_marks_ties_and_keeps_ridge_selected():
+    metrics = pd.DataFrame(
+        {
+            "MAE": [14.99, 14.99, 15.03, 15.08, 15.60, 16.06, 46.30],
+            "dm_p_holm": [1.0, 1.0, 1.0, float("nan"), 0.182, 0.011, 0.0],
+            "ci_low": [-0.317, -0.278, -0.262, float("nan"), 0.024, 0.373, 19.959],
+            "ci_high": [0.138, 0.096, 0.155, float("nan"), 1.025, 1.614, 26.282],
+        },
+        index=[
+            "SARIMAX",
+            "Negative Binomial",
+            "Poisson",
+            "Ridge",
+            "Random Forest",
+            "XGBoost",
+            "Seasonal naive",
+        ],
+    )
+
+    summary = model_selection_summary(metrics).set_index("Model")
+
+    assert summary.index[0] == "SARIMAX"
+    assert summary.loc["SARIMAX", "Result"] == "Statistically tied with Ridge"
+    assert summary.loc["Poisson", "Result"] == "Statistically tied with Ridge"
+    assert summary.loc["Ridge", "Result"] == "Selected incumbent"
+    assert summary.loc["Random Forest", "Result"] == "Higher MAE; not significant after correction"
+    assert summary.loc["XGBoost", "Result"] == "Significantly worse than Ridge"
+
+
+def test_saved_full_year_model_selection_results_cover_365_days():
+    forecasts, metrics = load_model_selection_results()
+
+    assert len(forecasts) == 365
+    assert forecasts["date"].is_monotonic_increasing
+    assert set(MODEL_SELECTION_MODELS).issubset(forecasts.columns)
+    assert set(MODEL_SELECTION_MODELS).issubset(metrics.index)
 
 
 @pytest.fixture

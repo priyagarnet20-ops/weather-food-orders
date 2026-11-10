@@ -27,6 +27,15 @@ from dashboard.analytics import (
 WEATHER_OPTIONS = ("Dry", "Rainy", "Hot")
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 FORECAST_MODEL = "Ridge"
+MODEL_SELECTION_MODELS = (
+    "SARIMAX",
+    "Negative Binomial",
+    "Poisson",
+    "Ridge",
+    "Random Forest",
+    "XGBoost",
+    "Seasonal naive",
+)
 OVERVIEW_PROJECT_SUMMARY = (
     "This capstone studies how Coimbatore weather affects both restaurant order volume and menu combinations. "
     "It combines 1,097 days of real Open-Meteo weather with synthetic orders calibrated from local restaurant "
@@ -52,6 +61,41 @@ st.set_page_config(
 @st.cache_data(show_spinner="Loading Coimbatore order and weather data...")
 def load_data():
     return load_dashboard_data(ROOT)
+
+
+@st.cache_data(show_spinner=False)
+def load_dataset_csv(relative_path: str) -> bytes:
+    """Read a project CSV for download from the Dataset tab."""
+    path = ROOT / relative_path
+    if not path.is_file():
+        raise FileNotFoundError(f"Dataset file does not exist: {path}")
+    return path.read_bytes()
+
+
+@st.cache_data(show_spinner=False)
+def load_model_selection_results() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load the saved rolling-origin predictions and full-year model metrics."""
+    forecast_path = ROOT / "results" / "selection_backtest_forecasts.csv"
+    metrics_path = ROOT / "results" / "selection_metrics.csv"
+    forecasts = pd.read_csv(forecast_path, parse_dates=["date"])
+    metrics = pd.read_csv(metrics_path, index_col=0)
+    if "date" not in forecasts:
+        raise ValueError("Saved model-selection forecasts are missing the date column.")
+    if forecasts["date"].isna().any() or forecasts["date"].duplicated().any():
+        raise ValueError("Saved model-selection forecasts must have one valid row per date.")
+    missing_forecasts = set(MODEL_SELECTION_MODELS) - set(forecasts.columns)
+    if missing_forecasts:
+        raise ValueError(f"Saved forecasts are missing models: {sorted(missing_forecasts)}")
+    required_metrics = {"MAE", "delta_MAE", "dm_p_holm", "ci_low", "ci_high"}
+    missing_metrics = required_metrics - set(metrics.columns)
+    if missing_metrics:
+        raise ValueError(f"Saved model metrics are missing columns: {sorted(missing_metrics)}")
+    missing_models = set(MODEL_SELECTION_MODELS) - set(metrics.index.astype(str))
+    if missing_models:
+        raise ValueError(f"Saved metrics are missing models: {sorted(missing_models)}")
+    metrics.index = metrics.index.astype(str)
+    forecasts = forecasts.sort_values("date").reset_index(drop=True)
+    return forecasts, metrics
 
 
 @st.cache_data(show_spinner="Training chronological holdout models...")
@@ -248,6 +292,132 @@ def select_holdout_models(
     return comparison.loc[comparison["Model"].isin(selected_models)].reset_index(drop=True)
 
 
+def model_selection_summary(metrics: pd.DataFrame) -> pd.DataFrame:
+    """Rank saved model-selection metrics and explain each result against Ridge."""
+    missing_columns = {"MAE", "dm_p_holm", "ci_low", "ci_high"} - set(metrics.columns)
+    if missing_columns:
+        raise ValueError(f"Model-selection metrics are missing columns: {sorted(missing_columns)}")
+    missing_models = set(MODEL_SELECTION_MODELS) - set(metrics.index.astype(str))
+    if missing_models:
+        raise ValueError(f"Model-selection metrics are missing models: {sorted(missing_models)}")
+
+    ranked = metrics.copy()
+    ranked.index = ranked.index.astype(str)
+    ranked = ranked.loc[list(MODEL_SELECTION_MODELS)].copy()
+    ridge_mae = float(ranked.loc[FORECAST_MODEL, "MAE"])
+    ranked["MAE gap"] = ranked["MAE"] - ridge_mae
+
+    def result_label(model: str, row: pd.Series) -> str:
+        if model == FORECAST_MODEL:
+            return "Selected incumbent"
+        gap = float(row["MAE gap"])
+        p_value = float(row["dm_p_holm"])
+        ci_low, ci_high = float(row["ci_low"]), float(row["ci_high"])
+        if ci_low <= 0 <= ci_high and p_value >= 0.05:
+            return "Statistically tied with Ridge"
+        if gap > 0 and p_value < 0.05:
+            return "Significantly worse than Ridge"
+        if gap > 0:
+            return "Higher MAE; not significant after correction"
+        if gap < 0 and p_value < 0.05 and ci_high < 0:
+            return "Significantly better than Ridge"
+        return "Lower MAE; not significant"
+
+    ranked["Result"] = [
+        result_label(model, row)
+        for model, row in ranked.iterrows()
+    ]
+    return ranked.sort_values("MAE").rename_axis("Model").reset_index()
+
+
+def model_selection_view() -> None:
+    st.subheader("Full-year model selection")
+    try:
+        forecasts, metrics = load_model_selection_results()
+        comparison = model_selection_summary(metrics)
+    except (OSError, ValueError, pd.errors.ParserError) as error:
+        st.error(f"Could not load the saved full-year model-selection results: {error}")
+        return
+
+    start_date = forecasts["date"].min()
+    end_date = forecasts["date"].max()
+    selected_row = comparison.loc[comparison["Model"] == FORECAST_MODEL].iloc[0]
+    best_row = comparison.iloc[0]
+    summary = st.columns(3)
+    summary[0].metric("Evaluation period", f"{len(forecasts):,} days")
+    summary[1].metric("Lowest recorded MAE", f"{best_row['MAE']:.2f}", delta=str(best_row["Model"]))
+    summary[2].metric("Selected model", FORECAST_MODEL, delta=f"MAE {selected_row['MAE']:.2f}")
+    st.caption(
+        f"Rolling-origin evaluation on saved results from {start_date:%d %b %Y} "
+        f"to {end_date:%d %b %Y}. Lower MAE indicates smaller average daily error."
+    )
+
+    palette = {
+        "Selected incumbent": "#c24170",
+        "Statistically tied with Ridge": "#2d7f79",
+        "Higher MAE; not significant after correction": "#d18727",
+        "Significantly worse than Ridge": "#b94a48",
+        "Significantly better than Ridge": "#2d7f79",
+        "Lower MAE; not significant": "#7a8a99",
+    }
+    chart = (
+        alt.Chart(comparison)
+        .mark_bar(cornerRadiusEnd=4)
+        .encode(
+            x=alt.X("MAE:Q", title="Mean absolute error (orders/day)"),
+            y=alt.Y("Model:N", title=None, sort=alt.SortField(field="MAE", order="ascending")),
+            color=alt.Color(
+                "Result:N",
+                title="Selection result",
+                scale=alt.Scale(domain=list(palette), range=list(palette.values())),
+            ),
+            tooltip=[
+                alt.Tooltip("Model:N", title="Model"),
+                alt.Tooltip("MAE:Q", title="MAE", format=".2f"),
+                alt.Tooltip("MAE gap:Q", title="MAE gap vs Ridge", format="+.2f"),
+                alt.Tooltip("Result:N", title="Result"),
+            ],
+        )
+        .properties(height=280)
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+    table = comparison[
+        ["Model", "MAE", "MAE gap", "dm_p_holm", "ci_low", "ci_high", "Result"]
+    ].copy()
+    table = table.rename(
+        columns={
+            "MAE gap": "MAE gap vs Ridge",
+            "dm_p_holm": "Holm-adjusted p",
+            "ci_low": "95% CI low",
+            "ci_high": "95% CI high",
+        }
+    )
+    table["MAE"] = table["MAE"].map(lambda value: f"{value:.2f}")
+    table["MAE gap vs Ridge"] = table["MAE gap vs Ridge"].map(
+        lambda value: "—" if abs(value) < 0.0005 else f"{value:+.2f}"
+    )
+    table["Holm-adjusted p"] = table["Holm-adjusted p"].map(
+        lambda value: "—" if pd.isna(value) else ("<0.001" if value < 0.001 else f"{value:.3f}")
+    )
+    for column in ("95% CI low", "95% CI high"):
+        table[column] = table[column].map(
+            lambda value: "—" if pd.isna(value) else f"{value:+.2f}"
+        )
+    st.dataframe(table, hide_index=True, use_container_width=True)
+    st.info(
+        "SARIMAX has the lowest recorded MAE, but its advantage over Ridge is only "
+        f"{abs(float(best_row['MAE']) - float(selected_row['MAE'])):.2f} orders/day and is not "
+        "statistically significant after Holm correction. Ridge remains the selected incumbent; "
+        "no challenger met the pre-defined replacement rule."
+    )
+    st.caption(
+        "Statistical ties are identified when the Holm-adjusted Diebold–Mariano p-value is at least "
+        "0.05 and the 95% confidence interval for the MAE gap includes zero. This comparison uses "
+        "the saved one-year backtest; upcoming forecasts continue to use Ridge."
+    )
+
+
 def overview_view(daily: pd.DataFrame) -> None:
     st.header("Demand overview")
     st.caption(
@@ -419,6 +589,226 @@ def overview_view(daily: pd.DataFrame) -> None:
         )
 
 
+def dataset_view(
+    daily: pd.DataFrame,
+    orders: pd.DataFrame,
+    daily_orders: pd.DataFrame,
+) -> None:
+    st.header("About the dataset")
+    st.caption(
+        "This project joins historical Coimbatore weather with generated restaurant orders "
+        "to explore demand patterns. Weather is observed/reanalysis data; orders are synthetic."
+    )
+
+    daily = daily.sort_values("date")
+    start_date = pd.to_datetime(daily["date"]).min()
+    end_date = pd.to_datetime(daily["date"]).max()
+    basket_items = (
+        orders["items"]
+        .dropna()
+        .astype(str)
+        .str.split(";")
+        .explode()
+        .str.strip()
+    )
+    menu_item_count = int(basket_items.loc[basket_items.ne("")].nunique())
+
+    summary = st.columns(4)
+    coverage_years = (end_date - start_date).days / 365.25
+    summary[0].metric("Coverage period", f"{coverage_years:.1f} years")
+    summary[1].metric("Daily records", f"{len(daily):,}")
+    summary[2].metric("Synthetic orders", f"{len(orders):,}")
+    summary[3].metric("Menu items", f"{menu_item_count:,}")
+    st.caption(f"Full date range: {start_date:%d %B %Y} to {end_date:%d %B %Y}")
+    detail = st.columns(4)
+    detail[0].metric("Average orders per day", f"{daily['order_count'].mean():.1f}")
+    detail[1].metric(
+        "Daily order range",
+        f"{int(daily['order_count'].min()):,}–{int(daily['order_count'].max()):,}",
+    )
+    detail[2].metric(
+        "Rainy days (>= 2.5 mm)",
+        f"{int(daily['is_rainy'].astype(bool).sum()):,}",
+    )
+    detail[3].metric(
+        "Festival days",
+        f"{int(daily_orders['is_festival'].astype(bool).sum()):,}",
+    )
+    st.subheader("What is included")
+    st.markdown(
+        f"The analysis covers **{start_date:%d %B %Y} to {end_date:%d %B %Y}**. Each day combines "
+        "weather observations with calendar features and a generated order count. The transaction "
+        "file contains one generated basket per order, with its time, meal slot, items and value."
+    )
+    inventory = pd.DataFrame(
+        [
+            {
+                "File": "data/raw/weather.csv",
+                "Rows": len(daily),
+                "Columns": 11,
+                "Contents": "Daily weather observations from the Open-Meteo Archive API.",
+            },
+            {
+                "File": "data/processed/daily_features.csv",
+                "Rows": len(daily),
+                "Columns": len(daily.columns),
+                "Contents": "Joined daily weather, generated demand, calendar flags and model features.",
+            },
+            {
+                "File": "data/raw/orders.csv",
+                "Rows": len(orders),
+                "Columns": len(orders.columns),
+                "Contents": "One generated order per row; item names in each basket are separated by semicolons.",
+            },
+            {
+                "File": "data/raw/daily_orders.csv",
+                "Rows": len(daily_orders),
+                "Columns": len(daily_orders.columns),
+                "Contents": "Daily generated counts, weather regime, festival fields and generation parameters.",
+            },
+        ]
+    )
+    st.dataframe(inventory, hide_index=True, use_container_width=True)
+
+    st.subheader("Download dataset files")
+    st.caption("Download the CSV files used by the dashboard.")
+    downloads = (
+        ("Weather observations", "data/raw/weather.csv"),
+        ("Daily features", "data/processed/daily_features.csv"),
+        ("Generated orders", "data/raw/orders.csv"),
+        ("Daily order summary", "data/raw/daily_orders.csv"),
+    )
+    download_columns = st.columns(2)
+    for index, (label, relative_path) in enumerate(downloads):
+        download_columns[index % 2].download_button(
+            label=f"Download {label} CSV",
+            data=load_dataset_csv(relative_path),
+            file_name=Path(relative_path).name,
+            mime="text/csv",
+            key=f"dataset_download_{relative_path}",
+            use_container_width=True,
+        )
+
+    st.subheader("Download real restaurant base data")
+    st.caption(
+        "Cleaned records from the Hotel Chinthamani Swiggy report. These real orders informed "
+        "the generated history and are separate from it."
+    )
+    restaurant_downloads = (
+        ("Restaurant orders", "data/real/chinthamani_orders.csv"),
+        ("Restaurant order items", "data/real/chinthamani_items.csv"),
+    )
+    restaurant_columns = st.columns(2)
+    for index, (label, relative_path) in enumerate(restaurant_downloads):
+        restaurant_columns[index].download_button(
+            label=f"Download {label} CSV",
+            data=load_dataset_csv(relative_path),
+            file_name=Path(relative_path).name,
+            mime="text/csv",
+            key=f"source_download_{relative_path}",
+            use_container_width=True,
+        )
+
+    st.subheader("Download supporting calibration data")
+    st.caption(
+        "The survey responses informed demand and basket assumptions; outlet listings supplied "
+        "snack and drink prices."
+    )
+    calibration_downloads = (
+        ("Team survey responses", "data/real/survey_responses.csv"),
+        ("Reference snack and drink prices", "data/reference/snack_drink_prices.csv"),
+    )
+    calibration_columns = st.columns(2)
+    for index, (label, relative_path) in enumerate(calibration_downloads):
+        calibration_columns[index].download_button(
+            label=f"Download {label} CSV",
+            data=load_dataset_csv(relative_path),
+            file_name=Path(relative_path).name,
+            mime="text/csv",
+            key=f"source_download_{relative_path}",
+            use_container_width=True,
+        )
+
+    st.subheader("Sources and construction")
+    weather_source, order_source = st.columns(2)
+    with weather_source:
+        st.markdown("**Weather — real archive data**")
+        st.write(
+            "Daily historical weather for Coimbatore (11.00 N, 76.99 E) comes from the Open-Meteo "
+            "Archive API, using the Asia/Kolkata time zone. The dataset includes precipitation, "
+            "rainfall, temperature, wind, weather codes, daylight, rainy hours and humidity. "
+            "Values are gridded reanalysis estimates rather than measurements from a city weather station."
+        )
+    with order_source:
+        st.markdown("**Orders — generated from real source data**")
+        st.write(
+            "The three-year order history is generated, not a record of actual transactions. Its "
+            "generation is informed by 464 orders from Hotel Chinthamani's Swiggy report, responses "
+            "from 27 adult Coimbatore survey participants, and local menu-price references. These "
+            "sources calibrate daily order volumes and basket composition; the resulting dataset "
+            "adds weather-linked patterns for analysis."
+        )
+
+    st.subheader("Key fields")
+    field_guide = pd.DataFrame(
+        [
+            {
+                "Dataset": "Daily features",
+                "Fields": "date, order_count, total_revenue, avg_order_value, avg_basket_size",
+                "Meaning": "Calendar day, generated demand and daily order-value summaries.",
+            },
+            {
+                "Dataset": "Weather",
+                "Fields": "precip_mm, rain_mm, temp_max_c, temp_min_c, temp_mean_c, wind_max_kmh, weather_code, daylight_s, precip_hours, humidity_mean_pct",
+                "Meaning": "Daily precipitation, temperature, wind, WMO condition and humidity measures.",
+            },
+            {
+                "Dataset": "Weather flags",
+                "Fields": "is_rainy, heavy_rain, is_hot, rain_intensity, temp_band",
+                "Meaning": "Project thresholds: rainy >= 2.5 mm, heavy rain >= 15 mm, hot >= 33 C.",
+            },
+            {
+                "Dataset": "Calendar",
+                "Fields": "dow, is_weekend, is_festival, festival_name, monsoon_phase",
+                "Meaning": "Weekday, project weekend (Friday–Sunday), festival and seasonal context.",
+            },
+            {
+                "Dataset": "Demand history",
+                "Fields": "order_count_lag1, order_count_lag7, order_count_roll7",
+                "Meaning": "Previous-day, previous-week and rolling seven-day order features.",
+            },
+            {
+                "Dataset": "Order baskets",
+                "Fields": "order_id, date, timestamp, meal_slot, items, item_count, order_value",
+                "Meaning": "Generated transaction identifiers, timing, semicolon-separated items and order value.",
+            },
+            {
+                "Dataset": "Generator details",
+                "Fields": "regime, mult_weekend, mult_rain, mult_temp, mult_festival, expected_orders",
+                "Meaning": "Weather regime, generation multipliers and expected daily volume in daily_orders.csv.",
+            },
+        ]
+    )
+    st.dataframe(field_guide, hide_index=True, use_container_width=True)
+    st.caption(
+        "The first rows of lag-based features have missing values when earlier history is unavailable; "
+        "this is expected and does not indicate missing source weather."
+    )
+
+    with st.expander("Generator assumptions and limitations"):
+        st.markdown(
+            "- Daily demand is generated from a negative-binomial process with a fixed seed. "
+            "The documented calibration includes a Friday–Sunday multiplier of 2.47, weekday-rain "
+            "multiplier of 1.56, weekend-rain multiplier of 0.54, heat multiplier of 1.07 and "
+            "festival multiplier of 0.89.\n"
+            "- Weather flags use project-specific thresholds, not official meteorological definitions.\n"
+            "- The source restaurant report covers one outlet and a short period; the team survey "
+            "contains 27 adults. Neither is representative of all Coimbatore restaurants or customers.\n"
+            "- Menu association rules measure patterns intentionally introduced by the generator. "
+            "They are useful for demonstrating the method, not for claiming observed buying behaviour."
+        )
+
+
 def demand_patterns_view(daily: pd.DataFrame) -> None:
     st.header("Demand patterns")
     st.caption("Compare order volume by weekday, weather and season using the project’s daily dataset.")
@@ -500,10 +890,13 @@ def forecast_view(daily: pd.DataFrame) -> None:
     st.header("Order forecast")
     forecast_mode = st.radio(
         "Forecast type",
-        ("Upcoming dates", "Historical holdout evaluation"),
+        ("Upcoming dates", "Historical holdout evaluation", "Full-year model selection"),
         horizontal=True,
         key="forecast_mode",
     )
+    if forecast_mode == "Full-year model selection":
+        model_selection_view()
+        return
     selected_weather = st.multiselect(
         "Weather filter",
         WEATHER_OPTIONS,
@@ -586,7 +979,7 @@ def forecast_view(daily: pd.DataFrame) -> None:
         forecast_chart(timeline, [(FORECAST_MODEL, FORECAST_MODEL)])
         bridge_days = max(0, (start_date - last_order_date.date()).days - 1)
         st.caption(
-            f"Ridge, the project's best-performing model, is projected recursively. "
+            f"Ridge, the project's selected model, is projected recursively. "
             f"There are {bridge_days} intervening days "
             "between the last observed order date and the requested range; those order counts are "
             "estimates fed back into the lag features, so forecast uncertainty increases with distance. "
@@ -931,11 +1324,13 @@ def main() -> None:
         st.error(f"Could not load dashboard data: {error}")
         st.stop()
 
-    overview_tab, patterns_tab, forecast_tab, menu_tab = st.tabs(
-        ["Overview", "Demand patterns", "Forecasts", "Menu insights"]
+    overview_tab, dataset_tab, patterns_tab, forecast_tab, menu_tab = st.tabs(
+        ["Overview", "Dataset", "Demand patterns", "Forecasts", "Menu insights"]
     )
     with overview_tab:
         overview_view(daily)
+    with dataset_tab:
+        dataset_view(daily, orders, daily_orders)
     with patterns_tab:
         demand_patterns_view(daily)
     with forecast_tab:
