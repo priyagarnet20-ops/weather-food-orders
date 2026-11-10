@@ -6,6 +6,7 @@ from math import ceil
 from pathlib import Path
 
 import altair as alt
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -735,8 +736,8 @@ def dataset_view(
     timeline_data["dow_name"] = timeline_data["dow"].apply(
         lambda d: WEEKDAYS[int(d)] if pd.notna(d) and int(d) < len(WEEKDAYS) else ""
     )
-    timeline_data["day_type"] = timeline_data["is_weekend"].map(
-        {1: "Weekend (Fri–Sun)", 0: "Weekday (Mon–Thu)", True: "Weekend (Fri–Sun)", False: "Weekday (Mon–Thu)"}
+    timeline_data["day_type"] = np.where(
+        timeline_data["is_weekend"].astype(bool), "Weekend (Fri–Sun)", "Weekday (Mon–Thu)"
     )
     timeline_data["regime_label"] = (
         timeline_data["regime"]
@@ -822,20 +823,39 @@ def dataset_view(
             horizontal=True,
             key="dataset_scatter_x",
         )
+        color_choice = st.radio(
+            "Color points by:",
+            ("Day type (Weekday vs Weekend)", "Weather regime (Rainy, Hot, Normal)"),
+            horizontal=True,
+            key="dataset_scatter_color",
+        )
         x_col = "precip_mm" if "Precipitation" in scatter_x_choice else ("temp_max_c" if "temperature" in scatter_x_choice else "humidity_mean_pct")
         x_title = "Precipitation (mm)" if "Precipitation" in scatter_x_choice else ("Max Temperature (°C)" if "temperature" in scatter_x_choice else "Mean Relative Humidity (%)")
+        scale_opt = alt.Scale(zero=False) if x_col != "precip_mm" else alt.Scale(zero=True)
+
+        if "Day type" in color_choice:
+            color_enc = alt.Color(
+                "day_type:N",
+                title="Day type",
+                scale=alt.Scale(domain=["Weekday (Mon–Thu)", "Weekend (Fri–Sun)"], range=["#84265b", "#2b7cb6"]),
+            )
+        else:
+            color_enc = alt.Color(
+                "regime_label:N",
+                title="Weather regime",
+                scale=alt.Scale(
+                    domain=["Rainy (≥ 2.5 mm)", "Heatwave (≥ 33 °C)", "Normal / Pleasant"],
+                    range=["#1f77b4", "#ff7f0e", "#9e9e9e"],
+                ),
+            )
 
         scatter_chart = (
             alt.Chart(timeline_data)
-            .mark_circle(size=50, opacity=0.7)
+            .mark_circle(size=55, opacity=0.7)
             .encode(
-                x=alt.X(f"{x_col}:Q", title=x_title),
-                y=alt.Y("order_count:Q", title="Daily Orders"),
-                color=alt.Color(
-                    "day_type:N",
-                    title="Day type",
-                    scale=alt.Scale(domain=["Weekday (Mon–Thu)", "Weekend (Fri–Sun)"], range=["#84265b", "#2b7cb6"]),
-                ),
+                x=alt.X(f"{x_col}:Q", title=x_title, scale=scale_opt),
+                y=alt.Y("order_count:Q", title="Daily Orders", scale=alt.Scale(zero=False)),
+                color=color_enc,
                 tooltip=[
                     alt.Tooltip("date:T", title="Date", format="%Y-%m-%d"),
                     alt.Tooltip("dow_name:N", title="Day of week"),
@@ -843,9 +863,10 @@ def dataset_view(
                     alt.Tooltip("day_type:N", title="Day type"),
                     alt.Tooltip(f"{x_col}:Q", title=x_title, format=".1f"),
                     alt.Tooltip("regime_label:N", title="Weather Regime"),
+                    alt.Tooltip("festival_name:N", title="Festival"),
                 ],
             )
-            .properties(height=340)
+            .properties(height=360)
         )
         st.altair_chart(scatter_chart, use_container_width=True)
         st.info(
