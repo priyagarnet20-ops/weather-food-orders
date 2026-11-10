@@ -1554,6 +1554,8 @@ def main() -> None:
     )
     with overview_tab:
         overview_view(daily)
+    with dataset_tab:
+        dataset_view(daily, orders, daily_orders)
     with patterns_tab:
         demand_patterns_view(daily)
     with forecast_tab:
