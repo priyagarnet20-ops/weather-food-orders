@@ -108,9 +108,9 @@ Derived flags used across the project (defined once so every module agrees):
 | Total precipitation | 3,599 mm (518 mm in the 2023 part, 1,299 mm in 2024, 1,143 mm in 2025, 639 mm in the 2026 part); 387 days with none |
 | Rainy days (≥ 2.5 mm) | 329; heavy-rain days (≥ 15 mm) 67 |
 | Max temperature | 24.0 – 40.8 °C, mean 31.5 °C; 300 days ≥ 33 °C |
-| Daily orders (final generator) | 193,406 orders over 1,097 days, mean 176.3 per day, range 61 – 384 |
+| Daily orders (current dashboard generator output) | 182,696 orders over 1,097 days, mean 166.5 per day, range 73 – 354 |
 | Regime split | 329 rainy, 265 hot (and not rainy), 503 normal; 41 festival days |
-| Mean orders by regime | rainy 203, hot 172, normal 161 |
+| Mean orders by regime | rainy 153, hot 177, normal 169 |
 
 The wettest months in the window are November 2023 (253 mm), May 2024 (244 mm), October 2025 (231 mm) and October 2024 (218 mm).
 

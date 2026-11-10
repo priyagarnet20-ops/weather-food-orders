@@ -2,9 +2,162 @@
 import pandas as pd
 import pytest
 
-from dashboard.analytics import mine_pair_rules, rolling_pair_lift
-from dashboard.forecasting import _future_feature_row, forecast_future_orders
+from dashboard.analytics import (
+    PLANTED_RAIN_PAIRS,
+    compare_weather_pair_rules,
+    filter_weather_effect,
+    mine_pair_rules,
+    rolling_pair_lift,
+)
+from dashboard.app import (
+    MODEL_SELECTION_MODELS,
+    filter_overview_period,
+    forecast_weather_label,
+    holdout_model_comparison,
+    load_model_selection_results,
+    model_selection_summary,
+    select_holdout_models,
+    weather_filter_mask,
+)
+from dashboard.data import load_dashboard_data
+from dashboard.forecasting import MODEL_NAMES, _future_feature_row, forecast_future_orders
 from dashboard.weather import fetch_weather_extension, local_today
+
+
+def test_overview_period_filters_recent_window_and_keeps_all_history():
+    dates = pd.date_range("2025-01-01", periods=400, freq="D")
+    daily = pd.DataFrame({"date": dates, "order_count": range(len(dates))})
+
+    recent = filter_overview_period(daily, "Last 90 days")
+    all_history = filter_overview_period(daily, "All history")
+
+    assert len(recent) == 90
+    assert recent["date"].min() == dates[-90]
+    pd.testing.assert_frame_equal(all_history, daily)
+
+
+def test_overview_period_rejects_unknown_period():
+    daily = pd.DataFrame({"date": pd.to_datetime(["2025-01-01"])})
+
+    with pytest.raises(ValueError, match="Unsupported overview period"):
+        filter_overview_period(daily, "Last 30 days")
+
+
+def test_weather_filter_includes_overlapping_conditions():
+    forecast = pd.DataFrame({
+        "is_rainy": [True, True, False, False],
+        "is_hot": [False, True, True, False],
+    })
+
+    rainy = weather_filter_mask(forecast, ["Rainy"])
+    hot = weather_filter_mask(forecast, ["Hot"])
+    dry = weather_filter_mask(forecast, ["Dry"])
+
+    assert rainy.tolist() == [True, True, False, False]
+    assert hot.tolist() == [False, True, True, False]
+    assert dry.tolist() == [False, False, False, True]
+
+
+def test_forecast_weather_label_shows_rain_and_heat_together():
+    forecast = pd.DataFrame({
+        "is_rainy": [True, True, False, False],
+        "is_hot": [False, True, True, False],
+    })
+
+    labels = forecast.apply(forecast_weather_label, axis=1).tolist()
+
+    assert labels == ["Rainy", "Rainy + Hot", "Hot", "Dry"]
+
+
+def test_holdout_model_comparison_ranks_models_by_mae():
+    actual = [100.0, 100.0, 100.0]
+    forecasts = pd.DataFrame(
+        {
+            "actual": actual,
+            "Seasonal naive": [120.0, 120.0, 120.0],
+            "Ridge": [110.0, 110.0, 110.0],
+            "Random Forest": [105.0, 105.0, 105.0],
+            "XGBoost": [115.0, 115.0, 115.0],
+        }
+    )
+
+    comparison = holdout_model_comparison(forecasts)
+
+    assert comparison["Model"].tolist() == [
+        "Random Forest", "Ridge", "XGBoost", "Seasonal naive"
+    ]
+    assert comparison["MAE"].tolist() == [5.0, 10.0, 15.0, 20.0]
+
+
+def test_holdout_model_comparison_rejects_missing_model():
+    forecasts = pd.DataFrame({"actual": [100.0], "Ridge": [95.0]})
+
+    with pytest.raises(ValueError, match="missing required columns"):
+        holdout_model_comparison(forecasts)
+
+
+def test_holdout_model_selection_filters_comparison():
+    actual = [100.0, 100.0]
+    forecasts = pd.DataFrame(
+        {
+            "actual": actual,
+            "Seasonal naive": [120.0, 120.0],
+            "Ridge": [110.0, 110.0],
+            "Random Forest": [105.0, 105.0],
+            "XGBoost": [115.0, 115.0],
+        }
+    )
+    comparison = holdout_model_comparison(forecasts)
+
+    selected = select_holdout_models(comparison, ["Ridge", "XGBoost"])
+
+    assert selected["Model"].tolist() == ["Ridge", "XGBoost"]
+    assert selected["MAE"].tolist() == [10.0, 15.0]
+
+
+def test_holdout_model_selection_rejects_unknown_model():
+    comparison = pd.DataFrame({"Model": ["Ridge"], "MAE": [10.0]})
+
+    with pytest.raises(ValueError, match="Unknown forecast models"):
+        select_holdout_models(comparison, ["Not a model"])
+
+
+def test_full_year_model_selection_marks_ties_and_keeps_ridge_selected():
+    metrics = pd.DataFrame(
+        {
+            "MAE": [14.99, 14.99, 15.03, 15.08, 15.60, 16.06, 46.30],
+            "dm_p_holm": [1.0, 1.0, 1.0, float("nan"), 0.182, 0.011, 0.0],
+            "ci_low": [-0.317, -0.278, -0.262, float("nan"), 0.024, 0.373, 19.959],
+            "ci_high": [0.138, 0.096, 0.155, float("nan"), 1.025, 1.614, 26.282],
+        },
+        index=[
+            "SARIMAX",
+            "Negative Binomial",
+            "Poisson",
+            "Ridge",
+            "Random Forest",
+            "XGBoost",
+            "Seasonal naive",
+        ],
+    )
+
+    summary = model_selection_summary(metrics).set_index("Model")
+
+    assert summary.index[0] == "SARIMAX"
+    assert summary.loc["SARIMAX", "Result"] == "Statistically tied with Ridge"
+    assert summary.loc["Poisson", "Result"] == "Statistically tied with Ridge"
+    assert summary.loc["Ridge", "Result"] == "Selected incumbent"
+    assert summary.loc["Random Forest", "Result"] == "Higher MAE; not significant after correction"
+    assert summary.loc["XGBoost", "Result"] == "Significantly worse than Ridge"
+
+
+def test_saved_full_year_model_selection_results_cover_365_days():
+    forecasts, metrics = load_model_selection_results()
+
+    assert len(forecasts) == 365
+    assert forecasts["date"].is_monotonic_increasing
+    assert set(MODEL_SELECTION_MODELS).issubset(forecasts.columns)
+    assert set(MODEL_SELECTION_MODELS).issubset(metrics.index)
 
 
 @pytest.fixture
@@ -86,6 +239,33 @@ def test_invalid_rule_threshold_is_rejected(sample_orders, sample_weather):
         mine_pair_rules(sample_orders, sample_weather, min_support=1.1)
 
 
+def test_default_data_comparison_keeps_planted_pairs_and_drops_artifacts():
+    _, orders, daily_orders = load_dashboard_data()
+    rules = mine_pair_rules(orders, daily_orders, min_support=0.005)
+    comparison = compare_weather_pair_rules(rules)
+    planted = set(
+        zip(
+            comparison.loc[comparison["planted_rain_pair"], "antecedent"],
+            comparison.loc[comparison["planted_rain_pair"], "consequent"],
+        )
+    )
+    rainy_stronger = filter_weather_effect(comparison, "Stronger on rainy days")
+    dry_stronger = filter_weather_effect(comparison, "Stronger on dry days")
+
+    assert set(PLANTED_RAIN_PAIRS).issubset(planted)
+    assert comparison["rainy_confidence"].lt(1).all()
+    assert comparison["dry_confidence"].lt(1).all()
+    assert not (
+        comparison["antecedent"].eq("Ghee Roast")
+        & comparison["consequent"].eq("Podi Roast")
+    ).any()
+    assert not rainy_stronger.empty
+    assert not dry_stronger.empty
+    assert not rainy_stronger.equals(dry_stronger)
+    assert comparison["confidence_change_pp"].is_monotonic_decreasing
+    assert comparison[["rainy_lift", "dry_lift"]].to_numpy().max() <= 20
+
+
 def test_rolling_lift_uses_full_calendar_windows_and_weather_segment():
     dates = pd.date_range("2025-01-01", periods=14, freq="D")
     orders = pd.DataFrame({
@@ -100,12 +280,35 @@ def test_rolling_lift_uses_full_calendar_windows_and_weather_segment():
         consequent="B",
         segment="Rainy",
         min_transactions=20,
+        min_antecedent_transactions=14,
     )
 
     assert lift["lift"].iloc[:-1].isna().all()
     assert lift["lift"].iloc[-1] == pytest.approx(1.0)
     assert lift["transactions"].iloc[-1] == 28
     assert lift["monsoon_phase"].iloc[-1] == "Dry season (Jan-May)"
+
+
+def test_rolling_lift_hides_windows_with_too_few_antecedent_orders():
+    dates = pd.date_range("2025-01-01", periods=14, freq="D")
+    orders = pd.DataFrame({
+        "date": dates,
+        "items": ["A; B"] * len(dates),
+    })
+    weather = pd.DataFrame({"date": dates, "is_rainy": True})
+
+    lift = rolling_pair_lift(
+        orders,
+        weather,
+        antecedent="A",
+        consequent="B",
+        segment="Rainy",
+        min_transactions=1,
+        min_antecedent_transactions=15,
+    )
+
+    assert lift["lift"].isna().all()
+    assert lift["confidence"].isna().all()
 
 
 def test_future_forecast_recursively_covers_weather_dates():
