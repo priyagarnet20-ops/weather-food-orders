@@ -693,30 +693,26 @@ def forecast_view(daily: pd.DataFrame) -> None:
 def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
     st.header("Menu combinations by weather")
     st.caption(
-        "Compare each directed item pair's confidence on rainy versus dry days using Market Basket Analysis. "
-        "Because order baskets are generated, this view evaluates the recovery of planted generator patterns "
-        "rather than unobserved customer purchasing behaviour."
+        "Compare each directed item pair's confidence on rainy versus dry days. Since baskets are generated, "
+        "this view evaluates planted generator patterns rather than observed customer behaviour."
     )
-    param_cols = st.columns(2)
-    with param_cols[0]:
-        min_support = st.slider(
-            "Minimum support per weather segment (%)",
-            min_value=0.1,
-            max_value=2.0,
-            value=0.5,
-            step=0.1,
-            format="%.1f%%",
-            help="Support is the share of rainy or dry baskets containing both items. Default 0.5% filters out rare copied-basket quirks.",
-        )
-    with param_cols[1]:
-        min_confidence = st.slider(
-            "Minimum rule confidence (%)",
-            min_value=1,
-            max_value=50,
-            value=5,
-            step=1,
-            help="Confidence is the share of baskets containing the first item that also contain the second.",
-        )
+    min_support = st.slider(
+        "Minimum support per weather segment (%)",
+        min_value=0.1,
+        max_value=2.0,
+        value=0.5,
+        step=0.1,
+        format="%.1f%%",
+        help="Support is the share of rainy or dry baskets containing both items. Default 0.5% filters out rare copied-basket quirks.",
+    )
+    min_confidence = st.slider(
+        "Minimum rule confidence (%)",
+        min_value=1,
+        max_value=50,
+        value=5,
+        step=1,
+        help="Confidence is the share of baskets containing the first item that also contain the second.",
+    )
     support_fraction = min_support / 100
     rainy_dates = set(daily_orders.loc[daily_orders["is_rainy"].astype(bool), "date"])
     rainy_count = int(orders["date"].isin(rainy_dates).sum())
@@ -728,6 +724,9 @@ def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
         f"{dry_min_pair_count:,} dry orders. Rules with 100% confidence or lift above 20 are "
         "excluded as likely copied-basket shortcuts; lift remains visible for context."
     )
+    summaries = st.columns(2)
+    summaries[0].metric("Rainy-day baskets", f"{rainy_count:,}")
+    summaries[1].metric("Dry-day baskets", f"{dry_count:,}")
     try:
         comparisons = get_pair_comparisons(
             orders, daily_orders, support_fraction, min_confidence / 100
@@ -736,165 +735,77 @@ def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
         st.error(f"Could not compare weather-segmented rules: {error}")
         return
 
-    summaries = st.columns(4)
-    summaries[0].metric("Rainy-day baskets", f"{rainy_count:,}", help="Total orders placed on rainy days")
-    summaries[1].metric("Dry-day baskets", f"{dry_count:,}", help="Total orders placed on dry days")
-    if not comparisons.empty:
-        top_rain = comparisons.sort_values("confidence_change_pp", ascending=False).iloc[0]
-        top_dry = comparisons.sort_values("confidence_change_pp", ascending=True).iloc[0]
-        summaries[2].metric(
-            "Top monsoon surge",
-            f"{top_rain['antecedent']} → {top_rain['consequent']}",
-            f"{top_rain['confidence_change_pp']:+.1f} pp",
-            help="Item pairing with the highest confidence increase on rainy days.",
-        )
-        summaries[3].metric(
-            "Top fair-weather combo",
-            f"{top_dry['antecedent']} → {top_dry['consequent']}",
-            f"{top_dry['confidence_change_pp']:+.1f} pp",
-            help="Item pairing favored on dry days (highest drop during rain).",
-        )
-    else:
-        summaries[2].metric("Top monsoon surge", "—")
-        summaries[3].metric("Top fair-weather combo", "—")
-
-    if not comparisons.empty:
-        st.subheader("Pairing confidence shift: Rain surge vs. Fair-weather surge")
-        st.caption(
-            "Difference in pairing confidence between rainy and dry days. Combinations in rose surge during rainfall; "
-            "combinations in slate blue are favored on dry, sunny days."
-        )
-        gainers = comparisons.nlargest(5, "confidence_change_pp").copy()
-        losers = comparisons.nsmallest(5, "confidence_change_pp").copy()
-        shift_df = pd.concat([gainers, losers]).sort_values("confidence_change_pp", ascending=True)
-        shift_df["Pair"] = shift_df["antecedent"] + " → " + shift_df["consequent"]
-        shift_df["Weather regime"] = shift_df["confidence_change_pp"].apply(
-            lambda val: "Rain surge (+)" if val > 0 else "Fair-weather surge (−)"
-        )
-
-        shift_chart = (
-            alt.Chart(shift_df)
-            .mark_bar(cornerRadius=4)
-            .encode(
-                y=alt.Y("Pair:N", sort=None, title="Menu combination (If basket has → also contains)"),
-                x=alt.X(
-                    "confidence_change_pp:Q",
-                    title="Rainy − dry confidence difference (percentage points)",
-                ),
-                color=alt.Color(
-                    "Weather regime:N",
-                    scale=alt.Scale(
-                        domain=["Rain surge (+)", "Fair-weather surge (−)"],
-                        range=["#c24170", "#274c77"],
-                    ),
-                    legend=alt.Legend(title="Surge regime"),
-                ),
-                tooltip=[
-                    alt.Tooltip("Pair:N", title="Combination"),
-                    alt.Tooltip("confidence_change_pp:Q", title="Confidence change (pp)", format="+.1f"),
-                    alt.Tooltip("rainy_confidence:Q", title="Rainy confidence", format=".1%"),
-                    alt.Tooltip("dry_confidence:Q", title="Dry confidence", format=".1%"),
-                    alt.Tooltip("rainy_lift:Q", title="Rainy lift", format=".2f"),
-                    alt.Tooltip("dry_lift:Q", title="Dry lift", format=".2f"),
-                ],
-            )
-            .properties(height=320)
-        )
-        st.altair_chart(shift_chart, use_container_width=True)
-
-    st.subheader("Detailed association rules comparison")
-    all_items = (
-        sorted(set(comparisons["antecedent"]).union(set(comparisons["consequent"])))
-        if not comparisons.empty
-        else []
+    scope = st.radio(
+        "Rule set",
+        ("Planted rain-effect pairs", "All eligible pairs"),
+        horizontal=True,
+        help="The default focuses on the rain-related pairs intentionally planted in the generator.",
     )
-    filter_cols = st.columns([1.2, 1, 1.2])
-    with filter_cols[0]:
-        scope = st.radio(
-            "Rule set",
-            ("Planted rain-effect pairs", "All eligible pairs"),
-            horizontal=True,
-            help="The default focuses on the rain-related pairs intentionally planted in the generator.",
-        )
-    with filter_cols[1]:
-        effect = st.selectbox(
-            "Weather effect",
-            ("All pairs", "Stronger on rainy days", "Stronger on dry days"),
-            help="Filters the comparison table by the sign of rainy confidence minus dry confidence.",
-        )
-    with filter_cols[2]:
-        item_filter = st.selectbox(
-            "Filter by menu item",
-            ["All items"] + all_items,
-            help="Show combinations containing this specific item.",
-        )
-
-    table_data = comparisons.copy()
     if scope == "Planted rain-effect pairs":
-        table_data = table_data.loc[table_data["planted_rain_pair"]]
-    table_data = filter_weather_effect(table_data, effect)
-    if item_filter != "All items":
-        table_data = table_data.loc[
-            (table_data["antecedent"] == item_filter)
-            | (table_data["consequent"] == item_filter)
-        ]
+        comparisons = comparisons.loc[comparisons["planted_rain_pair"]]
+    effect = st.selectbox(
+        "Weather effect",
+        ("All pairs", "Stronger on rainy days", "Stronger on dry days"),
+        help="Filters the comparison table by the sign of rainy confidence minus dry confidence.",
+    )
+    comparisons = filter_weather_effect(comparisons, effect)
+    if comparisons.empty:
+        st.info("No paired rules meet these support, confidence and weather-effect settings.")
+        return
 
-    if table_data.empty:
-        st.info("No paired rules meet these support, confidence, item, and weather-effect filters.")
-    else:
-        table = table_data[
-            [
-                "antecedent",
-                "consequent",
-                "rainy_support",
-                "dry_support",
-                "rainy_confidence",
-                "dry_confidence",
-                "confidence_change_pp",
-                "rainy_lift",
-                "dry_lift",
-                "lift_ratio",
-                "rainy_pair_count",
-                "dry_pair_count",
-            ]
-        ].rename(
-            columns={
-                "antecedent": "If basket has",
-                "consequent": "Also contains",
-                "rainy_support": "Rainy support",
-                "dry_support": "Dry support",
-                "rainy_confidence": "Rainy confidence",
-                "dry_confidence": "Dry confidence",
-                "confidence_change_pp": "Rainy − dry confidence (pp)",
-                "rainy_lift": "Rainy lift",
-                "dry_lift": "Dry lift",
-                "lift_ratio": "Rainy / dry lift",
-                "rainy_pair_count": "Rainy pair orders",
-                "dry_pair_count": "Dry pair orders",
+    table = comparisons[
+        [
+            "antecedent",
+            "consequent",
+            "rainy_support",
+            "dry_support",
+            "rainy_confidence",
+            "dry_confidence",
+            "confidence_change_pp",
+            "rainy_lift",
+            "dry_lift",
+            "lift_ratio",
+            "rainy_pair_count",
+            "dry_pair_count",
+        ]
+    ].rename(
+        columns={
+            "antecedent": "If basket has",
+            "consequent": "Also contains",
+            "rainy_support": "Rainy support",
+            "dry_support": "Dry support",
+            "rainy_confidence": "Rainy confidence",
+            "dry_confidence": "Dry confidence",
+            "confidence_change_pp": "Rainy − dry confidence (pp)",
+            "rainy_lift": "Rainy lift",
+            "dry_lift": "Dry lift",
+            "lift_ratio": "Rainy / dry lift",
+            "rainy_pair_count": "Rainy pair orders",
+            "dry_pair_count": "Dry pair orders",
+        }
+    )
+    st.dataframe(
+        table.style.format(
+            {
+                "Rainy support": "{:.2%}",
+                "Dry support": "{:.2%}",
+                "Rainy confidence": "{:.1%}",
+                "Dry confidence": "{:.1%}",
+                "Rainy − dry confidence (pp)": "{:+.1f}",
+                "Rainy lift": "{:.2f}",
+                "Dry lift": "{:.2f}",
+                "Rainy / dry lift": "{:.2f}×",
+                "Rainy pair orders": "{:,.0f}",
+                "Dry pair orders": "{:,.0f}",
             }
-        )
-        st.dataframe(
-            table.style.format(
-                {
-                    "Rainy support": "{:.2%}",
-                    "Dry support": "{:.2%}",
-                    "Rainy confidence": "{:.1%}",
-                    "Dry confidence": "{:.1%}",
-                    "Rainy − dry confidence (pp)": "{:+.1f}",
-                    "Rainy lift": "{:.2f}",
-                    "Dry lift": "{:.2f}",
-                    "Rainy / dry lift": "{:.2f}×",
-                    "Rainy pair orders": "{:,.0f}",
-                    "Dry pair orders": "{:,.0f}",
-                }
-            ),
-            use_container_width=True,
-            hide_index=True,
-        )
-        st.caption(
-            "Sorted by rainy-minus-dry confidence in percentage points. Lift may move in the opposite "
-            "direction because item prevalence also changes with weather."
-        )
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.caption(
+        "Sorted by rainy-minus-dry confidence in percentage points. Lift may move in the opposite "
+        "direction because item prevalence also changes with weather."
+    )
 
     st.subheader("14-day planted-pair trend")
     planted_pairs = [
@@ -902,111 +813,42 @@ def rules_view(orders: pd.DataFrame, daily_orders: pd.DataFrame) -> None:
         for _, row in comparisons.iterrows()
         if (row["antecedent"], row["consequent"]) in PLANTED_RAIN_PAIRS
     ]
-    if planted_pairs:
-        selected_pair = st.selectbox(
-            "Planted pair",
-            planted_pairs,
-            format_func=lambda pair: f"{pair[0]} → {pair[1]}",
-        )
-        trend_metric = st.radio(
-            "Trend metric",
-            ("Confidence", "Lift"),
-            horizontal=True,
-            help="Confidence directly shows how often the consequent appears when the antecedent is present.",
-        )
-        rainy_trend = get_pair_timeline(
-            orders, daily_orders, *selected_pair, "Rainy"
-        ).rename(columns={trend_metric.lower(): "Rainy"})
-        dry_trend = get_pair_timeline(
-            orders, daily_orders, *selected_pair, "Dry"
-        ).rename(columns={trend_metric.lower(): "Dry"})
-        trend = rainy_trend[["date", "Rainy"]].merge(
-            dry_trend[["date", "Dry"]], on="date", how="outer"
-        ).set_index("date")
-        if trend.dropna(how="all").empty:
-            st.info("Not enough antecedent orders in any 14-day window to show this pair.")
-        else:
-            st.line_chart(
-                trend,
-                x_label="Window end date",
-                y_label="Confidence" if trend_metric == "Confidence" else "Lift",
-                color=["#c24170", "#274c77"],
-            )
-            st.caption(
-                "Each point uses a rolling 14-day calendar window and is hidden unless the segment contains "
-                "at least 20 antecedent orders. Empty stretches indicate insufficient evidence, not zero lift."
-            )
-    else:
-        st.info("Select a support/confidence threshold that includes planted rain-effect pairs to view a planted-pair timeline.")
-
-    if not comparisons.empty:
-        st.subheader("Smart upsell recommender")
-        st.caption(
-            "Simulate real-time checkout recommendations: select an item currently in the customer's cart "
-            "and toggle current weather to view the optimal data-backed companion item."
-        )
-        available_antecedents = sorted(comparisons["antecedent"].unique())
-        sim_col1, sim_col2 = st.columns([1.1, 1.4])
-        with sim_col1:
-            cart_item = st.selectbox("Item in customer's cart", available_antecedents)
-            sim_weather = st.radio(
-                "Current weather condition",
-                ("Rainy", "Dry"),
-                horizontal=True,
-                help="Switch between rainy and dry weather to see how companion recommendations dynamically adapt.",
-            )
-        with sim_col2:
-            cand = comparisons.loc[comparisons["antecedent"] == cart_item]
-            if not cand.empty:
-                if sim_weather == "Rainy":
-                    best_rule = cand.sort_values(
-                        ["rainy_confidence", "rainy_lift"], ascending=[False, False]
-                    ).iloc[0]
-                    conf = best_rule["rainy_confidence"]
-                    lift = best_rule["rainy_lift"]
-                    delta = best_rule["confidence_change_pp"]
-                else:
-                    best_rule = cand.sort_values(
-                        ["dry_confidence", "dry_lift"], ascending=[False, False]
-                    ).iloc[0]
-                    conf = best_rule["dry_confidence"]
-                    lift = best_rule["dry_lift"]
-                    delta = -best_rule["confidence_change_pp"]
-
-                st.markdown(f"**Recommended companion add-on:** `{best_rule['consequent']}`")
-                rec_metrics = st.columns(3)
-                rec_metrics[0].metric(
-                    "Conversion chance",
-                    f"{conf:.1%}",
-                    help="Conditional probability that the customer accepts this add-on.",
-                )
-                rec_metrics[1].metric(
-                    "Pairing synergy (Lift)",
-                    f"{lift:.2f}×",
-                    help="How much more often these two items are ordered together compared to chance.",
-                )
-                rec_metrics[2].metric(
-                    "Weather shift",
-                    f"{delta:+.1f} pp",
-                    help="Change in conversion chance compared to the opposite weather regime.",
-                )
-                if best_rule["planted_rain_pair"]:
-                    st.caption("⭐ Validated planted monsoon benchmark combination.")
-            else:
-                st.info("No frequent pairings found for this item.")
-
-    with st.expander("🍽️ Kitchen operations & inventory recommendations", expanded=False):
-        st.markdown(
-            "- **Dynamic Rain Bundles:** When rainfall is forecasted (precipitation ≥ 2.5 mm), automatically promote "
-            "the *'Monsoon Evening Combo'* (Chai + Pakora or Coffee + Vada) on the ordering homepage. "
-            "Vada + Coffee pairing jumps by **+32.3 percentage points** on rainy days.\n"
-            "- **Production Batch Timing:** Afternoon snack prep (frying Pakoras, steaming Vadas) should be scaled up "
-            "by **+30% to +40%** ahead of rainfall to prevent out-of-stock bottlenecks.\n"
-            "- **Perishables & Cold Storage:** Dial down Ice Cream batch defrosting and Cold Coffee milk allocations "
-            "on rainy days, as Ice Cream companion ordering drops by **−23.3 percentage points**.\n"
-            "- **Meal Slot Targeting:** Soup + Biryani/Kothu pairings maintain stable high lift (>4.0×) across both regimes, "
-            "making soup an ideal year-round upsell regardless of weather."
-        )
+    if not planted_pairs:
+        st.info("Select planted rain-effect pairs to view a planted-pair timeline.")
+        return
+    selected_pair = st.selectbox(
+        "Planted pair",
+        planted_pairs,
+        format_func=lambda pair: f"{pair[0]} → {pair[1]}",
+    )
+    trend_metric = st.radio(
+        "Trend metric",
+        ("Confidence", "Lift"),
+        horizontal=True,
+        help="Confidence directly shows how often the consequent appears when the antecedent is present.",
+    )
+    rainy_trend = get_pair_timeline(
+        orders, daily_orders, *selected_pair, "Rainy"
+    ).rename(columns={trend_metric.lower(): "Rainy"})
+    dry_trend = get_pair_timeline(
+        orders, daily_orders, *selected_pair, "Dry"
+    ).rename(columns={trend_metric.lower(): "Dry"})
+    trend = rainy_trend[["date", "Rainy"]].merge(
+        dry_trend[["date", "Dry"]], on="date", how="outer"
+    ).set_index("date")
+    if trend.dropna(how="all").empty:
+        st.info("Not enough antecedent orders in any 14-day window to show this pair.")
+        return
+    st.line_chart(
+        trend,
+        x_label="Window end date",
+        y_label="Confidence" if trend_metric == "Confidence" else "Lift",
+        color=["#c24170", "#274c77"],
+    )
+    st.caption(
+        "Each point uses a rolling 14-day calendar window and is hidden unless the segment contains "
+        "at least 20 antecedent orders. Empty stretches indicate insufficient evidence, not zero lift."
+    )
 
 def main() -> None:
     st.markdown(
