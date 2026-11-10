@@ -28,6 +28,15 @@ from dashboard.analytics import (
 WEATHER_OPTIONS = ("Dry", "Rainy", "Hot")
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 FORECAST_MODEL = "Ridge"
+MODEL_SELECTION_MODELS = (
+    "SARIMAX",
+    "Negative Binomial",
+    "Poisson",
+    "Ridge",
+    "Random Forest",
+    "XGBoost",
+    "Seasonal naive",
+)
 OVERVIEW_PROJECT_SUMMARY = (
     "This capstone studies how Coimbatore weather affects both restaurant order volume and menu combinations. "
     "It combines 1,097 days of real Open-Meteo weather with synthetic orders calibrated from local restaurant "
@@ -35,6 +44,11 @@ OVERVIEW_PROJECT_SUMMARY = (
     "models (Unit 2), and rolling time-series forecasts plus weather-segmented association rules (Unit 3). "
     "Because order baskets are generated, the menu results demonstrate recovery of known generator patterns; "
     "they are not evidence of real customer purchasing behaviour."
+)
+OVERVIEW_FINDINGS = (
+    ("Full-year rolling-origin evaluation", "365 days"),
+    ("Ridge reference MAE (orders/day)", "15.08"),
+    ("MAE increase without weather", "22.4 orders/day"),
 )
 
 st.set_page_config(
@@ -48,6 +62,32 @@ st.set_page_config(
 @st.cache_data(show_spinner="Loading Coimbatore order and weather data...")
 def load_data():
     return load_dashboard_data(ROOT)
+
+
+@st.cache_data(show_spinner=False)
+def load_model_selection_results() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load the saved rolling-origin predictions and full-year model metrics."""
+    forecast_path = ROOT / "results" / "selection_backtest_forecasts.csv"
+    metrics_path = ROOT / "results" / "selection_metrics.csv"
+    forecasts = pd.read_csv(forecast_path, parse_dates=["date"])
+    metrics = pd.read_csv(metrics_path, index_col=0)
+    if "date" not in forecasts:
+        raise ValueError("Saved model-selection forecasts are missing the date column.")
+    if forecasts["date"].isna().any() or forecasts["date"].duplicated().any():
+        raise ValueError("Saved model-selection forecasts must have one valid row per date.")
+    missing_forecasts = set(MODEL_SELECTION_MODELS) - set(forecasts.columns)
+    if missing_forecasts:
+        raise ValueError(f"Saved forecasts are missing models: {sorted(missing_forecasts)}")
+    required_metrics = {"MAE", "delta_MAE", "dm_p_holm", "ci_low", "ci_high"}
+    missing_metrics = required_metrics - set(metrics.columns)
+    if missing_metrics:
+        raise ValueError(f"Saved model metrics are missing columns: {sorted(missing_metrics)}")
+    missing_models = set(MODEL_SELECTION_MODELS) - set(metrics.index.astype(str))
+    if missing_models:
+        raise ValueError(f"Saved metrics are missing models: {sorted(missing_models)}")
+    metrics.index = metrics.index.astype(str)
+    forecasts = forecasts.sort_values("date").reset_index(drop=True)
+    return forecasts, metrics
 
 
 @st.cache_data(show_spinner="Training chronological holdout models...")
@@ -244,6 +284,132 @@ def select_holdout_models(
     return comparison.loc[comparison["Model"].isin(selected_models)].reset_index(drop=True)
 
 
+def model_selection_summary(metrics: pd.DataFrame) -> pd.DataFrame:
+    """Rank saved model-selection metrics and explain each result against Ridge."""
+    missing_columns = {"MAE", "dm_p_holm", "ci_low", "ci_high"} - set(metrics.columns)
+    if missing_columns:
+        raise ValueError(f"Model-selection metrics are missing columns: {sorted(missing_columns)}")
+    missing_models = set(MODEL_SELECTION_MODELS) - set(metrics.index.astype(str))
+    if missing_models:
+        raise ValueError(f"Model-selection metrics are missing models: {sorted(missing_models)}")
+
+    ranked = metrics.copy()
+    ranked.index = ranked.index.astype(str)
+    ranked = ranked.loc[list(MODEL_SELECTION_MODELS)].copy()
+    ridge_mae = float(ranked.loc[FORECAST_MODEL, "MAE"])
+    ranked["MAE gap"] = ranked["MAE"] - ridge_mae
+
+    def result_label(model: str, row: pd.Series) -> str:
+        if model == FORECAST_MODEL:
+            return "Selected incumbent"
+        gap = float(row["MAE gap"])
+        p_value = float(row["dm_p_holm"])
+        ci_low, ci_high = float(row["ci_low"]), float(row["ci_high"])
+        if ci_low <= 0 <= ci_high and p_value >= 0.05:
+            return "Statistically tied with Ridge"
+        if gap > 0 and p_value < 0.05:
+            return "Significantly worse than Ridge"
+        if gap > 0:
+            return "Higher MAE; not significant after correction"
+        if gap < 0 and p_value < 0.05 and ci_high < 0:
+            return "Significantly better than Ridge"
+        return "Lower MAE; not significant"
+
+    ranked["Result"] = [
+        result_label(model, row)
+        for model, row in ranked.iterrows()
+    ]
+    return ranked.sort_values("MAE").rename_axis("Model").reset_index()
+
+
+def model_selection_view() -> None:
+    st.subheader("Full-year model selection")
+    try:
+        forecasts, metrics = load_model_selection_results()
+        comparison = model_selection_summary(metrics)
+    except (OSError, ValueError, pd.errors.ParserError) as error:
+        st.error(f"Could not load the saved full-year model-selection results: {error}")
+        return
+
+    start_date = forecasts["date"].min()
+    end_date = forecasts["date"].max()
+    selected_row = comparison.loc[comparison["Model"] == FORECAST_MODEL].iloc[0]
+    best_row = comparison.iloc[0]
+    summary = st.columns(3)
+    summary[0].metric("Evaluation period", f"{len(forecasts):,} days")
+    summary[1].metric("Lowest recorded MAE", f"{best_row['MAE']:.2f}", delta=str(best_row["Model"]))
+    summary[2].metric("Selected model", FORECAST_MODEL, delta=f"MAE {selected_row['MAE']:.2f}")
+    st.caption(
+        f"Rolling-origin evaluation on saved results from {start_date:%d %b %Y} "
+        f"to {end_date:%d %b %Y}. Lower MAE indicates smaller average daily error."
+    )
+
+    palette = {
+        "Selected incumbent": "#c24170",
+        "Statistically tied with Ridge": "#2d7f79",
+        "Higher MAE; not significant after correction": "#d18727",
+        "Significantly worse than Ridge": "#b94a48",
+        "Significantly better than Ridge": "#2d7f79",
+        "Lower MAE; not significant": "#7a8a99",
+    }
+    chart = (
+        alt.Chart(comparison)
+        .mark_bar(cornerRadiusEnd=4)
+        .encode(
+            x=alt.X("MAE:Q", title="Mean absolute error (orders/day)"),
+            y=alt.Y("Model:N", title=None, sort=alt.SortField(field="MAE", order="ascending")),
+            color=alt.Color(
+                "Result:N",
+                title="Selection result",
+                scale=alt.Scale(domain=list(palette), range=list(palette.values())),
+            ),
+            tooltip=[
+                alt.Tooltip("Model:N", title="Model"),
+                alt.Tooltip("MAE:Q", title="MAE", format=".2f"),
+                alt.Tooltip("MAE gap:Q", title="MAE gap vs Ridge", format="+.2f"),
+                alt.Tooltip("Result:N", title="Result"),
+            ],
+        )
+        .properties(height=280)
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+    table = comparison[
+        ["Model", "MAE", "MAE gap", "dm_p_holm", "ci_low", "ci_high", "Result"]
+    ].copy()
+    table = table.rename(
+        columns={
+            "MAE gap": "MAE gap vs Ridge",
+            "dm_p_holm": "Holm-adjusted p",
+            "ci_low": "95% CI low",
+            "ci_high": "95% CI high",
+        }
+    )
+    table["MAE"] = table["MAE"].map(lambda value: f"{value:.2f}")
+    table["MAE gap vs Ridge"] = table["MAE gap vs Ridge"].map(
+        lambda value: "—" if abs(value) < 0.0005 else f"{value:+.2f}"
+    )
+    table["Holm-adjusted p"] = table["Holm-adjusted p"].map(
+        lambda value: "—" if pd.isna(value) else ("<0.001" if value < 0.001 else f"{value:.3f}")
+    )
+    for column in ("95% CI low", "95% CI high"):
+        table[column] = table[column].map(
+            lambda value: "—" if pd.isna(value) else f"{value:+.2f}"
+        )
+    st.dataframe(table, hide_index=True, use_container_width=True)
+    st.info(
+        "SARIMAX has the lowest recorded MAE, but its advantage over Ridge is only "
+        f"{abs(float(best_row['MAE']) - float(selected_row['MAE'])):.2f} orders/day and is not "
+        "statistically significant after Holm correction. Ridge remains the selected incumbent; "
+        "no challenger met the pre-defined replacement rule."
+    )
+    st.caption(
+        "Statistical ties are identified when the Holm-adjusted Diebold–Mariano p-value is at least "
+        "0.05 and the 95% confidence interval for the MAE gap includes zero. This comparison uses "
+        "the saved one-year backtest; upcoming forecasts continue to use Ridge."
+    )
+
+
 def overview_view(daily: pd.DataFrame) -> None:
     st.header("Demand overview")
     st.caption(
@@ -252,6 +418,15 @@ def overview_view(daily: pd.DataFrame) -> None:
     with st.container(border=True):
         st.markdown("**About this capstone**")
         st.write(OVERVIEW_PROJECT_SUMMARY)
+    st.subheader("What the full-year evaluation found")
+    finding_columns = st.columns(len(OVERVIEW_FINDINGS))
+    for column, (label, value) in zip(finding_columns, OVERVIEW_FINDINGS):
+        column.metric(label, value)
+    st.caption(
+        "Project-wide results: a rolling-origin evaluation used observed same-day weather, so its "
+        "accuracy is optimistic for live use. Orders are synthetic; these results measure recovery "
+        "of the documented generator patterns, not guaranteed restaurant performance."
+    )
     period = st.selectbox(
         "Time period",
         ("All history", "Last 12 months", "Last 90 days"),
@@ -1107,10 +1282,13 @@ def forecast_view(daily: pd.DataFrame) -> None:
     st.header("Order forecast")
     forecast_mode = st.radio(
         "Forecast type",
-        ("Upcoming dates", "Historical holdout evaluation"),
+        ("Upcoming dates", "Historical holdout evaluation", "Full-year model selection"),
         horizontal=True,
         key="forecast_mode",
     )
+    if forecast_mode == "Full-year model selection":
+        model_selection_view()
+        return
     selected_weather = st.multiselect(
         "Weather filter",
         WEATHER_OPTIONS,
@@ -1193,7 +1371,7 @@ def forecast_view(daily: pd.DataFrame) -> None:
         forecast_chart(timeline, [(FORECAST_MODEL, FORECAST_MODEL)])
         bridge_days = max(0, (start_date - last_order_date.date()).days - 1)
         st.caption(
-            f"Ridge, the project's best-performing model, is projected recursively. "
+            f"Ridge, the project's selected model, is projected recursively. "
             f"There are {bridge_days} intervening days "
             "between the last observed order date and the requested range; those order counts are "
             "estimates fed back into the lag features, so forecast uncertainty increases with distance. "
