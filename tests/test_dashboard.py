@@ -11,6 +11,8 @@ from dashboard.analytics import (
 )
 from dashboard.app import (
     MODEL_SELECTION_MODELS,
+    filter_daily_dataset_sample,
+    filter_order_baskets_sample,
     filter_overview_period,
     forecast_weather_label,
     holdout_model_comparison,
@@ -410,3 +412,70 @@ def test_weather_extension_fills_missing_api_values_from_historical_month(
     pongal = extension.loc[extension["date"] == pd.Timestamp("2025-01-14")].iloc[0]
     assert pongal["festival_name"] == "Pongal"
     assert pongal["is_festival"] == 1
+
+
+def test_filter_daily_dataset_sample_returns_slices():
+    daily_orders = pd.DataFrame({
+        "date": pd.date_range("2024-01-01", periods=10, freq="D"),
+        "precip_mm": [0.0, 20.0, 0.0, 18.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "temp_max_c": [30.0, 25.0, 36.0, 26.0, 35.0, 31.0, 30.0, 30.0, 30.0, 30.0],
+        "is_rainy": [0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+        "is_festival": [0, 0, 1, 0, 0, 1, 0, 0, 0, 0],
+        "is_weekend": [0, 0, 0, 0, 0, 0, 1, 1, 0, 0],
+        "order_count": [100, 150, 120, 140, 110, 105, 250, 230, 95, 102],
+    })
+
+    monsoon = filter_daily_dataset_sample(daily_orders, "monsoon", sample_size=5)
+    assert len(monsoon) == 2
+    assert (monsoon["precip_mm"] >= 15.0).all()
+
+    heat = filter_daily_dataset_sample(daily_orders, "heat", sample_size=5)
+    assert len(heat) == 2
+    assert (heat["temp_max_c"] >= 34.0).all()
+
+    festival = filter_daily_dataset_sample(daily_orders, "festival", sample_size=5)
+    assert len(festival) == 2
+
+    weekend_peak = filter_daily_dataset_sample(daily_orders, "weekend_peak", sample_size=1)
+    assert len(weekend_peak) == 1
+    assert weekend_peak.iloc[0]["order_count"] == 250
+
+    head_sample = filter_daily_dataset_sample(daily_orders, "head", sample_size=3)
+    assert len(head_sample) == 3
+    assert head_sample.iloc[0]["date"] == pd.Timestamp("2024-01-01")
+
+    tail_sample = filter_daily_dataset_sample(daily_orders, "tail", sample_size=3)
+    assert len(tail_sample) == 3
+    assert tail_sample.iloc[-1]["date"] == pd.Timestamp("2024-01-10")
+
+    random_sample = filter_daily_dataset_sample(daily_orders, "random", sample_size=4)
+    assert len(random_sample) == 4
+
+
+def test_filter_order_baskets_sample_filters_slot_and_search():
+    orders = pd.DataFrame({
+        "order_id": [1, 2, 3, 4],
+        "meal_slot": ["Lunch", "Dinner", "Lunch", "Evening Snacks"],
+        "items": [
+            "Chicken Biryani; Kozhi Milagu Soup",
+            "Mutton Biryani; Parotta",
+            "Veg Meals; Curd",
+            "Chai; Onion Pakora",
+        ],
+        "item_count": [2, 2, 2, 2],
+        "order_value": [350.0, 420.0, 150.0, 70.0],
+    })
+
+    lunch_orders = filter_order_baskets_sample(orders, meal_slot="Lunch")
+    assert len(lunch_orders) == 2
+    assert (lunch_orders["meal_slot"] == "Lunch").all()
+
+    biryani_orders = filter_order_baskets_sample(orders, search_dish="Biryani")
+    assert len(biryani_orders) == 2
+
+    pakora_lunch = filter_order_baskets_sample(orders, meal_slot="Lunch", search_dish="Pakora")
+    assert len(pakora_lunch) == 0
+
+    pakora_snack = filter_order_baskets_sample(orders, meal_slot="Evening Snacks", search_dish="Pakora")
+    assert len(pakora_snack) == 1
+

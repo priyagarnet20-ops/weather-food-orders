@@ -589,6 +589,52 @@ def overview_view(daily: pd.DataFrame) -> None:
         )
 
 
+def filter_daily_dataset_sample(
+    daily_orders: pd.DataFrame, slice_type: str, sample_size: int = 15, seed: int = 42
+) -> pd.DataFrame:
+    """Return a curated sample of daily orders based on the selected slice."""
+    if daily_orders.empty:
+        return pd.DataFrame()
+    df = daily_orders.copy()
+    if slice_type == "monsoon":
+        view = df.loc[df["precip_mm"] >= 15.0]
+    elif slice_type == "heat":
+        view = df.loc[(df["temp_max_c"] >= 34.0) & (~df["is_rainy"].astype(bool))]
+    elif slice_type == "festival":
+        view = df.loc[df["is_festival"].astype(bool)]
+    elif slice_type == "weekend_peak":
+        view = df.loc[df["is_weekend"].astype(bool)].sort_values("order_count", ascending=False)
+    elif slice_type == "head":
+        return df.head(sample_size)
+    elif slice_type == "tail":
+        return df.tail(sample_size)
+    else:  # representative random sample
+        return df.sample(n=min(sample_size, len(df)), random_state=seed).sort_values("date")
+
+    if view.empty:
+        return df.head(sample_size)
+    return view.head(sample_size)
+
+
+def filter_order_baskets_sample(
+    orders: pd.DataFrame,
+    meal_slot: str = "All meal slots",
+    search_dish: str = "",
+    sample_size: int = 15,
+) -> pd.DataFrame:
+    """Filter granular customer order tickets by meal slot and dish name."""
+    if orders.empty:
+        return pd.DataFrame()
+    view = orders
+    if meal_slot != "All meal slots":
+        view = view.loc[view["meal_slot"] == meal_slot]
+    if search_dish.strip():
+        view = view.loc[
+            view["items"].astype(str).str.contains(search_dish.strip(), case=False, na=False)
+        ]
+    return view.head(sample_size)
+
+
 def dataset_view(
     daily: pd.DataFrame,
     orders: pd.DataFrame,
@@ -669,6 +715,330 @@ def dataset_view(
         ]
     )
     st.dataframe(inventory, hide_index=True, use_container_width=True)
+
+    st.subheader("Interactive dataset visualizations")
+    st.caption("Interact with dynamic charts exploring demand trends, weather interactions, and meal-slot ticket structures.")
+
+    viz_choice = st.radio(
+        "Select visualization view:",
+        (
+            "📈 3-Year demand & weather timeline",
+            "🌦️ Weather vs. demand dynamics",
+            "🍱 Meal-slot volume & basket values",
+        ),
+        horizontal=True,
+        key="dataset_viz_choice",
+    )
+
+    timeline_data = daily_orders.copy()
+    timeline_data["date"] = pd.to_datetime(timeline_data["date"])
+    timeline_data["dow_name"] = timeline_data["dow"].apply(
+        lambda d: WEEKDAYS[int(d)] if pd.notna(d) and int(d) < len(WEEKDAYS) else ""
+    )
+    timeline_data["day_type"] = timeline_data["is_weekend"].map(
+        {1: "Weekend (Fri–Sun)", 0: "Weekday (Mon–Thu)", True: "Weekend (Fri–Sun)", False: "Weekday (Mon–Thu)"}
+    )
+    timeline_data["regime_label"] = (
+        timeline_data["regime"]
+        .astype(str)
+        .str.title()
+        .replace({"Rainy": "Rainy (≥ 2.5 mm)", "Hot": "Heatwave (≥ 33 °C)", "Normal": "Normal / Pleasant"})
+    )
+
+    if "timeline" in viz_choice:
+        period_col, overlay_col = st.columns([1.2, 1.2])
+        with period_col:
+            timeline_period = st.selectbox(
+                "Filter timeline window:",
+                ("All 3 years (1,097 days)", "Past 12 months", "Monsoon season (Oct–Dec)", "Peak summer (Mar–May)"),
+                key="dataset_timeline_period",
+            )
+        with overlay_col:
+            weather_metric = st.radio(
+                "Weather overlay metric:",
+                ("Precipitation (mm)", "Max temperature (°C)"),
+                horizontal=True,
+                key="dataset_timeline_overlay",
+            )
+
+        chart_df = timeline_data.sort_values("date").copy()
+        if timeline_period == "Past 12 months":
+            chart_df = chart_df.tail(365)
+        elif timeline_period == "Monsoon season (Oct–Dec)":
+            chart_df = chart_df.loc[chart_df["date"].dt.month.isin([10, 11, 12])]
+        elif timeline_period == "Peak summer (Mar–May)":
+            chart_df = chart_df.loc[chart_df["date"].dt.month.isin([3, 4, 5])]
+
+        base = alt.Chart(chart_df).encode(x=alt.X("date:T", title="Date"))
+        line_orders = base.mark_line(color="#84265b", strokeWidth=1.5).encode(
+            y=alt.Y("order_count:Q", title="Daily Orders"),
+            tooltip=[
+                alt.Tooltip("date:T", title="Date", format="%Y-%m-%d"),
+                alt.Tooltip("dow_name:N", title="Day of week"),
+                alt.Tooltip("order_count:Q", title="Observed Orders"),
+                alt.Tooltip("expected_orders:Q", title="Expected (μ)", format=".1f"),
+                alt.Tooltip("regime_label:N", title="Weather Regime"),
+                alt.Tooltip("precip_mm:Q", title="Precipitation (mm)", format=".1f"),
+                alt.Tooltip("temp_max_c:Q", title="Max Temp (°C)", format=".1f"),
+                alt.Tooltip("festival_name:N", title="Festival"),
+            ],
+        )
+        points_regime = base.mark_circle(size=25, opacity=0.7).encode(
+            y=alt.Y("order_count:Q"),
+            color=alt.Color(
+                "regime_label:N",
+                title="Weather regime",
+                scale=alt.Scale(
+                    domain=["Rainy (≥ 2.5 mm)", "Heatwave (≥ 33 °C)", "Normal / Pleasant"],
+                    range=["#1f77b4", "#ff7f0e", "#9e9e9e"],
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip("date:T", title="Date", format="%Y-%m-%d"),
+                alt.Tooltip("dow_name:N", title="Day"),
+                alt.Tooltip("order_count:Q", title="Orders"),
+                alt.Tooltip("regime_label:N", title="Regime"),
+                alt.Tooltip("precip_mm:Q", title="Rain (mm)", format=".1f"),
+            ],
+        )
+
+        if "Precipitation" in weather_metric:
+            weather_layer = base.mark_bar(opacity=0.35, color="#2b7cb6").encode(
+                y=alt.Y("precip_mm:Q", title="Precipitation (mm)", axis=alt.Axis(orient="right")),
+            )
+        else:
+            weather_layer = base.mark_line(opacity=0.45, color="#d95f02", strokeDash=[3, 3]).encode(
+                y=alt.Y("temp_max_c:Q", title="Max Temperature (°C)", scale=alt.Scale(zero=False), axis=alt.Axis(orient="right")),
+            )
+
+        dual_chart = alt.layer(weather_layer, line_orders + points_regime).resolve_scale(y="independent").properties(height=340)
+        st.altair_chart(dual_chart, use_container_width=True)
+        st.caption("Hover over points to inspect individual dates, rainfall spikes, and festival demand adjustments.")
+
+    elif "Weather vs. demand" in viz_choice:
+        scatter_x_choice = st.radio(
+            "Select X-axis telemetry metric:",
+            ("Precipitation (mm)", "Max temperature (°C)", "Relative humidity (%)"),
+            horizontal=True,
+            key="dataset_scatter_x",
+        )
+        x_col = "precip_mm" if "Precipitation" in scatter_x_choice else ("temp_max_c" if "temperature" in scatter_x_choice else "humidity_mean_pct")
+        x_title = "Precipitation (mm)" if "Precipitation" in scatter_x_choice else ("Max Temperature (°C)" if "temperature" in scatter_x_choice else "Mean Relative Humidity (%)")
+
+        scatter_chart = (
+            alt.Chart(timeline_data)
+            .mark_circle(size=50, opacity=0.7)
+            .encode(
+                x=alt.X(f"{x_col}:Q", title=x_title),
+                y=alt.Y("order_count:Q", title="Daily Orders"),
+                color=alt.Color(
+                    "day_type:N",
+                    title="Day type",
+                    scale=alt.Scale(domain=["Weekday (Mon–Thu)", "Weekend (Fri–Sun)"], range=["#84265b", "#2b7cb6"]),
+                ),
+                tooltip=[
+                    alt.Tooltip("date:T", title="Date", format="%Y-%m-%d"),
+                    alt.Tooltip("dow_name:N", title="Day of week"),
+                    alt.Tooltip("order_count:Q", title="Orders"),
+                    alt.Tooltip("day_type:N", title="Day type"),
+                    alt.Tooltip(f"{x_col}:Q", title=x_title, format=".1f"),
+                    alt.Tooltip("regime_label:N", title="Weather Regime"),
+                ],
+            )
+            .properties(height=340)
+        )
+        st.altair_chart(scatter_chart, use_container_width=True)
+        st.info(
+            "💡 **Key Econometric Pattern:** On working weekdays (purple dots), rainfall triggers a **+56% delivery surge** "
+            "as customers stay indoors and order meals. Conversely, on weekends (blue dots), rainfall produces a **−46% suppression** "
+            "because weekend dine-out trips, shopping outings, and social gatherings are cancelled."
+        )
+
+    else:  # Meal-slot volume & basket values
+        if not orders.empty:
+            meal_agg = (
+                orders.groupby("meal_slot")
+                .agg(
+                    total_orders=("order_id", "count"),
+                    avg_basket_value=("order_value", "mean"),
+                    avg_items=("item_count", "mean"),
+                )
+                .reset_index()
+            )
+            slot_col1, slot_col2 = st.columns(2)
+            with slot_col1:
+                bar_orders = (
+                    alt.Chart(meal_agg)
+                    .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#84265b")
+                    .encode(
+                        x=alt.X("meal_slot:N", title="Meal slot", sort=["Lunch", "Dinner", "Evening Snacks"]),
+                        y=alt.Y("total_orders:Q", title="Total 3-Year Orders"),
+                        tooltip=[
+                            alt.Tooltip("meal_slot:N", title="Meal Slot"),
+                            alt.Tooltip("total_orders:Q", title="Orders", format=","),
+                            alt.Tooltip("avg_basket_value:Q", title="Avg Value (₹)", format=".1f"),
+                        ],
+                    )
+                    .properties(height=260)
+                )
+                st.altair_chart(bar_orders, use_container_width=True)
+            with slot_col2:
+                bar_val = (
+                    alt.Chart(meal_agg)
+                    .mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5, color="#2b7cb6")
+                    .encode(
+                        x=alt.X("meal_slot:N", title="Meal slot", sort=["Lunch", "Dinner", "Evening Snacks"]),
+                        y=alt.Y("avg_basket_value:Q", title="Average Order Value (₹)"),
+                        tooltip=[
+                            alt.Tooltip("meal_slot:N", title="Meal Slot"),
+                            alt.Tooltip("avg_basket_value:Q", title="Avg Value (₹)", format=".1f"),
+                            alt.Tooltip("avg_items:Q", title="Avg Items/Basket", format=".2f"),
+                        ],
+                    )
+                    .properties(height=260)
+                )
+                st.altair_chart(bar_val, use_container_width=True)
+            st.caption("Lunch represents 73.6% of overall order volume, closely aligned with real Swiggy partner records.")
+
+    st.subheader("Sample dataset inspection tables")
+    st.caption("Inspect live sample rows from both the daily aggregated dataset and the granular customer order tickets.")
+
+    tab_daily, tab_baskets, tab_real = st.tabs(
+        ["📅 Daily order records (1,097 days)", "🛍️ Granular customer tickets (182,696 orders)", "🏪 Real Swiggy POS baseline"]
+    )
+
+    with tab_daily:
+        slice_label = st.selectbox(
+            "Select daily records slice to inspect:",
+            (
+                "Representative random sample (15 days)",
+                "Monsoon & heavy rainfall days (precip ≥ 15 mm)",
+                "Extreme summer heat days (temp ≥ 34 °C)",
+                "Tamil Nadu festival days (Deepavali, Pongal, etc.)",
+                "Peak demand weekend days (highest order counts)",
+                "Earliest records (first 15 days)",
+                "Latest records (last 15 days)",
+            ),
+            key="dataset_daily_slice",
+        )
+        slice_map = {
+            "Representative random sample (15 days)": "random",
+            "Monsoon & heavy rainfall days (precip ≥ 15 mm)": "monsoon",
+            "Extreme summer heat days (temp ≥ 34 °C)": "heat",
+            "Tamil Nadu festival days (Deepavali, Pongal, etc.)": "festival",
+            "Peak demand weekend days (highest order counts)": "weekend_peak",
+            "Earliest records (first 15 days)": "head",
+            "Latest records (last 15 days)": "tail",
+        }
+        sampled_daily = filter_daily_dataset_sample(daily_orders, slice_map[slice_label], sample_size=15)
+        display_daily = sampled_daily.copy()
+        if "dow" in display_daily.columns:
+            display_daily["dow"] = display_daily["dow"].apply(
+                lambda d: WEEKDAYS[int(d)] if pd.notna(d) and int(d) < len(WEEKDAYS) else d
+            )
+
+        rename_cols = {
+            "date": "Date",
+            "dow": "Day",
+            "order_count": "Orders",
+            "expected_orders": "Expected (μ)",
+            "precip_mm": "Precip (mm)",
+            "temp_max_c": "Max Temp (°C)",
+            "humidity_mean_pct": "Humidity (%)",
+            "regime": "Regime",
+            "festival_name": "Festival",
+            "mult_weekend": "Weekend Mult",
+            "mult_rain": "Rain Mult",
+        }
+        avail_cols = [c for c in rename_cols.keys() if c in display_daily.columns]
+        table_view = display_daily[avail_cols].rename(columns=rename_cols).copy()
+        if "Expected (μ)" in table_view.columns:
+            table_view["Expected (μ)"] = table_view["Expected (μ)"].map(lambda v: f"{v:.1f}")
+        if "Precip (mm)" in table_view.columns:
+            table_view["Precip (mm)"] = table_view["Precip (mm)"].map(lambda v: f"{v:.1f}")
+        if "Max Temp (°C)" in table_view.columns:
+            table_view["Max Temp (°C)"] = table_view["Max Temp (°C)"].map(lambda v: f"{v:.1f}")
+        if "Humidity (%)" in table_view.columns:
+            table_view["Humidity (%)"] = table_view["Humidity (%)"].map(lambda v: f"{v:.1f}")
+        if "Festival" in table_view.columns:
+            table_view["Festival"] = table_view["Festival"].fillna("—")
+
+        st.dataframe(table_view, use_container_width=True, hide_index=True)
+        with st.expander("📖 Daily dataset column dictionary & data types", expanded=False):
+            dict_df = pd.DataFrame(
+                [
+                    {"Column": "date", "Type": "Date", "Description": "Calendar date (YYYY-MM-DD) from 2023-09-24 to 2026-09-24."},
+                    {"Column": "order_count", "Type": "Integer", "Description": "Observed restaurant order volume drawn from Negative Binomial distribution."},
+                    {"Column": "expected_orders", "Type": "Float", "Description": "Theoretical expected mean (μ_t) based on base volume and calibrated multipliers."},
+                    {"Column": "precip_mm", "Type": "Float", "Description": "Daily cumulative precipitation (mm) from Open-Meteo physical reanalysis."},
+                    {"Column": "temp_max_c", "Type": "Float", "Description": "Maximum daily dry-bulb air temperature (°C)."},
+                    {"Column": "regime", "Type": "String", "Description": "Meteorological regime classification: 'rainy', 'hot', or 'normal'."},
+                    {"Column": "festival_name", "Type": "String", "Description": "Official Tamil Nadu / Coimbatore public festival name (if applicable)."},
+                    {"Column": "mult_rain", "Type": "Float", "Description": "Empirically calibrated weather multiplier (1.56 weekday, 0.54 weekend, 1.00 dry)."},
+                    {"Column": "mult_weekend", "Type": "Float", "Description": "Weekend multiplier (2.47 for Friday–Sunday, 1.00 for Monday–Thursday)."},
+                ]
+            )
+            st.dataframe(dict_df, use_container_width=True, hide_index=True)
+
+    with tab_baskets:
+        f_col1, f_col2, f_col3 = st.columns([1.2, 1.2, 0.8])
+        with f_col1:
+            b_slot = st.selectbox(
+                "Filter meal slot:",
+                ("All meal slots", "Lunch", "Dinner", "Evening Snacks"),
+                key="dataset_baskets_slot",
+            )
+        with f_col2:
+            b_search = st.text_input(
+                "Search item in basket:",
+                "",
+                placeholder="e.g. Biryani, Milagu Soup, Chai, Pakora...",
+                key="dataset_baskets_search",
+            )
+        with f_col3:
+            b_size = st.selectbox("Sample rows:", (10, 20, 50), index=0, key="dataset_baskets_size")
+
+        sampled_baskets = filter_order_baskets_sample(
+            orders, meal_slot=b_slot, search_dish=b_search, sample_size=b_size
+        )
+        if sampled_baskets.empty:
+            st.info("No customer tickets found matching the selected filters.")
+        else:
+            rename_orders = {
+                "order_id": "Order ID",
+                "date": "Date",
+                "timestamp": "Timestamp",
+                "meal_slot": "Meal Slot",
+                "items": "Basket Dishes (semicolon-delimited)",
+                "item_count": "Items Count",
+                "order_value": "Order Value (₹)",
+            }
+            order_cols = [c for c in rename_orders.keys() if c in sampled_baskets.columns]
+            orders_view = sampled_baskets[order_cols].rename(columns=rename_orders).copy()
+            if "Order Value (₹)" in orders_view.columns:
+                orders_view["Order Value (₹)"] = orders_view["Order Value (₹)"].map(lambda v: f"₹{v:.1f}")
+            st.dataframe(orders_view, use_container_width=True, hide_index=True)
+            st.caption(
+                "💡 **Transaction Basket Schema:** In `orders.csv`, each customer dining ticket has a semicolon-delimited "
+                "`items` string. This exact transaction representation enables Apriori and Association Rule Mining (ARM) "
+                "to discover co-ordered items and weather-conditioned cross-sell pairings."
+            )
+
+    with tab_real:
+        st.markdown("**Empirical Swiggy POS export from Hotel Chinthamani (Coimbatore):**")
+        prov_data_sample = ROOT / "data" / "real" / "chinthamani_orders.csv"
+        prov_items_sample = ROOT / "data" / "real" / "chinthamani_items.csv"
+        if prov_data_sample.exists():
+            real_orders_df = pd.read_csv(prov_data_sample).head(10)
+            st.dataframe(real_orders_df, use_container_width=True, hide_index=True)
+            st.caption(
+                f"Showing first 10 rows of {prov_data_sample.name}. These 464 real delivered orders provided the empirical "
+                "GLM coefficients, time-of-day distribution, and basket size baseline."
+            )
+        if prov_items_sample.exists():
+            st.markdown("**Real Chinthamani item lines (`chinthamani_items.csv`):**")
+            real_items_df = pd.read_csv(prov_items_sample).head(10)
+            st.dataframe(real_items_df, use_container_width=True, hide_index=True)
 
     st.subheader("Download dataset files")
     st.caption("Download the CSV files used by the dashboard.")
